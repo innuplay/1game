@@ -317,6 +317,33 @@ local placeUpTimer = 0
 local standProgress = 0
 local currentMoveVector = Vector3.zero
 
+-- Состояние поворота на месте с естественным переступанием лапками
+local turnStepTimer = 0
+local turnWeight = 0
+local isTurningInPlace = false
+local currentTurnDir = 1
+local lastTargetAngleDiff = 0
+
+-- Определение точки взгляда мышки в 3D мире
+local function getMouseWorldPosition(cam)
+    local mouseLoc = UserInputService:GetMouseLocation()
+    local unitRay = cam:ViewportPointToRay(mouseLoc.X, mouseLoc.Y)
+
+    local mouseHit = workspace:Raycast(unitRay.Origin, unitRay.Direction * 400, groundRayParams)
+    if mouseHit then
+        return mouseHit.Position
+    end
+
+    if math.abs(unitRay.Direction.Y) > 0.001 then
+        local planeY = rootPart.Position.Y
+        local t = (planeY - unitRay.Origin.Y) / unitRay.Direction.Y
+        if t > 0 then
+            return unitRay.Origin + unitRay.Direction * t
+        end
+    end
+    return nil
+end
+
 RunService.RenderStepped:Connect(function(dt)
     local camera = workspace.CurrentCamera
     if not camera then return end
@@ -368,26 +395,78 @@ RunService.RenderStepped:Connect(function(dt)
     local isActuallyWalking = currentMoveVector.Magnitude > 0.04
 
     local targetLookPos = character:GetAttribute("TargetLookPos")
+    local testAim = character:GetAttribute("TestAimPos")
     local hasTarget = typeof(targetLookPos) == "Vector3"
+    local mouseWorldPos = testAim or getMouseWorldPosition(camera)
+
+    -- Целевая точка взгляда котика:
+    -- 1. Если ломает/строит конкретный блок — смотрим строго на этот блок
+    -- 2. В обычном режиме — смотрим строго в точку мира, куда указывает мышка игрока
+    local aimTargetPos = (isInteracting and hasTarget and targetLookPos) or mouseWorldPos or targetLookPos
 
     -- Поворот тела котика:
-    -- 1. При взаимодействии (копает / строит) — ВСЕГДА строго поворачиваемся к блоку
-    -- 2. При беге по карте — поворачиваемся по направлению ходьбы
-    -- 3. На месте при наведении мыши — котик плавно и естественно поворачивается лицом к блоку
-    if isInteracting and hasTarget then
-        local delta = targetLookPos - rootPart.Position
+    -- 1. При взаимодействии (копает / строит) — смотрим на блок
+    -- 2. При беге по карте — смотрим по направлению ходьбы
+    -- 3. На месте при наведении мыши — поворачиваемся переступая лапками
+    local angleDiff = 0
+    local absAngle = 0
+
+    if isInteracting and aimTargetPos then
+        local delta = aimTargetPos - rootPart.Position
         local horiz = Vector3.new(delta.X, 0, delta.Z)
-        if horiz.Magnitude > 0.3 then
+        if horiz.Magnitude > 0.25 then
+            alignOrient.MaxAngularVelocity = 25
             alignOrient.CFrame = CFrame.lookAlong(Vector3.zero, horiz.Unit)
         end
+        isTurningInPlace = false
     elseif isMoving then
+        alignOrient.MaxAngularVelocity = 25
         alignOrient.CFrame = CFrame.lookAlong(Vector3.zero, currentMoveVector.Unit)
-    elseif hasTarget then
-        local delta = targetLookPos - rootPart.Position
+        isTurningInPlace = false
+    elseif aimTargetPos then
+        local delta = aimTargetPos - rootPart.Position
         local horiz = Vector3.new(delta.X, 0, delta.Z)
-        if horiz.Magnitude > 0.6 then
-            alignOrient.CFrame = CFrame.lookAlong(Vector3.zero, horiz.Unit)
+        if horiz.Magnitude > 0.45 then
+            local targetDir = horiz.Unit
+            local localDir = rootPart.CFrame:VectorToObjectSpace(targetDir)
+            angleDiff = math.atan2(localDir.X, -localDir.Z)
+            absAngle = math.abs(angleDiff)
+            lastTargetAngleDiff = angleDiff
+
+            -- Зона нечувствительности с гистерезисом:
+            -- Начинаем шагать при угле > 14 градусов (0.24 рад).
+            -- Завершаем разворот, когда тело довернулось до 4 градусов (0.07 рад).
+            if not isTurningInPlace then
+                if absAngle > math.rad(14) then
+                    isTurningInPlace = true
+                    currentTurnDir = math.sign(angleDiff)
+                    if currentTurnDir == 0 then currentTurnDir = 1 end
+                end
+            else
+                if absAngle < math.rad(4) then
+                    isTurningInPlace = false
+                else
+                    currentTurnDir = math.sign(angleDiff)
+                    if currentTurnDir == 0 then currentTurnDir = 1 end
+                end
+            end
+
+            if isTurningInPlace then
+                -- Естественная скорость шага при развороте: 3.5 .. 5.2 рад/сек
+                local turnSpeed = math.clamp(absAngle * 5.5, 3.5, 5.2)
+                alignOrient.MaxAngularVelocity = turnSpeed
+                alignOrient.CFrame = CFrame.lookAlong(Vector3.zero, targetDir)
+
+                -- Шаг лапок синхронизирован со скоростью разворота
+                turnStepTimer = turnStepTimer + dt * 14.0 * (turnSpeed / 4.2)
+            else
+                alignOrient.MaxAngularVelocity = 15
+            end
+        else
+            isTurningInPlace = false
         end
+    else
+        isTurningInPlace = false
     end
 
     -- Плавная интерполяция стойки на задних лапках при установке/добыче наверх
@@ -513,36 +592,96 @@ RunService.RenderStepped:Connect(function(dt)
     else
         updateHeldItemVisibility(false, false)
 
-        -- Лапки идеально и устойчиво примагничены к поверхности земли без проваливания и парения
-        local targetFL = CFrame.new(pawFL.relPos.X, pawFL.currentY, pawFL.relPos.Z)
-        local targetFR = CFrame.new(pawFR.relPos.X, pawFR.currentY, pawFR.relPos.Z)
-        local targetBL = CFrame.new(pawBL.relPos.X, pawBL.currentY, pawBL.relPos.Z)
-        local targetBR = CFrame.new(pawBR.relPos.X, pawBR.currentY, pawBR.relPos.Z)
+        local targetTurnWeight = isTurningInPlace and 1 or 0
+        turnWeight = turnWeight + (targetTurnWeight - turnWeight) * math.clamp(dt * 12, 0, 1)
 
-        pawFL.motor.C0 = pawFL.motor.C0:Lerp(targetFL, math.clamp(dt * 18, 0, 1))
-        pawFR.motor.C0 = pawFR.motor.C0:Lerp(targetFR, math.clamp(dt * 18, 0, 1))
-        pawBL.motor.C0 = pawBL.motor.C0:Lerp(targetBL, math.clamp(dt * 18, 0, 1))
-        pawBR.motor.C0 = pawBR.motor.C0:Lerp(targetBR, math.clamp(dt * 18, 0, 1))
+        -- Базовые устойчивые точки лапок, примагниченные к земле (IK ground snapping)
+        local idleCF_FL = CFrame.new(pawFL.relPos.X, pawFL.currentY, pawFL.relPos.Z)
+        local idleCF_FR = CFrame.new(pawFR.relPos.X, pawFR.currentY, pawFR.relPos.Z)
+        local idleCF_BL = CFrame.new(pawBL.relPos.X, pawBL.currentY, pawBL.relPos.Z)
+        local idleCF_BR = CFrame.new(pawBR.relPos.X, pawBR.currentY, pawBR.relPos.Z)
 
-        idleTimer = idleTimer + dt * 2.2
-        local breath = math.sin(idleTimer) * 0.025
-        torsoJoint.C0 = torsoJoint.C0:Lerp(CFrame.new(0, TORSO_Y_OFFSET + breath, 0.05), math.clamp(dt * 8, 0, 1))
+        if turnWeight > 0.01 then
+            local turnDir = currentTurnDir
+            -- Диагональные пары лапок:
+            -- Пара А: передняя левая (FL) и задняя правая (BR)
+            -- Пара Б: передняя правая (FR) и задняя левая (BL)
+            local phaseA = turnStepTimer
+            local phaseB = turnStepTimer + math.pi
 
-        local lazyTail = math.sin(idleTimer * 0.7) * math.rad(16)
-        tailMotor.C0 = tailOrigC0 * CFrame.Angles(0, lazyTail, 0)
+            -- Подъём лапки от земли (переступание с чистым отрывом подошвы)
+            local liftA = math.max(0, math.sin(phaseA)) * 0.17
+            local liftB = math.max(0, math.sin(phaseB)) * 0.17
 
-        if hasTarget and (targetLookPos - rootPart.Position).Magnitude > 0.8 then
-            local delta = targetLookPos - rootPart.Position
-            local horiz = Vector3.new(delta.X, 0, delta.Z)
-            local deltaY = targetLookPos.Y - (rootPart.Position.Y + 0.4)
-            local horizDist = math.max(0.8, horiz.Magnitude)
-            local headPitch = math.clamp(math.atan2(deltaY, horizDist), math.rad(-22), math.rad(24))
-            headJoint.C0 = headJoint.C0:Lerp(CFrame.new(0, 0.68, -0.65) * CFrame.Angles(headPitch, 0, 0), math.clamp(dt * 12, 0, 1))
+            -- Горизонтальное смещение лапок в сторону поворота:
+            local shiftX_FL = math.sin(phaseA) * 0.14 * turnDir
+            local shiftZ_FL = -math.cos(phaseA) * 0.08
+            local shiftX_FR = math.sin(phaseB) * 0.14 * turnDir
+            local shiftZ_FR = math.cos(phaseB) * 0.08
+
+            -- Задние лапки поворачивают корпус в такт развороту
+            local shiftX_BL = -math.sin(phaseB) * 0.11 * turnDir
+            local shiftZ_BL = -math.cos(phaseB) * 0.06
+            local shiftX_BR = -math.sin(phaseA) * 0.11 * turnDir
+            local shiftZ_BR = math.cos(phaseA) * 0.06
+
+            -- Углы наклона лапок при шаге разворота
+            local rotFL = CFrame.Angles(math.cos(phaseA) * math.rad(12), math.sin(phaseA) * math.rad(16) * turnDir, math.rad(-8) * turnDir)
+            local rotFR = CFrame.Angles(math.cos(phaseB) * math.rad(12), math.sin(phaseB) * math.rad(16) * turnDir, math.rad(8) * turnDir)
+            local rotBL = CFrame.Angles(math.cos(phaseB) * math.rad(10), -math.sin(phaseB) * math.rad(14) * turnDir, math.rad(-6) * turnDir)
+            local rotBR = CFrame.Angles(math.cos(phaseA) * math.rad(10), -math.sin(phaseA) * math.rad(14) * turnDir, math.rad(6) * turnDir)
+
+            local turnCF_FL = CFrame.new(pawFL.relPos.X + shiftX_FL, pawFL.currentY + liftA, pawFL.relPos.Z + shiftZ_FL) * rotFL
+            local turnCF_FR = CFrame.new(pawFR.relPos.X + shiftX_FR, pawFR.currentY + liftB, pawFR.relPos.Z + shiftZ_FR) * rotFR
+            local turnCF_BL = CFrame.new(pawBL.relPos.X + shiftX_BL, pawBL.currentY + liftB, pawBL.relPos.Z + shiftZ_BL) * rotBL
+            local turnCF_BR = CFrame.new(pawBR.relPos.X + shiftX_BR, pawBR.currentY + liftA, pawBR.relPos.Z + shiftZ_BR) * rotBR
+
+            pawFL.motor.C0 = idleCF_FL:Lerp(turnCF_FL, turnWeight)
+            pawFR.motor.C0 = idleCF_FR:Lerp(turnCF_FR, turnWeight)
+            pawBL.motor.C0 = idleCF_BL:Lerp(turnCF_BL, turnWeight)
+            pawBR.motor.C0 = idleCF_BR:Lerp(turnCF_BR, turnWeight)
+
+            -- Туловище: лёгкий шаг и наклон в поворот
+            local bounce = math.abs(math.sin(turnStepTimer * 2)) * 0.04 * turnWeight
+            local bodyRoll = math.sin(turnStepTimer) * math.rad(2.2) * turnDir * turnWeight
+            torsoJoint.C0 = CFrame.new(0, TORSO_Y_OFFSET + bounce, 0.05) * CFrame.Angles(0, 0, -bodyRoll)
+
+            -- Хвостик: балансирует вращение
+            local tailTurn = (-turnDir * math.rad(20) + math.sin(turnStepTimer) * math.rad(8)) * turnWeight
+            tailMotor.C0 = tailOrigC0 * CFrame.Angles(math.rad(10 * turnWeight), tailTurn, 0)
+
+            -- Голова: плавно поворачивается в сторону мышки, предвосхищая движение тела
+            local headYaw = math.clamp(lastTargetAngleDiff * 0.65, math.rad(-38), math.rad(38)) * turnWeight
+            headJoint.C0 = CFrame.new(0, 0.68, -0.65) * CFrame.Angles(0, headYaw, 0)
         else
-            local headTilt = math.sin(idleTimer * 0.4) * math.rad(3)
-            headJoint.C0 = headJoint.C0:Lerp(CFrame.new(0, 0.68, -0.65) * CFrame.Angles(0, 0, headTilt), math.clamp(dt * 8, 0, 1))
+            -- Спокойное дыхание и покой (лапки неподвижно и ровно стоят на земле)
+            pawFL.motor.C0 = pawFL.motor.C0:Lerp(idleCF_FL, math.clamp(dt * 18, 0, 1))
+            pawFR.motor.C0 = pawFR.motor.C0:Lerp(idleCF_FR, math.clamp(dt * 18, 0, 1))
+            pawBL.motor.C0 = pawBL.motor.C0:Lerp(idleCF_BL, math.clamp(dt * 18, 0, 1))
+            pawBR.motor.C0 = pawBR.motor.C0:Lerp(idleCF_BR, math.clamp(dt * 18, 0, 1))
+
+            idleTimer = idleTimer + dt * 2.2
+            local breath = math.sin(idleTimer) * 0.025
+            torsoJoint.C0 = torsoJoint.C0:Lerp(CFrame.new(0, TORSO_Y_OFFSET + breath, 0.05), math.clamp(dt * 8, 0, 1))
+
+            local lazyTail = math.sin(idleTimer * 0.7) * math.rad(16)
+            tailMotor.C0 = tailOrigC0 * CFrame.Angles(0, lazyTail, 0)
+
+            if aimTargetPos and (aimTargetPos - rootPart.Position).Magnitude > 0.8 then
+                local delta = aimTargetPos - rootPart.Position
+                local horiz = Vector3.new(delta.X, 0, delta.Z)
+                local deltaY = aimTargetPos.Y - (rootPart.Position.Y + 0.4)
+                local horizDist = math.max(0.8, horiz.Magnitude)
+                local headPitch = math.clamp(math.atan2(deltaY, horizDist), math.rad(-22), math.rad(24))
+                local localAim = rootPart.CFrame:VectorToObjectSpace(horiz.Unit)
+                local headYaw = math.clamp(math.atan2(localAim.X, -localAim.Z) * 0.5, math.rad(-25), math.rad(25))
+                headJoint.C0 = headJoint.C0:Lerp(CFrame.new(0, 0.68, -0.65) * CFrame.Angles(headPitch, headYaw, 0), math.clamp(dt * 12, 0, 1))
+            else
+                local headTilt = math.sin(idleTimer * 0.4) * math.rad(3)
+                headJoint.C0 = headJoint.C0:Lerp(CFrame.new(0, 0.68, -0.65) * CFrame.Angles(0, 0, headTilt), math.clamp(dt * 8, 0, 1))
+            end
         end
 
-        fishWeld.C0 = CFrame.new(0, -0.42 + breath * 0.5, -0.58) * CFrame.Angles(0, math.rad(90), math.rad(15))
+        fishWeld.C0 = CFrame.new(0, -0.42, -0.58) * CFrame.Angles(0, math.rad(90), math.rad(15))
     end
 end)
