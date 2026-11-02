@@ -269,12 +269,12 @@ local function createBlock(blockType, position, isDynamic)
 end
 
 -- === ИНВЕНТАРЬ ИГРОКОВ (Server-side) ===
--- 1..9   = Хотбар котёнка (9 слотов, клавиши 1-9)
+-- 1..4   = Хотбар котёнка (4 слота спрайтов: Дерево, Земля, Камень, Трава)
 -- 10..29 = Портфель (Ресурсы и блоки: 20 слотов)
 -- 30..44 = Корзинка (Еда и сбор: 15 слотов)
 -- 45..54 = Сумка (Инструменты: 10 слотов)
 local MAX_SLOTS = 54
-local HOTBAR_SLOTS = 9
+local HOTBAR_SLOTS = 4
 local playerInventories = {}
 
 local function getOrCreateInventory(player)
@@ -283,16 +283,11 @@ local function getOrCreateInventory(player)
         playerInventories[userId] = {
             activeSlot = 1,
             slots = {
-                -- Хотбар (1..9)
-                [1] = { id = "grass_block", count = 16, max = 64 },
-                [2] = { id = "wood_block",  count = 12, max = 64 },
-                [3] = { id = "stone_block", count = 8,  max = 64 },
-                [4] = { id = "fish",        count = 8,  max = 16 },
-                [5] = { id = "dirt_block",  count = 24, max = 64 },
-                [6] = { id = "twigs",       count = 10, max = 64 },
-                [7] = { id = "axe",         count = 1,  max = 1 },
-                [8] = { id = "pickaxe",     count = 1,  max = 1 },
-                [9] = { id = "berries",     count = 10, max = 32 },
+                -- Активный хотбар спрайтов (1..4): Дерево, Земля, Камень, Трава
+                [1] = { id = "wood_block",  count = 24, max = 64 },
+                [2] = { id = "dirt_block",  count = 32, max = 64 },
+                [3] = { id = "stone_block", count = 16, max = 64 },
+                [4] = { id = "grass_block", count = 32, max = 64 },
 
                 -- Портфель: Ресурсы и блоки (10..29)
                 [10] = { id = "clay",       count = 10, max = 64 },
@@ -300,16 +295,21 @@ local function getOrCreateInventory(player)
                 [12] = { id = "ore",        count = 8,  max = 64 },
                 [13] = { id = "coal",       count = 2,  max = 64 },
                 [14] = { id = "bones",      count = 1,  max = 64 },
+                [15] = { id = "twigs",      count = 10, max = 64 },
 
                 -- Корзинка: Еда и урожай (30..44)
                 [30] = { id = "mushrooms",  count = 5,  max = 32 },
                 [31] = { id = "leaves",     count = 8,  max = 64 },
                 [32] = { id = "flowers",    count = 5,  max = 64 },
                 [33] = { id = "seeds",      count = 24, max = 64 },
+                [34] = { id = "fish",       count = 8,  max = 16 },
+                [35] = { id = "berries",    count = 10, max = 32 },
 
                 -- Сумка: Инструменты (45..54)
                 [45] = { id = "shovel",     count = 1,  max = 1 },
                 [46] = { id = "rod",        count = 1,  max = 1 },
+                [47] = { id = "axe",        count = 1,  max = 1 },
+                [48] = { id = "pickaxe",    count = 1,  max = 1 },
             }
         }
     end

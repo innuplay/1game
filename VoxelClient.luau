@@ -37,17 +37,28 @@ screenGui.Name = "VoxelBackpackGui"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = playerGui
 
--- 1. ЧИСТЫЙ ДЕРЕВЯННЫЙ ХОТБАР (9 СЛОТОВ 1–9 + КНОПКА РЮКЗАКА)
-local TOTAL_HOTBAR_WIDTH = 502 -- 9 слотов по 50px (448px) + отступ 6px + кнопка рюкзака 48px
+-- 1. СПРАЙТОВЫЙ ПИКСЕЛЬНЫЙ ХОТБАР (4 СЛОТА: ДЕРЕВО, ЗЕМЛЯ, КАМЕНЬ, ТРАВА + КНОПКА РЮКЗАКА)
+local NUM_HOTBAR_SLOTS = 4
+local SLOT_SIZE = 54
+local SLOT_GAP = 8
+local TOTAL_HOTBAR_WIDTH = (NUM_HOTBAR_SLOTS * SLOT_SIZE) + ((NUM_HOTBAR_SLOTS - 1) * SLOT_GAP) + 12 + 50 -- 216 + 24 + 12 + 50 = 302px
+
+local HOTBAR_SLOT_DEFS = {
+    [1] = { id = "wood_block",  sprite = "rbxassetid://102991854156536", name = "Дерево", icon = "🪵" },
+    [2] = { id = "dirt_block",  sprite = "rbxassetid://104779952223143", name = "Земля",  icon = "🟤" },
+    [3] = { id = "stone_block", sprite = "rbxassetid://109072643235539", name = "Камень", icon = "🪨" },
+    [4] = { id = "grass_block", sprite = "rbxassetid://114424346454200", name = "Трава",  icon = "🌿" },
+}
+
 local hudContainer = Instance.new("Frame")
 hudContainer.Name = "WoodHudContainer"
-hudContainer.Size = UDim2.new(0, TOTAL_HOTBAR_WIDTH, 0, 48)
-hudContainer.Position = UDim2.new(0.5, -TOTAL_HOTBAR_WIDTH / 2, 1, -70)
+hudContainer.Size = UDim2.new(0, TOTAL_HOTBAR_WIDTH, 0, 56)
+hudContainer.Position = UDim2.new(0.5, -TOTAL_HOTBAR_WIDTH / 2, 1, -74)
 hudContainer.BackgroundTransparency = 1
 hudContainer.BorderSizePixel = 0
 hudContainer.Parent = screenGui
 
-local DEFAULT_TIP_TEXT = "[ЛКМ] — Копать лапками | [Q или ПКМ] — Строить | [1–9] — Выбор слота | [E] — Рюкзак"
+local DEFAULT_TIP_TEXT = "[ЛКМ] — Копать лапками | [Q или ПКМ] — Строить | [1–4] — Выбор блока | [E] — Рюкзак"
 
 -- Подсказка управления сверху хотбара
 local tipLabel = Instance.new("TextLabel")
@@ -67,8 +78,8 @@ tipLabel.Parent = hudContainer
 -- Кнопка походного рюкзака в едином деревянном пиксельном стиле
 local backpackBtn = Instance.new("ImageButton")
 backpackBtn.Name = "OpenBackpackBtn"
-backpackBtn.Size = UDim2.new(0, 48, 0, 48)
-backpackBtn.Position = UDim2.new(0, 454, 0, 0)
+backpackBtn.Size = UDim2.new(0, 50, 0, 50)
+backpackBtn.Position = UDim2.new(0, 252, 0, 2)
 backpackBtn.BackgroundTransparency = 1
 backpackBtn.Image = "rbxassetid://106822265493004"
 backpackBtn.ResampleMode = Enum.ResamplerMode.Pixelated
@@ -558,11 +569,13 @@ local function createGrassSlotUI(parent, localIndex, pos)
     return btn
 end
 
--- Создание слота в деревянном хотбаре (1–9 слоты)
+-- Создание слота в спрайтовом пиксельном хотбаре (1: Дерево, 2: Земля, 3: Камень, 4: Трава)
 local function createHotbarSlotUI(parent, slotIndex, pos)
+    local slotDef = HOTBAR_SLOT_DEFS[slotIndex]
+
     local btn = Instance.new("TextButton")
     btn.Name = "HotbarSlot_" .. slotIndex
-    btn.Size = UDim2.new(0, 48, 0, 48)
+    btn.Size = UDim2.new(0, SLOT_SIZE, 0, SLOT_SIZE)
     btn.Position = pos
     btn.BackgroundTransparency = 1
     btn.AutoButtonColor = false
@@ -570,126 +583,101 @@ local function createHotbarSlotUI(parent, slotIndex, pos)
     btn.ZIndex = 5
     btn.Parent = parent
 
-    -- Базовая деревянная рамка слота (пиксельный стиль)
-    local normalFrame = Instance.new("ImageLabel")
-    normalFrame.Name = "NormalFrame"
-    normalFrame.Size = UDim2.new(1, 0, 1, 0)
-    normalFrame.Position = UDim2.new(0, 0, 0, 0)
-    normalFrame.BackgroundTransparency = 1
-    normalFrame.Image = "rbxassetid://134703361876239"
-    normalFrame.ResampleMode = Enum.ResamplerMode.Pixelated
-    normalFrame.ScaleType = Enum.ScaleType.Fit
-    normalFrame.ZIndex = 6
-    normalFrame.Parent = btn
+    -- Базовый спрайт ячейки (пиксель-арт ячейки из изображения: Дерево, Земля, Камень, Трава)
+    local spriteImg = Instance.new("ImageLabel")
+    spriteImg.Name = "SpriteImage"
+    spriteImg.Size = UDim2.new(1, 0, 1, 0)
+    spriteImg.Position = UDim2.new(0, 0, 0, 0)
+    spriteImg.BackgroundTransparency = 1
+    spriteImg.Image = slotDef.sprite
+    spriteImg.ResampleMode = Enum.ResamplerMode.Pixelated
+    spriteImg.ScaleType = Enum.ScaleType.Fit
+    spriteImg.ZIndex = 6
+    spriteImg.Parent = btn
 
-    -- Белая акцентная рамка активного выбранного слота (как слот 2 на изображении)
-    local activeFrame = Instance.new("ImageLabel")
-    activeFrame.Name = "ActiveFrame"
-    activeFrame.Size = UDim2.new(1, 0, 1, 0)
-    activeFrame.Position = UDim2.new(0, 0, 0, 0)
-    activeFrame.BackgroundTransparency = 1
-    activeFrame.Image = "rbxassetid://75125194643262"
-    activeFrame.ResampleMode = Enum.ResamplerMode.Pixelated
-    activeFrame.ScaleType = Enum.ScaleType.Fit
-    activeFrame.Visible = (slotIndex == activeHotbarSlot)
-    activeFrame.ZIndex = 7
-    activeFrame.Parent = btn
+    -- Активная белая рамка выбора (обводит пиксельный закругленный контур ячейки)
+    local activeBorder = Instance.new("Frame")
+    activeBorder.Name = "ActiveBorder"
+    activeBorder.Size = UDim2.new(1, 6, 1, 6)
+    activeBorder.Position = UDim2.new(0.5, 0, 0.5, 0)
+    activeBorder.AnchorPoint = Vector2.new(0.5, 0.5)
+    activeBorder.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    activeBorder.BackgroundTransparency = 0.92
+    activeBorder.Visible = (slotIndex == activeHotbarSlot)
+    activeBorder.ZIndex = 9
+    activeBorder.Parent = btn
 
-    -- Номер слота (1..9) в левом верхнем углу
+    local activeCorner = Instance.new("UICorner")
+    activeCorner.CornerRadius = UDim.new(0, 8)
+    activeCorner.Parent = activeBorder
+
+    local activeStroke = Instance.new("UIStroke")
+    activeStroke.Color = Color3.fromRGB(255, 255, 255)
+    activeStroke.Thickness = 3
+    activeStroke.Transparency = 0
+    activeStroke.Parent = activeBorder
+
+    -- Бейдж номера горячей клавиши [1..4] в верхнем левом углу
+    local keyBadge = Instance.new("Frame")
+    keyBadge.Name = "KeyBadge"
+    keyBadge.Size = UDim2.new(0, 16, 0, 14)
+    keyBadge.Position = UDim2.new(0, 3, 0, 3)
+    keyBadge.BackgroundColor3 = Color3.fromRGB(20, 15, 12)
+    keyBadge.BackgroundTransparency = 0.35
+    keyBadge.ZIndex = 10
+    keyBadge.Parent = btn
+
+    local kbCorner = Instance.new("UICorner")
+    kbCorner.CornerRadius = UDim.new(0, 3)
+    kbCorner.Parent = keyBadge
+
     local keyLbl = Instance.new("TextLabel")
     keyLbl.Name = "KeyLabel"
-    keyLbl.Size = UDim2.new(0, 14, 0, 14)
-    keyLbl.Position = UDim2.new(0, 4, 0, 3)
+    keyLbl.Size = UDim2.new(1, 0, 1, 0)
     keyLbl.BackgroundTransparency = 1
     keyLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
-    keyLbl.TextStrokeTransparency = 0.35
-    keyLbl.TextStrokeColor3 = Color3.fromRGB(25, 18, 12)
     keyLbl.Font = Enum.Font.FredokaOne
     keyLbl.TextSize = 10
     keyLbl.Text = tostring(slotIndex)
-    keyLbl.ZIndex = 8
-    keyLbl.Parent = btn
+    keyLbl.ZIndex = 11
+    keyLbl.Parent = keyBadge
 
-    -- Иконка предмета в центре
-    local iconLabel = Instance.new("TextLabel")
-    iconLabel.Name = "IconLabel"
-    iconLabel.Size = UDim2.new(0, 28, 0, 26)
-    iconLabel.Position = UDim2.new(0.5, 0, 0.46, 0)
-    iconLabel.AnchorPoint = Vector2.new(0.5, 0.5)
-    iconLabel.BackgroundTransparency = 1
-    iconLabel.Font = Enum.Font.FredokaOne
-    iconLabel.TextSize = 19
-    iconLabel.Text = ""
-    iconLabel.ZIndex = 8
-    iconLabel.Parent = btn
-
-    -- Мини-кубик цвета (если нет эмодзи)
-    local colorBox = Instance.new("Frame")
-    colorBox.Name = "ColorBox"
-    colorBox.Size = UDim2.new(0, 18, 0, 18)
-    colorBox.Position = UDim2.new(0.5, 0, 0.46, 0)
-    colorBox.AnchorPoint = Vector2.new(0.5, 0.5)
-    colorBox.BorderSizePixel = 0
-    colorBox.Visible = false
-    colorBox.ZIndex = 8
-    colorBox.Parent = btn
-
-    local cbCorner = Instance.new("UICorner")
-    cbCorner.CornerRadius = UDim.new(0, 4)
-    cbCorner.Parent = colorBox
-
-    -- Счётчик количества предметов (в правом нижнем углу)
+    -- Счётчик количества блоков (в правом нижнем углу)
     local countLbl = Instance.new("TextLabel")
     countLbl.Name = "CountLabel"
-    countLbl.Size = UDim2.new(0, 24, 0, 12)
-    countLbl.Position = UDim2.new(1, -3, 1, -5)
+    countLbl.Size = UDim2.new(0, 34, 0, 15)
+    countLbl.Position = UDim2.new(1, -4, 1, -3)
     countLbl.AnchorPoint = Vector2.new(1, 1)
     countLbl.BackgroundTransparency = 1
-    countLbl.TextColor3 = Color3.fromRGB(255, 240, 140)
-    countLbl.TextStrokeTransparency = 0.3
+    countLbl.TextColor3 = Color3.fromRGB(255, 245, 140)
+    countLbl.TextStrokeTransparency = 0.2
     countLbl.TextStrokeColor3 = Color3.fromRGB(20, 15, 10)
     countLbl.Font = Enum.Font.FredokaOne
-    countLbl.TextSize = 10
+    countLbl.TextSize = 12
     countLbl.TextXAlignment = Enum.TextXAlignment.Right
     countLbl.Text = ""
-    countLbl.ZIndex = 8
+    countLbl.ZIndex = 11
     countLbl.Parent = btn
 
-    -- Мини-полоска под предметом (как на первом изображении: полоска ресурса/прочности)
-    local miniBar = Instance.new("Frame")
-    miniBar.Name = "MiniBar"
-    miniBar.Size = UDim2.new(0, 28, 0, 3)
-    miniBar.Position = UDim2.new(0.5, -14, 1, -7)
-    miniBar.BackgroundColor3 = Color3.fromRGB(35, 22, 14)
-    miniBar.BorderSizePixel = 0
-    miniBar.Visible = false
-    miniBar.ZIndex = 8
-    miniBar.Parent = btn
-
-    local miniFill = Instance.new("Frame")
-    miniFill.Name = "Fill"
-    miniFill.Size = UDim2.new(0.8, 0, 1, 0)
-    miniFill.BackgroundColor3 = Color3.fromRGB(130, 215, 80)
-    miniFill.BorderSizePixel = 0
-    miniFill.ZIndex = 9
-    miniFill.Parent = miniBar
-
-    -- Наведение курсора
+    -- Наведение курсора с информативной подсказкой
     btn.MouseEnter:Connect(function()
-        if not (slotIndex == activeHotbarSlot) then
-            normalFrame.ImageColor3 = Color3.fromRGB(255, 242, 215)
-        end
         local slotData = currentInventorySlots[slotIndex]
-        if slotData and slotData.count > 0 then
-            local def = itemsDefinition[slotData.id] or { name = slotData.id }
-            tipLabel.Text = string.format("Слот %d: %s (%d шт.)", slotIndex, def.name or slotData.id, slotData.count)
-        else
-            tipLabel.Text = string.format("Слот %d: Пусто", slotIndex)
+        local count = (slotData and slotData.count) or 0
+        tipLabel.Text = string.format("%s %s (%d шт.) — Нажмите [%d] или кликните для выбора блока", slotDef.icon, slotDef.name, count, slotIndex)
+        if slotIndex ~= activeHotbarSlot then
+            spriteImg.ImageColor3 = Color3.fromRGB(255, 250, 230)
         end
     end)
     btn.MouseLeave:Connect(function()
-        normalFrame.ImageColor3 = Color3.fromRGB(255, 255, 255)
         tipLabel.Text = DEFAULT_TIP_TEXT
+        if slotIndex ~= activeHotbarSlot then
+            local slotData = currentInventorySlots[slotIndex]
+            if slotData and slotData.count > 0 then
+                spriteImg.ImageColor3 = Color3.fromRGB(255, 255, 255)
+            else
+                spriteImg.ImageColor3 = Color3.fromRGB(140, 140, 140)
+            end
+        end
     end)
 
     return btn
@@ -697,9 +685,9 @@ end
 
 local refreshAllInventoryUI
 
--- Собираем 9 слотов деревянного хотбара (1–9)
-for i = 1, 9 do
-    local xPos = (i - 1) * 50
+-- Собираем 4 активных спрайтовых слота хотбара (1–4)
+for i = 1, NUM_HOTBAR_SLOTS do
+    local xPos = (i - 1) * (SLOT_SIZE + SLOT_GAP)
     local btn = createHotbarSlotUI(
         hudContainer,
         i,
@@ -887,70 +875,37 @@ local function renderGrassSlotUI(btn, slotData, isSelected)
     end
 end
 
--- Обновление одного слота деревянного хотбара
+-- Обновление одного спрайтового слота хотбара
 local function renderHotbarSlotUI(btn, slotData, isActive)
-    local normalFrame = btn:FindFirstChild("NormalFrame")
-    local activeFrame = btn:FindFirstChild("ActiveFrame")
-    local iconLabel = btn:FindFirstChild("IconLabel")
-    local colorBox = btn:FindFirstChild("ColorBox")
+    local activeBorder = btn:FindFirstChild("ActiveBorder")
     local countLbl = btn:FindFirstChild("CountLabel")
-    local miniBar = btn:FindFirstChild("MiniBar")
-    local miniFill = miniBar and miniBar:FindFirstChild("Fill")
+    local spriteImg = btn:FindFirstChild("SpriteImage")
 
-    if activeFrame then
-        activeFrame.Visible = isActive
+    if activeBorder then
+        activeBorder.Visible = isActive
     end
 
     if slotData and slotData.count > 0 then
-        local def = itemsDefinition[slotData.id] or {
-            name = slotData.id,
-            icon = "📦",
-            color = Color3.fromRGB(150, 150, 150)
-        }
-
-        if def.icon and def.icon ~= "" then
-            iconLabel.Text = def.icon
-            iconLabel.Visible = true
-            if colorBox then colorBox.Visible = false end
-        else
-            if colorBox then
-                colorBox.BackgroundColor3 = def.color or Color3.fromRGB(150, 150, 150)
-                colorBox.Visible = true
-            end
-            iconLabel.Visible = false
-        end
-
-        countLbl.Text = slotData.count > 1 and tostring(slotData.count) or ""
+        countLbl.Text = tostring(slotData.count)
         countLbl.Visible = true
 
-        -- Мини-полоска ресурса/прочности внизу слота (как на первом скриншоте)
-        if miniBar then
-            miniBar.Visible = true
-            local ratio = math.clamp(slotData.count / (slotData.max or 64), 0.25, 1.0)
-            if miniFill then
-                miniFill.Size = UDim2.new(ratio, 0, 1, 0)
-                if def.category == "tools" then
-                    miniFill.BackgroundColor3 = Color3.fromRGB(130, 215, 80) -- зеленый для инструментов
-                elseif def.category == "food" then
-                    miniFill.BackgroundColor3 = Color3.fromRGB(240, 120, 140) -- розоватый для еды (как слот 9 на фото)
-                else
-                    miniFill.BackgroundColor3 = Color3.fromRGB(230, 190, 90) -- золотистый для блоков/ресурсов
-                end
-            end
+        if spriteImg then
+            spriteImg.ImageColor3 = Color3.fromRGB(255, 255, 255)
         end
     else
-        iconLabel.Visible = false
-        if colorBox then colorBox.Visible = false end
-        countLbl.Text = ""
-        countLbl.Visible = false
-        if miniBar then miniBar.Visible = false end
+        countLbl.Text = "0"
+        countLbl.Visible = true
+
+        if spriteImg then
+            spriteImg.ImageColor3 = Color3.fromRGB(140, 140, 140)
+        end
     end
 end
 
 -- Полная перерисовка интерфейса
 refreshAllInventoryUI = function()
-    -- 1. Обновляем хотбар внизу (все 9 слотов)
-    for i = 1, 9 do
+    -- 1. Обновляем 4 активных спрайтовых слота хотбара
+    for i = 1, NUM_HOTBAR_SLOTS do
         local btn = hotbarButtons[i]
         if btn then
             renderHotbarSlotUI(btn, currentInventorySlots[i], (i == activeHotbarSlot))
@@ -1327,17 +1282,12 @@ closeBtn.MouseButton1Click:Connect(function()
     setBackpackOpen(false)
 end)
 
--- Переключение слотов 1–9 и открытие рюкзака по клавишам
+-- Переключение активных блоков 1–4 (Дерево, Земля, Камень, Трава)
 local SLOT_KEY_MAP = {
     [Enum.KeyCode.One]   = 1,
     [Enum.KeyCode.Two]   = 2,
     [Enum.KeyCode.Three] = 3,
     [Enum.KeyCode.Four]  = 4,
-    [Enum.KeyCode.Five]  = 5,
-    [Enum.KeyCode.Six]   = 6,
-    [Enum.KeyCode.Seven] = 7,
-    [Enum.KeyCode.Eight] = 8,
-    [Enum.KeyCode.Nine]  = 9,
 }
 
 UserInputService.InputBegan:Connect(function(input, processed)
