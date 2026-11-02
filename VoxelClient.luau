@@ -203,20 +203,20 @@ backpackModal.Visible = false
 backpackModal.ZIndex = 21
 backpackModal.Parent = modalBackdrop
 
--- Сохранение пропорций иллюстрации (1024 x 572 = 1.7895)
+-- Сохранение пропорций иллюстрации высокого разрешения (1376 x 768)
 local aspectConstraint = Instance.new("UIAspectRatioConstraint")
-aspectConstraint.AspectRatio = 1024 / 572
+aspectConstraint.AspectRatio = 1376 / 768
 aspectConstraint.AspectType = Enum.AspectType.FitWithinMaxSize
 aspectConstraint.DominantAxis = Enum.DominantAxis.Width
 aspectConstraint.Parent = backpackModal
 
--- Фоновый арт лесной поляны с сумками и предметами
+-- Фоновый арт лесной поляны с сумками и предметами (High-Definition Lossless PNG)
 local modalBgImage = Instance.new("ImageLabel")
 modalBgImage.Name = "BackpackBackgroundArt"
 modalBgImage.Size = UDim2.new(1, 0, 1, 0)
 modalBgImage.Position = UDim2.new(0, 0, 0, 0)
 modalBgImage.BackgroundTransparency = 1
-modalBgImage.Image = "rbxassetid://72625998602220"
+modalBgImage.Image = "rbxassetid://107996494359842"
 modalBgImage.ScaleType = Enum.ScaleType.Fit
 modalBgImage.ZIndex = 21
 modalBgImage.Parent = backpackModal
@@ -260,11 +260,11 @@ end
 
 -- === АКТИВНЫЕ ОБЪЕКТЫ НАВЕРХУ И ВНИЗУ ===
 
--- Ассеты контурной подсветки сумок строго по их форме (без прямоугольников, квадратов и рамок)
+-- Ассеты контурной подсветки сумок высокого разрешения (без прямоугольников, строго по контуру)
 local BAG_OUTLINE_ASSETS = {
-    backpack = "rbxassetid://93711194854425",
-    toolbag = "rbxassetid://79657876756852",
-    basket = "rbxassetid://133098409496358"
+    backpack = "rbxassetid://123800936796274",
+    toolbag = "rbxassetid://121106495987943",
+    basket = "rbxassetid://135920326253853"
 }
 
 -- Индикатор активной выбранной сумки (светящийся контур точно повторяет форму активного объекта)
