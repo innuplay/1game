@@ -1,0 +1,788 @@
+-- ServerScript: ServerScriptService -> VoxelServer
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+
+-- Базовый размер воксельного блока (1.5x1.5x1.5 studs)
+local BLOCK_SIZE = 1.5
+local MAX_REACH = 18
+
+-- === БАЗА ПРЕДМЕТОВ ===
+local ITEMS = {
+    -- Ресурсы и блоки (Портфель)
+    grass_block = {
+        name = "Трава",
+        max = 64,
+        isBlock = true,
+        blockType = "Grass",
+        category = "resources",
+        icon = "🌿",
+        color = Color3.fromRGB(90, 175, 55),
+        material = Enum.Material.Grass
+    },
+    wood_block = {
+        name = "Дерево",
+        max = 64,
+        isBlock = true,
+        blockType = "Wood",
+        category = "resources",
+        icon = "🪵",
+        color = Color3.fromRGB(120, 75, 40),
+        material = Enum.Material.WoodPlanks
+    },
+    stone_block = {
+        name = "Камень",
+        max = 64,
+        isBlock = true,
+        blockType = "Stone",
+        category = "resources",
+        icon = "🪨",
+        color = Color3.fromRGB(135, 140, 145),
+        material = Enum.Material.Slate
+    },
+    dirt_block = {
+        name = "Земля",
+        max = 64,
+        isBlock = true,
+        blockType = "Dirt",
+        category = "resources",
+        icon = "🟤",
+        color = Color3.fromRGB(100, 70, 45),
+        material = Enum.Material.Ground
+    },
+    twigs = {
+        name = "Ветки",
+        max = 64,
+        isBlock = false,
+        category = "resources",
+        icon = "🥢",
+        color = Color3.fromRGB(130, 85, 45),
+        material = Enum.Material.Wood
+    },
+    clay = {
+        name = "Глина",
+        max = 64,
+        isBlock = false,
+        category = "resources",
+        icon = "🧱",
+        color = Color3.fromRGB(165, 95, 65),
+        material = Enum.Material.SmoothPlastic
+    },
+    sand = {
+        name = "Песок",
+        max = 64,
+        isBlock = false,
+        category = "resources",
+        icon = "⏳",
+        color = Color3.fromRGB(225, 200, 120),
+        material = Enum.Material.Sand
+    },
+    coal = {
+        name = "Уголь",
+        max = 64,
+        isBlock = false,
+        category = "resources",
+        icon = "⚫",
+        color = Color3.fromRGB(40, 40, 45),
+        material = Enum.Material.Basalt
+    },
+    ore = {
+        name = "Руда",
+        max = 64,
+        isBlock = false,
+        category = "resources",
+        icon = "🪙",
+        color = Color3.fromRGB(170, 175, 185),
+        material = Enum.Material.Metal
+    },
+    bones = {
+        name = "Кости",
+        max = 64,
+        isBlock = false,
+        category = "resources",
+        icon = "🦴",
+        color = Color3.fromRGB(235, 230, 215),
+        material = Enum.Material.SmoothPlastic
+    },
+
+    -- Еда и сбор (Корзинка)
+    fish = {
+        name = "Рыбка",
+        max = 16,
+        isBlock = false,
+        category = "food",
+        icon = "🐟",
+        color = Color3.fromRGB(255, 140, 70),
+        material = Enum.Material.SmoothPlastic
+    },
+    berries = {
+        name = "Ягоды",
+        max = 32,
+        isBlock = false,
+        category = "food",
+        icon = "🫐",
+        color = Color3.fromRGB(215, 45, 75),
+        material = Enum.Material.SmoothPlastic
+    },
+    mushrooms = {
+        name = "Грибы",
+        max = 32,
+        isBlock = false,
+        category = "food",
+        icon = "🍄",
+        color = Color3.fromRGB(180, 120, 80),
+        material = Enum.Material.SmoothPlastic
+    },
+    seeds = {
+        name = "Семена",
+        max = 64,
+        isBlock = false,
+        category = "food",
+        icon = "🌱",
+        color = Color3.fromRGB(200, 170, 90),
+        material = Enum.Material.SmoothPlastic
+    },
+    leaves = {
+        name = "Листья",
+        max = 64,
+        isBlock = false,
+        category = "food",
+        icon = "🍃",
+        color = Color3.fromRGB(80, 160, 60),
+        material = Enum.Material.Grass
+    },
+    flowers = {
+        name = "Цветы",
+        max = 64,
+        isBlock = false,
+        category = "food",
+        icon = "🌸",
+        color = Color3.fromRGB(130, 100, 210),
+        material = Enum.Material.SmoothPlastic
+    },
+
+    -- Инструменты (Сумка)
+    axe = {
+        name = "Топор",
+        max = 1,
+        isBlock = false,
+        category = "tools",
+        icon = "🪓",
+        color = Color3.fromRGB(180, 160, 140),
+        material = Enum.Material.Metal
+    },
+    pickaxe = {
+        name = "Кирка",
+        max = 1,
+        isBlock = false,
+        category = "tools",
+        icon = "⛏️",
+        color = Color3.fromRGB(150, 160, 175),
+        material = Enum.Material.Metal
+    },
+    shovel = {
+        name = "Лопата",
+        max = 1,
+        isBlock = false,
+        category = "tools",
+        icon = "🪚",
+        color = Color3.fromRGB(160, 150, 140),
+        material = Enum.Material.Metal
+    },
+    rod = {
+        name = "Удочка",
+        max = 1,
+        isBlock = false,
+        category = "tools",
+        icon = "🎣",
+        color = Color3.fromRGB(175, 130, 85),
+        material = Enum.Material.Wood
+    }
+}
+
+local BLOCK_CONFIG = {
+    Grass = { Color = Color3.fromRGB(90, 175, 55), Material = Enum.Material.Grass, HP = 1, DropId = "grass_block" },
+    Wood  = { Color = Color3.fromRGB(120, 75, 40), Material = Enum.Material.WoodPlanks, HP = 1, DropId = "wood_block" },
+    Stone = { Color = Color3.fromRGB(135, 140, 145), Material = Enum.Material.Slate, HP = 1, DropId = "stone_block" },
+    Dirt  = { Color = Color3.fromRGB(100, 70, 45), Material = Enum.Material.Ground, HP = 1, DropId = "dirt_block" }
+}
+
+-- Инициализация папок и ремоута
+local worldFolder = Workspace:FindFirstChild("VoxelWorld")
+if not worldFolder then
+    worldFolder = Instance.new("Folder")
+    worldFolder.Name = "VoxelWorld"
+    worldFolder.Parent = Workspace
+end
+
+local lootFolder = Workspace:FindFirstChild("VoxelLoot")
+if not lootFolder then
+    lootFolder = Instance.new("Folder")
+    lootFolder.Name = "VoxelLoot"
+    lootFolder.Parent = Workspace
+end
+
+local voxelRemote = ReplicatedStorage:FindFirstChild("VoxelRemote")
+if not voxelRemote then
+    voxelRemote = Instance.new("RemoteEvent")
+    voxelRemote.Name = "VoxelRemote"
+    voxelRemote.Parent = ReplicatedStorage
+end
+
+local function snapToGrid(pos, size)
+    return Vector3.new(
+        math.floor(pos.X / size + 0.5) * size,
+        math.floor(pos.Y / size + 0.5) * size,
+        math.floor(pos.Z / size + 0.5) * size
+    )
+end
+
+local function createBlock(blockType, position, isDynamic)
+    local cfg = BLOCK_CONFIG[blockType] or BLOCK_CONFIG.Grass
+    local snappedPos = snapToGrid(position, BLOCK_SIZE)
+
+    for _, existing in ipairs(worldFolder:GetChildren()) do
+        if existing:IsA("BasePart") and (existing.Position - snappedPos).Magnitude < 0.2 then
+            return nil
+        end
+    end
+
+    local part = Instance.new("Part")
+    part.Name = "Voxel_" .. blockType
+    part.Size = Vector3.new(BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE)
+    part.Position = snappedPos
+    part.Anchored = true
+    part.Material = cfg.Material
+    part.Color = cfg.Color
+    part.TopSurface = Enum.SurfaceType.Smooth
+    part.BottomSurface = Enum.SurfaceType.Smooth
+
+    part:SetAttribute("BlockType", blockType)
+    part:SetAttribute("HP", cfg.HP)
+    part:SetAttribute("MaxHP", cfg.HP)
+    part:SetAttribute("IsDynamic", isDynamic or false)
+
+    part.Parent = worldFolder
+    return part
+end
+
+-- === ИНВЕНТАРЬ ИГРОКОВ (Server-side) ===
+-- 1..9   = Хотбар котёнка (9 слотов, клавиши 1-9)
+-- 10..29 = Портфель (Ресурсы и блоки: 20 слотов)
+-- 30..44 = Корзинка (Еда и сбор: 15 слотов)
+-- 45..54 = Сумка (Инструменты: 10 слотов)
+local MAX_SLOTS = 54
+local HOTBAR_SLOTS = 9
+local playerInventories = {}
+
+local function getOrCreateInventory(player)
+    local userId = player.UserId
+    if not playerInventories[userId] then
+        playerInventories[userId] = {
+            activeSlot = 1,
+            slots = {
+                -- Хотбар (1..9)
+                [1] = { id = "grass_block", count = 16, max = 64 },
+                [2] = { id = "wood_block",  count = 12, max = 64 },
+                [3] = { id = "stone_block", count = 8,  max = 64 },
+                [4] = { id = "fish",        count = 8,  max = 16 },
+                [5] = { id = "dirt_block",  count = 24, max = 64 },
+                [6] = { id = "twigs",       count = 10, max = 64 },
+                [7] = { id = "axe",         count = 1,  max = 1 },
+                [8] = { id = "pickaxe",     count = 1,  max = 1 },
+                [9] = { id = "berries",     count = 10, max = 32 },
+
+                -- Портфель: Ресурсы и блоки (10..29)
+                [10] = { id = "clay",       count = 10, max = 64 },
+                [11] = { id = "sand",       count = 3,  max = 64 },
+                [12] = { id = "ore",        count = 8,  max = 64 },
+                [13] = { id = "coal",       count = 2,  max = 64 },
+                [14] = { id = "bones",      count = 1,  max = 64 },
+
+                -- Корзинка: Еда и урожай (30..44)
+                [30] = { id = "mushrooms",  count = 5,  max = 32 },
+                [31] = { id = "leaves",     count = 8,  max = 64 },
+                [32] = { id = "flowers",    count = 5,  max = 64 },
+                [33] = { id = "seeds",      count = 24, max = 64 },
+
+                -- Сумка: Инструменты (45..54)
+                [45] = { id = "shovel",     count = 1,  max = 1 },
+                [46] = { id = "rod",        count = 1,  max = 1 },
+            }
+        }
+    end
+    return playerInventories[userId]
+end
+
+local function syncPlayerInventory(player)
+    local inv = getOrCreateInventory(player)
+    local cleanSlots = {}
+    for i = 1, MAX_SLOTS do
+        local s = inv.slots[i]
+        if s and s.id and s.count and s.count > 0 then
+            cleanSlots[tostring(i)] = {
+                id = s.id,
+                count = s.count,
+                max = s.max or 64
+            }
+        end
+    end
+
+    voxelRemote:FireClient(player, "InventoryUpdate", {
+        slots = cleanSlots,
+        activeSlot = inv.activeSlot,
+        itemsDef = ITEMS
+    })
+
+    local char = player.Character
+    if char then
+        local activeItem = inv.slots[inv.activeSlot]
+        if activeItem and activeItem.count > 0 then
+            char:SetAttribute("HeldItemId", activeItem.id)
+            char:SetAttribute("HeldItemCount", activeItem.count)
+        else
+            char:SetAttribute("HeldItemId", "")
+            char:SetAttribute("HeldItemCount", 0)
+        end
+    end
+end
+
+local function addItemToInventory(player, itemId, amount)
+    local inv = getOrCreateInventory(player)
+    local itemDef = ITEMS[itemId]
+    if not itemDef then return false end
+
+    local remaining = amount or 1
+    local cat = itemDef.category or "resources"
+    local catStart, catEnd = 10, 29
+    if cat == "food" then
+        catStart, catEnd = 30, 44
+    elseif cat == "tools" then
+        catStart, catEnd = 45, 54
+    end
+
+    -- 1. Сначала дополняем существующие стеки в хотбаре
+    for i = 1, HOTBAR_SLOTS do
+        local slot = inv.slots[i]
+        if slot and slot.id == itemId and slot.count < slot.max then
+            local space = slot.max - slot.count
+            local addCount = math.min(space, remaining)
+            slot.count = slot.count + addCount
+            remaining = remaining - addCount
+            if remaining <= 0 then break end
+        end
+    end
+
+    -- 2. Дополняем существующие стеки в соответствующей сумке
+    if remaining > 0 then
+        for i = catStart, catEnd do
+            local slot = inv.slots[i]
+            if slot and slot.id == itemId and slot.count < slot.max then
+                local space = slot.max - slot.count
+                local addCount = math.min(space, remaining)
+                slot.count = slot.count + addCount
+                remaining = remaining - addCount
+                if remaining <= 0 then break end
+            end
+        end
+    end
+
+    -- 3. Если осталось, ищем первый свободный слот в целевой сумке
+    if remaining > 0 then
+        for i = catStart, catEnd do
+            if not inv.slots[i] then
+                local addCount = math.min(itemDef.max, remaining)
+                inv.slots[i] = {
+                    id = itemId,
+                    count = addCount,
+                    max = itemDef.max
+                }
+                remaining = remaining - addCount
+                if remaining <= 0 then break end
+            end
+        end
+    end
+
+    -- 4. Если целевая сумка полна, ищем любой свободный слот в других сумках
+    if remaining > 0 then
+        for i = 10, MAX_SLOTS do
+            if not inv.slots[i] then
+                local addCount = math.min(itemDef.max, remaining)
+                inv.slots[i] = {
+                    id = itemId,
+                    count = addCount,
+                    max = itemDef.max
+                }
+                remaining = remaining - addCount
+                if remaining <= 0 then break end
+            end
+        end
+    end
+
+    syncPlayerInventory(player)
+    return remaining < amount
+end
+
+local function removeItemFromSlot(player, slotIndex, amount)
+    local inv = getOrCreateInventory(player)
+    local slot = inv.slots[slotIndex]
+    if not slot then return false end
+
+    slot.count = slot.count - (amount or 1)
+    if slot.count <= 0 then
+        inv.slots[slotIndex] = nil
+    end
+
+    syncPlayerInventory(player)
+    return true
+end
+
+local function moveOrSwapSlots(player, fromSlot, toSlot)
+    local inv = getOrCreateInventory(player)
+    if fromSlot < 1 or fromSlot > MAX_SLOTS or toSlot < 1 or toSlot > MAX_SLOTS then return end
+    if fromSlot == toSlot then return end
+
+    local itemFrom = inv.slots[fromSlot]
+    local itemTo = inv.slots[toSlot]
+
+    if itemFrom and itemTo and itemFrom.id == itemTo.id then
+        local space = itemTo.max - itemTo.count
+        if space > 0 then
+            local moveCount = math.min(space, itemFrom.count)
+            itemTo.count = itemTo.count + moveCount
+            itemFrom.count = itemFrom.count - moveCount
+            if itemFrom.count <= 0 then
+                inv.slots[fromSlot] = nil
+            end
+        else
+            inv.slots[toSlot] = itemFrom
+            inv.slots[fromSlot] = itemTo
+        end
+    else
+        inv.slots[toSlot] = itemFrom
+        inv.slots[fromSlot] = itemTo
+    end
+
+    syncPlayerInventory(player)
+end
+
+-- Сортировка предметов в активной сумке
+local function sortInventory(player, containerType)
+    local inv = getOrCreateInventory(player)
+    local startIdx, endIdx = 10, 29
+    if containerType == "basket" then
+        startIdx, endIdx = 30, 44
+    elseif containerType == "toolbag" then
+        startIdx, endIdx = 45, 54
+    end
+
+    local items = {}
+    for i = startIdx, endIdx do
+        if inv.slots[i] then
+            table.insert(items, inv.slots[i])
+            inv.slots[i] = nil
+        end
+    end
+
+    local combined = {}
+    for _, item in ipairs(items) do
+        local matched = false
+        for _, c in ipairs(combined) do
+            if c.id == item.id and c.count < c.max then
+                local space = c.max - c.count
+                local add = math.min(space, item.count)
+                c.count = c.count + add
+                item.count = item.count - add
+                if item.count <= 0 then
+                    matched = true
+                    break
+                end
+            end
+        end
+        if item.count > 0 then
+            table.insert(combined, item)
+        end
+    end
+
+    table.sort(combined, function(a, b) return a.id < b.id end)
+    for idx, item in ipairs(combined) do
+        local s = startIdx + idx - 1
+        if s <= endIdx then
+            inv.slots[s] = item
+        end
+    end
+
+    syncPlayerInventory(player)
+end
+
+-- === ДРОП ЛУТА ===
+local function spawnLootDrop(itemId, position)
+    local itemDef = ITEMS[itemId]
+    if not itemDef then return end
+
+    local dropPart = Instance.new("Part")
+    dropPart.Name = "LootDrop_" .. itemId
+    dropPart.Size = Vector3.new(0.35, 0.35, 0.35)
+    dropPart.Color = itemDef.color
+    dropPart.Material = itemDef.material
+    dropPart.Anchored = true
+    dropPart.CanCollide = false
+    dropPart.CastShadow = false
+
+    local spawnPos = position + Vector3.new(math.random(-2, 2) * 0.1, 0.3, math.random(-2, 2) * 0.1)
+    dropPart.Position = spawnPos
+
+    dropPart:SetAttribute("ItemId", itemId)
+    dropPart:SetAttribute("BaseY", spawnPos.Y)
+    dropPart:SetAttribute("SpawnTick", tick())
+    dropPart.Parent = lootFolder
+
+    game:GetService("Debris"):AddItem(dropPart, 90)
+    return dropPart
+end
+
+local lastPickupCheck = 0
+RunService.Heartbeat:Connect(function()
+    local now = tick()
+
+    local drops = lootFolder:GetChildren()
+    for _, drop in ipairs(drops) do
+        if drop:IsA("BasePart") then
+            local baseY = drop:GetAttribute("BaseY") or drop.Position.Y
+            local spawnTick = drop:GetAttribute("SpawnTick") or 0
+            local elapsed = now - spawnTick
+            drop.Position = Vector3.new(drop.Position.X, baseY + math.sin(elapsed * 3.5) * 0.12, drop.Position.Z)
+            drop.Orientation = Vector3.new(0, (elapsed * 90) % 360, 0)
+        end
+    end
+
+    if now - lastPickupCheck > 0.15 then
+        lastPickupCheck = now
+        for _, player in ipairs(Players:GetPlayers()) do
+            local char = player.Character
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                for _, drop in ipairs(drops) do
+                    if drop:IsA("BasePart") and drop.Parent == lootFolder then
+                        local dist = (hrp.Position - drop.Position).Magnitude
+                        if dist < 2.5 then
+                            local itemId = drop:GetAttribute("ItemId")
+                            if itemId then
+                                local picked = addItemToInventory(player, itemId, 1)
+                                if picked then
+                                    local p = Instance.new("Part")
+                                    p.Size = Vector3.new(0.2, 0.2, 0.2)
+                                    p.Position = drop.Position
+                                    p.Anchored = true
+                                    p.CanCollide = false
+                                    p.Material = Enum.Material.Neon
+                                    p.Color = Color3.fromRGB(255, 255, 200)
+                                    p.Parent = Workspace
+                                    local tw = TweenService:Create(p, TweenInfo.new(0.25), {
+                                        Position = hrp.Position,
+                                        Size = Vector3.new(0.05, 0.05, 0.05),
+                                        Transparency = 1
+                                    })
+                                    tw:Play()
+                                    tw.Completed:Connect(function() p:Destroy() end)
+
+                                    drop:Destroy()
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+end)
+
+-- === ГЕНЕРАЦИЯ ОСТРОВКА МИРА ===
+local function generateWorld()
+    for _, child in ipairs(worldFolder:GetChildren()) do
+        child:Destroy()
+    end
+
+    local HALF_X = 6
+    local HALF_Z = 6
+    local BASE_Y = 0
+
+    for x = -HALF_X, HALF_X do
+        for z = -HALF_Z, HALF_Z do
+            local worldX = x * BLOCK_SIZE
+            local worldZ = z * BLOCK_SIZE
+            local dist = math.sqrt(x*x + z*z)
+            if dist <= HALF_X + 0.4 then
+                createBlock("Grass", Vector3.new(worldX, BASE_Y, worldZ), false)
+                createBlock("Stone", Vector3.new(worldX, BASE_Y - BLOCK_SIZE, worldZ), false)
+            end
+        end
+    end
+
+    createBlock("Wood", Vector3.new(-3 * BLOCK_SIZE, BASE_Y + BLOCK_SIZE, -2 * BLOCK_SIZE), false)
+    createBlock("Wood", Vector3.new(-3 * BLOCK_SIZE, BASE_Y + BLOCK_SIZE * 2, -2 * BLOCK_SIZE), false)
+    createBlock("Wood", Vector3.new(3 * BLOCK_SIZE, BASE_Y + BLOCK_SIZE, 2 * BLOCK_SIZE), false)
+    createBlock("Stone", Vector3.new(2 * BLOCK_SIZE, BASE_Y + BLOCK_SIZE, -3 * BLOCK_SIZE), false)
+end
+
+if #worldFolder:GetChildren() == 0 then
+    generateWorld()
+end
+
+-- === ЧАСТИЦЫ ===
+local function spawnBreakParticles(position, color, isBreak)
+    for _ = 1, (isBreak and 8 or 4) do
+        local chip = Instance.new("Part")
+        chip.Size = Vector3.new(0.2, 0.2, 0.2)
+        chip.Color = color
+        chip.Material = Enum.Material.Plastic
+        chip.CanCollide = false
+        chip.Anchored = false
+        chip.Position = position + Vector3.new(
+            math.random(-5, 5) * 0.1,
+            math.random(0, 5) * 0.1,
+            math.random(-5, 5) * 0.1
+        )
+        chip.Velocity = Vector3.new(
+            math.random(-8, 8),
+            math.random(6, 14),
+            math.random(-8, 8)
+        )
+        chip.Parent = Workspace
+        game:GetService("Debris"):AddItem(chip, 0.6)
+    end
+end
+
+-- Спавн игроков
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function(char)
+        task.wait(0.1)
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            hrp.CFrame = CFrame.new(0, 5.0, 0)
+        end
+        task.wait(0.2)
+        syncPlayerInventory(player)
+    end)
+    task.wait(0.4)
+    syncPlayerInventory(player)
+end)
+
+for _, pl in ipairs(Players:GetPlayers()) do
+    task.spawn(function()
+        task.wait(0.5)
+        syncPlayerInventory(pl)
+    end)
+end
+
+-- === ОБРАБОТКА ДЕЙСТВИЙ ИГРОКА ===
+voxelRemote.OnServerEvent:Connect(function(player, action, data)
+    local character = player.Character
+    if not character then return end
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    if not rootPart then return end
+
+    local inv = getOrCreateInventory(player)
+
+    if action == "Hit" then
+        local block = data.Block
+        if not (block and block:IsDescendantOf(worldFolder)) then return end
+
+        local dist = (rootPart.Position - block.Position).Magnitude
+        if dist > MAX_REACH then return end
+
+        local hp = block:GetAttribute("HP") or 1
+        hp = hp - 1
+        block:SetAttribute("HP", hp)
+
+        if hp <= 0 then
+            local bType = block:GetAttribute("BlockType") or "Grass"
+            local cfg = BLOCK_CONFIG[bType] or BLOCK_CONFIG.Grass
+            local blockPos = block.Position
+
+            spawnBreakParticles(blockPos, block.Color, true)
+            block:Destroy()
+
+            if cfg.DropId then
+                spawnLootDrop(cfg.DropId, blockPos)
+            end
+            if math.random(1, 100) <= 15 then
+                spawnLootDrop("fish", blockPos + Vector3.new(0, 0.4, 0))
+            end
+
+            voxelRemote:FireClient(player, "BlockDestroyed", { Position = blockPos })
+        else
+            spawnBreakParticles(block.Position, block.Color, false)
+            local origSize = block.Size
+            local shrinkTween = TweenService:Create(block, TweenInfo.new(0.06), {
+                Size = origSize * 0.94
+            })
+            shrinkTween:Play()
+            shrinkTween.Completed:Connect(function()
+                if block and block.Parent then
+                    TweenService:Create(block, TweenInfo.new(0.08), { Size = origSize }):Play()
+                end
+            end)
+            voxelRemote:FireClient(player, "BlockHit", { Block = block, HP = hp, MaxHP = block:GetAttribute("MaxHP") })
+        end
+
+    elseif action == "Place" then
+        local targetBlock = data.TargetBlock or data.targetBlock
+        local normal = data.Normal or data.normal or Vector3.new(0, 1, 0)
+        local slotIndex = data.Slot or data.slot or inv.activeSlot
+
+        local slotItem = inv.slots[slotIndex]
+        if not slotItem or slotItem.count <= 0 then return end
+
+        local itemDef = ITEMS[slotItem.id]
+        if not (itemDef and itemDef.isBlock) then return end
+
+        if not (targetBlock and targetBlock:IsDescendantOf(worldFolder)) then return end
+
+        local dist = (rootPart.Position - targetBlock.Position).Magnitude
+        if dist > MAX_REACH then return end
+
+        local newPos = snapToGrid(targetBlock.Position + (normal * BLOCK_SIZE), BLOCK_SIZE)
+
+        for _, pl in ipairs(Players:GetPlayers()) do
+            local ch = pl.Character
+            local rp = ch and ch:FindFirstChild("HumanoidRootPart")
+            if rp then
+                local delta = rp.Position - newPos
+                local overlapH = BLOCK_SIZE * 0.75
+                local overlapV = BLOCK_SIZE * 0.85
+                if math.abs(delta.X) < overlapH and
+                   math.abs(delta.Y) < overlapV and
+                   math.abs(delta.Z) < overlapH then
+                    return
+                end
+            end
+        end
+
+        local newBlock = createBlock(itemDef.blockType, newPos, true)
+        if newBlock then
+            removeItemFromSlot(player, slotIndex, 1)
+            spawnBreakParticles(newPos, newBlock.Color, false)
+            voxelRemote:FireClient(player, "BlockPlaced", { Block = newBlock })
+        end
+
+    elseif action == "SelectSlot" then
+        local slot = tonumber(data.slot)
+        if slot and slot >= 1 and slot <= 9 then
+            inv.activeSlot = slot
+            syncPlayerInventory(player)
+        end
+
+    elseif action == "MoveItem" then
+        local fromSlot = tonumber(data.fromSlot)
+        local toSlot = tonumber(data.toSlot)
+        if fromSlot and toSlot then
+            moveOrSwapSlots(player, fromSlot, toSlot)
+        end
+
+    elseif action == "SortInventory" then
+        sortInventory(player, data and data.containerType or "backpack")
+    end
+end)

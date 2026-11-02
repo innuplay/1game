@@ -1,0 +1,9 @@
+# OS / Editor temporary files
+Thumbs.db
+Desktop.ini
+.DS_Store
+*.tmp
+*.log
+
+# Temporary scratch scripts
+find_icons.ps1
