@@ -36,21 +36,22 @@ screenGui.Name = "VoxelBackpackGui"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = playerGui
 
--- 1. УЮТНЫЙ ДЕРЕВЯННЫЙ HUD (ВИТАЛЬНОСТЬ + РЮКЗАК + ХОТБАР 1-9 + ПОЛОСА ОПЫТА)
+-- 1. ЧИСТЫЙ ДЕРЕВЯННЫЙ ХОТБАР (9 СЛОТОВ 1–9 + КНОПКА РЮКЗАКА)
+local TOTAL_HOTBAR_WIDTH = 502 -- 9 слотов по 50px (448px) + отступ 6px + кнопка рюкзака 48px
 local hudContainer = Instance.new("Frame")
 hudContainer.Name = "WoodHudContainer"
-hudContainer.Size = UDim2.new(0, 605, 0, 112)
-hudContainer.Position = UDim2.new(0.5, -302, 1, -120)
+hudContainer.Size = UDim2.new(0, TOTAL_HOTBAR_WIDTH, 0, 48)
+hudContainer.Position = UDim2.new(0.5, -TOTAL_HOTBAR_WIDTH / 2, 1, -70)
 hudContainer.BackgroundTransparency = 1
 hudContainer.BorderSizePixel = 0
 hudContainer.Parent = screenGui
 
 local DEFAULT_TIP_TEXT = "[ЛКМ] — Копать лапками | [Q или ПКМ] — Строить | [1–9] — Выбор слота | [E] — Рюкзак"
 
--- Подсказка управления сверху
+-- Подсказка управления сверху хотбара
 local tipLabel = Instance.new("TextLabel")
 tipLabel.Name = "ControlsTip"
-tipLabel.Size = UDim2.new(0, 605, 0, 20)
+tipLabel.Size = UDim2.new(1, 0, 0, 18)
 tipLabel.Position = UDim2.new(0, 0, 0, -22)
 tipLabel.BackgroundTransparency = 1
 tipLabel.TextColor3 = Color3.fromRGB(255, 235, 130)
@@ -61,81 +62,24 @@ tipLabel.TextSize = 12
 tipLabel.Text = DEFAULT_TIP_TEXT
 tipLabel.ZIndex = 5
 tipLabel.Parent = hudContainer
-local hudBackground = Instance.new("ImageLabel")
-hudBackground.Name = "HudBackground"
-hudBackground.Size = UDim2.new(1, 0, 1, 0)
-hudBackground.Position = UDim2.new(0, 0, 0, 0)
-hudBackground.BackgroundTransparency = 1
-hudBackground.Image = "rbxassetid://128642629180420"
-hudBackground.ResampleMode = Enum.ResamplerMode.Pixelated
-hudBackground.ScaleType = Enum.ScaleType.Fit
-hudBackground.ZIndex = 1
-hudBackground.Parent = hudContainer
 
--- А) ЛЕВАЯ ПАНЕЛЬ ВИТАЛЬНОСТИ (КОЛОННЫ С ЛОЗОЙ И ЖИДКОСТЯМИ)
--- Трубка энергии / сытости (оранжевая)
-local energyTube = Instance.new("Frame")
-energyTube.Name = "EnergyTube"
-energyTube.Size = UDim2.new(0, 10, 0, 66)
-energyTube.Position = UDim2.new(0, 13, 0, 22)
-energyTube.BackgroundColor3 = Color3.fromRGB(35, 20, 12)
-energyTube.BorderSizePixel = 0
-energyTube.ZIndex = 2
-energyTube.Parent = hudContainer
-
-local energyFill = Instance.new("Frame")
-energyFill.Name = "Fill"
-energyFill.Size = UDim2.new(1, 0, 1, 0)
-energyFill.Position = UDim2.new(0, 0, 0, 0)
-energyFill.BackgroundColor3 = Color3.fromRGB(235, 145, 55)
-energyFill.BorderSizePixel = 0
-energyFill.ZIndex = 3
-energyFill.Parent = energyTube
-
-local energyCorner = Instance.new("UICorner")
-energyCorner.CornerRadius = UDim.new(0, 4)
-energyCorner.Parent = energyFill
-
--- Трубка воды / здоровья (голубая)
-local waterTube = Instance.new("Frame")
-waterTube.Name = "WaterTube"
-waterTube.Size = UDim2.new(0, 10, 0, 66)
-waterTube.Position = UDim2.new(0, 31, 0, 22)
-waterTube.BackgroundColor3 = Color3.fromRGB(20, 30, 40)
-waterTube.BorderSizePixel = 0
-waterTube.ZIndex = 2
-waterTube.Parent = hudContainer
-
-local waterFill = Instance.new("Frame")
-waterFill.Name = "Fill"
-waterFill.Size = UDim2.new(1, 0, 1, 0)
-waterFill.Position = UDim2.new(0, 0, 0, 0)
-waterFill.BackgroundColor3 = Color3.fromRGB(85, 195, 235)
-waterFill.BorderSizePixel = 0
-waterFill.ZIndex = 3
-waterFill.Parent = waterTube
-
-local waterCorner = Instance.new("UICorner")
-waterCorner.CornerRadius = UDim.new(0, 4)
-waterCorner.Parent = waterFill
-
--- Б) ДЕРЕВЯННАЯ КНОПКА РЮКЗАКА
+-- Кнопка походного рюкзака в едином деревянном пиксельном стиле
 local backpackBtn = Instance.new("ImageButton")
 backpackBtn.Name = "OpenBackpackBtn"
-backpackBtn.Size = UDim2.new(0, 60, 0, 60)
-backpackBtn.Position = UDim2.new(0, 63, 0, 46)
+backpackBtn.Size = UDim2.new(0, 48, 0, 48)
+backpackBtn.Position = UDim2.new(0, 454, 0, 0)
 backpackBtn.BackgroundTransparency = 1
 backpackBtn.Image = "rbxassetid://106822265493004"
 backpackBtn.ResampleMode = Enum.ResamplerMode.Pixelated
 backpackBtn.ScaleType = Enum.ScaleType.Fit
 backpackBtn.AutoButtonColor = false
-backpackBtn.ZIndex = 4
+backpackBtn.ZIndex = 5
 backpackBtn.Parent = hudContainer
 
 -- Бейдж горячей клавиши [E]
 local bpKeyBadge = Instance.new("TextLabel")
 bpKeyBadge.Name = "KeyBadge"
-bpKeyBadge.Size = UDim2.new(0, 24, 0, 14)
+bpKeyBadge.Size = UDim2.new(0, 18, 0, 12)
 bpKeyBadge.Position = UDim2.new(1, -2, 1, -2)
 bpKeyBadge.AnchorPoint = Vector2.new(1, 1)
 bpKeyBadge.BackgroundColor3 = Color3.fromRGB(38, 24, 15)
@@ -143,87 +87,20 @@ bpKeyBadge.BackgroundTransparency = 0.15
 bpKeyBadge.Text = "[E]"
 bpKeyBadge.TextColor3 = Color3.fromRGB(255, 230, 120)
 bpKeyBadge.Font = Enum.Font.FredokaOne
-bpKeyBadge.TextSize = 10
-bpKeyBadge.ZIndex = 5
+bpKeyBadge.TextSize = 9
+bpKeyBadge.ZIndex = 8
 bpKeyBadge.Parent = backpackBtn
 
 local bpKeyCorner = Instance.new("UICorner")
-bpKeyCorner.CornerRadius = UDim.new(0, 4)
+bpKeyCorner.CornerRadius = UDim.new(0, 3)
 bpKeyCorner.Parent = bpKeyBadge
-
 
 backpackBtn.MouseEnter:Connect(function()
     backpackBtn.ImageColor3 = Color3.fromRGB(255, 245, 210)
-    tipLabel.Text = "🎒 Походный рюкзак котёнка [E] — Открыть сумки и ресурсы"
+    tipLabel.Text = "🎒 Походный рюкзак: кликните или нажмите [E], чтобы открыть поляну инвентаря"
 end)
 backpackBtn.MouseLeave:Connect(function()
     backpackBtn.ImageColor3 = Color3.fromRGB(255, 255, 255)
-    tipLabel.Text = DEFAULT_TIP_TEXT
-end)
-
--- Интерактивные подсказки для шкал витальности
-local energySensor = Instance.new("TextButton")
-energySensor.Size = UDim2.new(0, 16, 0, 72)
-energySensor.Position = UDim2.new(0, 10, 0, 18)
-energySensor.BackgroundTransparency = 1
-energySensor.Text = ""
-energySensor.ZIndex = 5
-energySensor.Parent = hudContainer
-energySensor.MouseEnter:Connect(function()
-    tipLabel.Text = "⚡ Энергия котёнка: 100/100 (Сытость и бодрость)"
-end)
-energySensor.MouseLeave:Connect(function()
-    tipLabel.Text = DEFAULT_TIP_TEXT
-end)
-
-local waterSensor = Instance.new("TextButton")
-waterSensor.Size = UDim2.new(0, 16, 0, 72)
-waterSensor.Position = UDim2.new(0, 28, 0, 18)
-waterSensor.BackgroundTransparency = 1
-waterSensor.Text = ""
-waterSensor.ZIndex = 5
-waterSensor.Parent = hudContainer
-waterSensor.MouseEnter:Connect(function()
-    tipLabel.Text = "💧 Вода и Здоровье: 100/100 (Жажда утолена)"
-end)
-waterSensor.MouseLeave:Connect(function()
-    tipLabel.Text = DEFAULT_TIP_TEXT
-end)
-
--- В) НИЖНЯЯ ДЛИННАЯ ПОЛОСА ОПЫТА / ВЫНОСЛИВОСТИ
-local expBarContainer = Instance.new("Frame")
-expBarContainer.Name = "ExpBarContainer"
-expBarContainer.Size = UDim2.new(0, 452, 0, 8)
-expBarContainer.Position = UDim2.new(0, 138, 0, 99)
-expBarContainer.BackgroundColor3 = Color3.fromRGB(45, 28, 18)
-expBarContainer.BorderSizePixel = 0
-expBarContainer.ZIndex = 3
-expBarContainer.Parent = hudContainer
-
-local expBarFill = Instance.new("Frame")
-expBarFill.Name = "Fill"
-expBarFill.Size = UDim2.new(0.68, 0, 1, 0)
-expBarFill.Position = UDim2.new(0, 0, 0, 0)
-expBarFill.BackgroundColor3 = Color3.fromRGB(154, 214, 100)
-expBarFill.BorderSizePixel = 0
-expBarFill.ZIndex = 4
-expBarFill.Parent = expBarContainer
-
-local expBarCorner = Instance.new("UICorner")
-expBarCorner.CornerRadius = UDim.new(0, 3)
-expBarCorner.Parent = expBarFill
-
-local expSensor = Instance.new("TextButton")
-expSensor.Size = UDim2.new(1, 0, 1, 6)
-expSensor.Position = UDim2.new(0, 0, 0, -3)
-expSensor.BackgroundTransparency = 1
-expSensor.Text = ""
-expSensor.ZIndex = 5
-expSensor.Parent = expBarContainer
-expSensor.MouseEnter:Connect(function()
-    tipLabel.Text = "🌟 Уровень мастерства: 1 (Опыт: 68%)"
-end)
-expSensor.MouseLeave:Connect(function()
     tipLabel.Text = DEFAULT_TIP_TEXT
 end)
 
@@ -821,11 +698,11 @@ local refreshAllInventoryUI
 
 -- Собираем 9 слотов деревянного хотбара (1–9)
 for i = 1, 9 do
-    local xPos = 140 + (i - 1) * 50
+    local xPos = (i - 1) * 50
     local btn = createHotbarSlotUI(
         hudContainer,
         i,
-        UDim2.new(0, xPos, 0, 46)
+        UDim2.new(0, xPos, 0, 0)
     )
 
     btn.MouseButton1Click:Connect(function()
