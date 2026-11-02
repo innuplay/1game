@@ -632,32 +632,89 @@ RunService.Heartbeat:Connect(function(dt)
     end
 end)
 
--- === ГЕНЕРАЦИЯ ОСТРОВКА МИРА ===
+-- === ГЕНЕРАЦИЯ БОЛЬШОЙ УЮТНОЙ ПОЛЯНЫ ===
 local function generateWorld()
     for _, child in ipairs(worldFolder:GetChildren()) do
         child:Destroy()
     end
 
-    local HALF_X = 6
-    local HALF_Z = 6
     local BASE_Y = 0
+    local CLEARING_RADIUS = 18 -- Просторная поляна (радиус 18 блоков ~ 27 стадов, диаметр 54 стада)
 
-    for x = -HALF_X, HALF_X do
-        for z = -HALF_Z, HALF_Z do
-            local worldX = x * BLOCK_SIZE
-            local worldZ = z * BLOCK_SIZE
+    -- 1. Создаем просторный многослойный ландшафт поляны с естественными живыми краями
+    for x = -CLEARING_RADIUS - 2, CLEARING_RADIUS + 2 do
+        for z = -CLEARING_RADIUS - 2, CLEARING_RADIUS + 2 do
             local dist = math.sqrt(x*x + z*z)
-            if dist <= HALF_X + 0.4 then
+            local angle = math.atan2(z, x)
+            -- Мягкие гармонические волны по краям, чтобы поляна была живой и органичной
+            local edgeWobble = math.sin(angle * 4) * 1.8 + math.cos(angle * 3) * 1.3
+            local maxDist = CLEARING_RADIUS + edgeWobble
+
+            if dist <= maxDist then
+                local worldX = x * BLOCK_SIZE
+                local worldZ = z * BLOCK_SIZE
+
+                -- Верхний слой: мягкая сочная трава
                 createBlock("Grass", Vector3.new(worldX, BASE_Y, worldZ), false)
-                createBlock("Stone", Vector3.new(worldX, BASE_Y - BLOCK_SIZE, worldZ), false)
+                -- Подповерхностный слой: плодородная земля
+                createBlock("Dirt", Vector3.new(worldX, BASE_Y - BLOCK_SIZE, worldZ), false)
+                -- Коренной слой: крепкий камень
+                createBlock("Stone", Vector3.new(worldX, BASE_Y - BLOCK_SIZE * 2, worldZ), false)
+
+                -- Уютный холмик в северо-западном углу поляны (ступенька +1 блок для прыжков)
+                local hillDist = math.sqrt((x + 10)^2 + (z + 10)^2)
+                if hillDist <= 4.2 then
+                    createBlock("Grass", Vector3.new(worldX, BASE_Y + BLOCK_SIZE, worldZ), false)
+                end
             end
         end
     end
 
-    createBlock("Wood", Vector3.new(-3 * BLOCK_SIZE, BASE_Y + BLOCK_SIZE, -2 * BLOCK_SIZE), false)
-    createBlock("Wood", Vector3.new(-3 * BLOCK_SIZE, BASE_Y + BLOCK_SIZE * 2, -2 * BLOCK_SIZE), false)
-    createBlock("Wood", Vector3.new(3 * BLOCK_SIZE, BASE_Y + BLOCK_SIZE, 2 * BLOCK_SIZE), false)
-    createBlock("Stone", Vector3.new(2 * BLOCK_SIZE, BASE_Y + BLOCK_SIZE, -3 * BLOCK_SIZE), false)
+    -- Вспомогательная функция для генерации аккуратного воксельного деревца
+    local function spawnVoxelTree(bx, bz, trunkHeight)
+        local posX = bx * BLOCK_SIZE
+        local posZ = bz * BLOCK_SIZE
+        -- Ствол из древесины
+        for h = 1, trunkHeight do
+            createBlock("Wood", Vector3.new(posX, BASE_Y + h * BLOCK_SIZE, posZ), false)
+        end
+        -- Пушистая лиственная крона (из блоков листвы/травы)
+        local topY = BASE_Y + trunkHeight * BLOCK_SIZE
+        for dx = -1, 1 do
+            for dz = -1, 1 do
+                createBlock("Grass", Vector3.new(posX + dx * BLOCK_SIZE, topY, posZ + dz * BLOCK_SIZE), false)
+                if math.abs(dx) + math.abs(dz) <= 1 then
+                    createBlock("Grass", Vector3.new(posX + dx * BLOCK_SIZE, topY + BLOCK_SIZE, posZ + dz * BLOCK_SIZE), false)
+                end
+            end
+        end
+    end
+
+    -- 2. Расставляем деревья по периметру поляны (центр остаётся свободным для бега котика)
+    spawnVoxelTree(-9, -6, 3)
+    spawnVoxelTree(10, -8, 3)
+    spawnVoxelTree(-10, 8, 3)
+    spawnVoxelTree(9, 7, 3)
+    spawnVoxelTree(2, -12, 3)
+    spawnVoxelTree(-5, 12, 3)
+
+    -- 3. Каменные валуны для добычи ресурсов
+    local function spawnBoulder(bx, bz)
+        local posX = bx * BLOCK_SIZE
+        local posZ = bz * BLOCK_SIZE
+        createBlock("Stone", Vector3.new(posX, BASE_Y + BLOCK_SIZE, posZ), false)
+        createBlock("Stone", Vector3.new(posX + BLOCK_SIZE, BASE_Y + BLOCK_SIZE, posZ), false)
+        createBlock("Stone", Vector3.new(posX, BASE_Y + BLOCK_SIZE, posZ + BLOCK_SIZE), false)
+    end
+    spawnBoulder(7, 3)
+    spawnBoulder(-7, -2)
+    spawnBoulder(4, -8)
+    spawnBoulder(-6, 7)
+
+    -- 4. Пенечки и бревнышки
+    createBlock("Wood", Vector3.new(-4 * BLOCK_SIZE, BASE_Y + BLOCK_SIZE, 3 * BLOCK_SIZE), false)
+    createBlock("Wood", Vector3.new(5 * BLOCK_SIZE, BASE_Y + BLOCK_SIZE, -3 * BLOCK_SIZE), false)
+    createBlock("Wood", Vector3.new(6 * BLOCK_SIZE, BASE_Y + BLOCK_SIZE, -3 * BLOCK_SIZE), false)
 end
 
 if #worldFolder:GetChildren() == 0 then
