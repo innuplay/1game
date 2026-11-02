@@ -41,7 +41,7 @@ screenGui.Parent = playerGui
 local NUM_HOTBAR_SLOTS = 4
 local SLOT_SIZE = 54
 local SLOT_GAP = 8
-local TOTAL_HOTBAR_WIDTH = (NUM_HOTBAR_SLOTS * SLOT_SIZE) + ((NUM_HOTBAR_SLOTS - 1) * SLOT_GAP) + 12 + 50 -- 216 + 24 + 12 + 50 = 302px
+local TOTAL_HOTBAR_WIDTH = (NUM_HOTBAR_SLOTS * SLOT_SIZE) + ((NUM_HOTBAR_SLOTS - 1) * SLOT_GAP) + 12 + 56 -- 216 + 24 + 12 + 56 = 308px
 
 local HOTBAR_SLOT_DEFS = {
     [1] = { id = "wood_block",  sprite = "rbxassetid://102991854156536", name = "Дерево", icon = "🪵" },
@@ -75,17 +75,18 @@ tipLabel.Text = DEFAULT_TIP_TEXT
 tipLabel.ZIndex = 5
 tipLabel.Parent = hudContainer
 
--- Кнопка походного рюкзака в едином деревянном пиксельном стиле
+-- Функциональный походный рюкзак (чистый пиксельный спрайт без рамки/ячейки)
 local backpackBtn = Instance.new("ImageButton")
 backpackBtn.Name = "OpenBackpackBtn"
-backpackBtn.Size = UDim2.new(0, 50, 0, 50)
-backpackBtn.Position = UDim2.new(0, 252, 0, 2)
+backpackBtn.Size = UDim2.new(0, 56, 0, 56)
+backpackBtn.Position = UDim2.new(0, 252, 0, 0)
 backpackBtn.BackgroundTransparency = 1
-backpackBtn.Image = "rbxassetid://106822265493004"
+backpackBtn.BorderSizePixel = 0
+backpackBtn.Image = "rbxassetid://94027994735248"
 backpackBtn.ResampleMode = Enum.ResamplerMode.Pixelated
 backpackBtn.ScaleType = Enum.ScaleType.Fit
 backpackBtn.AutoButtonColor = false
-backpackBtn.ZIndex = 5
+backpackBtn.ZIndex = 6
 backpackBtn.Parent = hudContainer
 
 -- Бейдж горячей клавиши [E]
@@ -94,8 +95,8 @@ bpKeyBadge.Name = "KeyBadge"
 bpKeyBadge.Size = UDim2.new(0, 18, 0, 12)
 bpKeyBadge.Position = UDim2.new(1, -2, 1, -2)
 bpKeyBadge.AnchorPoint = Vector2.new(1, 1)
-bpKeyBadge.BackgroundColor3 = Color3.fromRGB(38, 24, 15)
-bpKeyBadge.BackgroundTransparency = 0.15
+bpKeyBadge.BackgroundColor3 = Color3.fromRGB(35, 20, 12)
+bpKeyBadge.BackgroundTransparency = 0.2
 bpKeyBadge.Text = "[E]"
 bpKeyBadge.TextColor3 = Color3.fromRGB(255, 230, 120)
 bpKeyBadge.Font = Enum.Font.FredokaOne
@@ -114,6 +115,14 @@ end)
 backpackBtn.MouseLeave:Connect(function()
     backpackBtn.ImageColor3 = Color3.fromRGB(255, 255, 255)
     tipLabel.Text = DEFAULT_TIP_TEXT
+end)
+backpackBtn.MouseButton1Down:Connect(function()
+    backpackBtn.Size = UDim2.new(0, 52, 0, 52)
+    backpackBtn.Position = UDim2.new(0, 254, 0, 2)
+end)
+backpackBtn.MouseButton1Up:Connect(function()
+    backpackBtn.Size = UDim2.new(0, 56, 0, 56)
+    backpackBtn.Position = UDim2.new(0, 252, 0, 0)
 end)
 
 
