@@ -203,11 +203,96 @@ local ITEMS = {
 }
 
 local BLOCK_CONFIG = {
-    Grass = { Color = Color3.fromRGB(90, 175, 55), Material = Enum.Material.Grass, HP = 1, DropId = "grass_block" },
-    Wood  = { Color = Color3.fromRGB(120, 75, 40), Material = Enum.Material.WoodPlanks, HP = 1, DropId = "wood_block" },
-    Stone = { Color = Color3.fromRGB(135, 140, 145), Material = Enum.Material.Slate, HP = 1, DropId = "stone_block" },
-    Dirt  = { Color = Color3.fromRGB(100, 70, 45), Material = Enum.Material.Ground, HP = 1, DropId = "dirt_block" }
+    Grass = { Color = Color3.fromRGB(90, 175, 55), Material = Enum.Material.SmoothPlastic, HP = 1, DropId = "grass_block" },
+    Wood  = { Color = Color3.fromRGB(120, 75, 40), Material = Enum.Material.SmoothPlastic, HP = 1, DropId = "wood_block" },
+    Stone = { Color = Color3.fromRGB(135, 140, 145), Material = Enum.Material.SmoothPlastic, HP = 1, DropId = "stone_block" },
+    Dirt  = { Color = Color3.fromRGB(100, 70, 45), Material = Enum.Material.SmoothPlastic, HP = 1, DropId = "dirt_block" }
 }
+
+-- === ПИКСЕЛЬ-АРТ ТЕКСТУРЫ БЛОКОВ (ПО РЕФЕРЕНСУ ИЗОБРАЖЕНИЯ) ===
+local BLOCK_TEXTURES = {
+    Grass = {
+        Top = "rbxassetid://93068215905854",      -- Сочная луговая трава с цветами
+        Side = "rbxassetid://129112848421855",    -- Травяной навес с тёмной землей
+        Bottom = "rbxassetid://72946020607503",   -- Тёмная плодородная земля
+        BaseColor = Color3.fromRGB(255, 255, 255),
+    },
+    Dirt = {
+        Top = "rbxassetid://72946020607503",      -- Тёмная плодородная почва
+        Side = "rbxassetid://72946020607503",
+        Bottom = "rbxassetid://72946020607503",
+        BaseColor = Color3.fromRGB(255, 255, 255),
+    },
+    Stone = {
+        Top = "rbxassetid://85859375134191",      -- Тёсаная каменная плита
+        Side = "rbxassetid://119342354507823",    -- Каменная кладка булыжника с трещинами
+        Bottom = "rbxassetid://85859375134191",
+        BaseColor = Color3.fromRGB(255, 255, 255),
+    },
+    Wood = {
+        Top = "rbxassetid://139737805220041",     -- Годовые кольца спила бревна
+        Side = "rbxassetid://118179636250414",    -- Вертикальная древесная кора и волокна
+        Bottom = "rbxassetid://139737805220041",
+        BaseColor = Color3.fromRGB(255, 255, 255),
+    },
+}
+
+local SIDE_FACES = {
+    Enum.NormalId.Front,
+    Enum.NormalId.Back,
+    Enum.NormalId.Left,
+    Enum.NormalId.Right
+}
+
+local function applyBlockTextures(part, blockType)
+    local texDef = BLOCK_TEXTURES[blockType]
+    if not texDef then return end
+
+    part.Color = texDef.BaseColor or Color3.fromRGB(255, 255, 255)
+    part.Material = Enum.Material.SmoothPlastic
+
+    -- Удаляем старые текстуры, если были
+    for _, child in ipairs(part:GetChildren()) do
+        if child:IsA("Texture") or child:IsA("Decal") then
+            child:Destroy()
+        end
+    end
+
+    -- Верхняя грань
+    if texDef.Top then
+        local t = Instance.new("Texture")
+        t.Name = "Tex_Top"
+        t.Texture = texDef.Top
+        t.Face = Enum.NormalId.Top
+        t.StudsPerTileU = BLOCK_SIZE
+        t.StudsPerTileV = BLOCK_SIZE
+        t.Parent = part
+    end
+
+    -- Нижняя грань
+    if texDef.Bottom then
+        local t = Instance.new("Texture")
+        t.Name = "Tex_Bottom"
+        t.Texture = texDef.Bottom
+        t.Face = Enum.NormalId.Bottom
+        t.StudsPerTileU = BLOCK_SIZE
+        t.StudsPerTileV = BLOCK_SIZE
+        t.Parent = part
+    end
+
+    -- Боковые 4 грани
+    if texDef.Side then
+        for _, face in ipairs(SIDE_FACES) do
+            local t = Instance.new("Texture")
+            t.Name = "Tex_" .. face.Name
+            t.Texture = texDef.Side
+            t.Face = face
+            t.StudsPerTileU = BLOCK_SIZE
+            t.StudsPerTileV = BLOCK_SIZE
+            t.Parent = part
+        end
+    end
+end
 
 -- Инициализация папок и ремоута
 local worldFolder = Workspace:FindFirstChild("VoxelWorld")
@@ -265,6 +350,7 @@ local function createBlock(blockType, position, isDynamic)
     part:SetAttribute("IsDynamic", isDynamic or false)
 
     part.Parent = worldFolder
+    applyBlockTextures(part, blockType)
     return part
 end
 
@@ -719,6 +805,16 @@ end
 
 if #worldFolder:GetChildren() == 0 then
     generateWorld()
+else
+    -- Гарантируем наложение пиксельных текстур на все существующие воксели поляны
+    for _, block in ipairs(worldFolder:GetChildren()) do
+        if block:IsA("BasePart") then
+            local bType = block:GetAttribute("BlockType")
+            if bType and BLOCK_TEXTURES[bType] then
+                applyBlockTextures(block, bType)
+            end
+        end
+    end
 end
 
 -- === ЧАСТИЦЫ ===
