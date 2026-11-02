@@ -11,29 +11,6 @@ local mouse = player:GetMouse()
 local voxelRemote = ReplicatedStorage:WaitForChild("VoxelRemote")
 local worldFolder = Workspace:WaitForChild("VoxelWorld")
 
--- === КАСТОМНЫЙ КУРСОР МЫШИ: КОШАЧЬЯ ЛАПКА ===
--- Пиксельная белая лапка котика с нежно-розовыми подушечками-бобами
-local CURSOR_PAW_NORMAL = "rbxassetid://127456161798155"
-local CURSOR_PAW_CLICK  = "rbxassetid://91970638084250"
-
-local function updatePawCursor()
-    if mouse then
-        local isPressed = UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1)
-        local target = isPressed and CURSOR_PAW_CLICK or CURSOR_PAW_NORMAL
-        if mouse.Icon ~= target then
-            mouse.Icon = target
-        end
-    end
-end
-
-updatePawCursor()
-RunService.RenderStepped:Connect(updatePawCursor)
-
-player.CharacterAdded:Connect(function()
-    task.wait(0.1)
-    updatePawCursor()
-end)
-
 -- Компактный размер блоков (1.5x1.5x1.5 studs)
 local BLOCK_SIZE = 1.5
 local MAX_INTERACTION_DISTANCE = 4.2 -- studs (максимальная дистанция взаимодействия: только рядом с котиком)
@@ -61,6 +38,87 @@ screenGui.Name = "VoxelBackpackGui"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = playerGui
 
+-- === ДИНАМИЧЕСКИЙ КАСТОМНЫЙ КУРСОР МЫШИ (ЛАПКА И ПРЕДМЕТЫ-РУКИ) ===
+-- Отображается ВЕЗДЕ: в мире, над кнопками, слотами и инвентарем без переключения на системную стрелку
+local CURSORS = {
+    paw   = "rbxassetid://81554992150735", -- Чёрная кошачья лапка (по умолчанию)
+    wood  = "rbxassetid://78173367572097", -- Рука из полена (дерево)
+    stone = "rbxassetid://125315613353193",-- Рука из камня
+    grass = "rbxassetid://78225648528704", -- Рука из травы и листвы
+    dirt  = "rbxassetid://75303885811286", -- Рука из земли/грунта
+}
+
+local ITEM_TO_CURSOR = {
+    wood_block  = CURSORS.wood,
+    stone_block = CURSORS.stone,
+    grass_block = CURSORS.grass,
+    dirt_block  = CURSORS.dirt,
+}
+
+local cursorGui = playerGui:FindFirstChild("CustomCursorGui") or Instance.new("ScreenGui")
+cursorGui.Name = "CustomCursorGui"
+cursorGui.ResetOnSpawn = false
+cursorGui.IgnoreGuiInset = true
+cursorGui.DisplayOrder = 1000000 -- Всегда поверх всех элементов интерфейса
+cursorGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+local cursorImage = cursorGui:FindFirstChild("CursorImage") or Instance.new("ImageLabel")
+cursorImage.Name = "CursorImage"
+cursorImage.Size = UDim2.new(0, 52, 0, 52)
+cursorImage.Position = UDim2.new(0, 0, 0, 0)
+cursorImage.BackgroundTransparency = 1
+cursorImage.Image = CURSORS.paw
+cursorImage.ScaleType = Enum.ScaleType.Fit
+cursorImage.ZIndex = 1000000
+cursorImage.Active = false -- Клики проходят сквозь курсор
+cursorImage.Selectable = false
+cursorImage.Parent = cursorGui
+cursorGui.Parent = playerGui
+
+-- Отключаем стандартный курсор Roblox, чтобы он никогда не появлялся над кнопками
+UserInputService.MouseIconEnabled = false
+
+local function getDesiredCursor()
+    local activeItem = currentInventorySlots and currentInventorySlots[activeHotbarSlot]
+    if activeItem and activeItem.count and activeItem.count > 0 then
+        local hand = ITEM_TO_CURSOR[activeItem.id]
+        if hand then
+            return hand
+        end
+    end
+    return CURSORS.paw
+end
+
+local function updateCustomCursor()
+    UserInputService.MouseIconEnabled = false
+    local mPos = UserInputService:GetMouseLocation()
+    local isPressed = UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1)
+
+    local targetIcon = getDesiredCursor()
+    if cursorImage.Image ~= targetIcon then
+        cursorImage.Image = targetIcon
+    end
+    if mouse and mouse.Icon ~= targetIcon then
+        mouse.Icon = targetIcon
+    end
+
+    -- Нажатие ЛКМ: легкое тактильное сжатие курсора на кончике клика
+    if isPressed then
+        cursorImage.Size = UDim2.new(0, 47, 0, 47)
+        cursorImage.Position = UDim2.new(0, mPos.X - 1, 0, mPos.Y - 1)
+    else
+        cursorImage.Size = UDim2.new(0, 52, 0, 52)
+        cursorImage.Position = UDim2.new(0, mPos.X - 2, 0, mPos.Y - 2)
+    end
+end
+
+RunService.RenderStepped:Connect(updateCustomCursor)
+
+player.CharacterAdded:Connect(function()
+    task.wait(0.1)
+    updateCustomCursor()
+end)
+
 -- 1. СПРАЙТОВЫЙ ПИКСЕЛЬНЫЙ ХОТБАР (4 СЛОТА: ДЕРЕВО, ЗЕМЛЯ, КАМЕНЬ, ТРАВА + КНОПКА РЮКЗАКА)
 local NUM_HOTBAR_SLOTS = 4
 local SLOT_SIZE = 54
@@ -74,15 +132,6 @@ local HOTBAR_SLOT_DEFS = {
     [4] = { id = "grass_block", sprite = "rbxassetid://114424346454200", name = "Трава",  icon = "🌿" },
 }
 
-local hudContainer = Instance.new("Frame")
-hudContainer.Name = "WoodHudContainer"
-hudContainer.Size = UDim2.new(0, TOTAL_HOTBAR_WIDTH, 0, 56)
-hudContainer.Position = UDim2.new(0.5, -TOTAL_HOTBAR_WIDTH / 2, 1, -74)
-hudContainer.BackgroundTransparency = 1
-hudContainer.BorderSizePixel = 0
-hudContainer.Parent = screenGui
-
--- Хотбар снизу экрана (WoodHudContainer)
 local hudContainer = Instance.new("Frame")
 hudContainer.Name = "WoodHudContainer"
 hudContainer.Size = UDim2.new(0, TOTAL_HOTBAR_WIDTH, 0, 56)
