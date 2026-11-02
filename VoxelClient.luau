@@ -58,22 +58,14 @@ hudContainer.BackgroundTransparency = 1
 hudContainer.BorderSizePixel = 0
 hudContainer.Parent = screenGui
 
-local DEFAULT_TIP_TEXT = "[ЛКМ] — Копать лапками | [Q или ПКМ] — Строить | [1–4] — Выбор блока | [E] — Рюкзак"
-
--- Подсказка управления сверху хотбара
-local tipLabel = Instance.new("TextLabel")
-tipLabel.Name = "ControlsTip"
-tipLabel.Size = UDim2.new(1, 0, 0, 18)
-tipLabel.Position = UDim2.new(0, 0, 0, -22)
-tipLabel.BackgroundTransparency = 1
-tipLabel.TextColor3 = Color3.fromRGB(255, 235, 130)
-tipLabel.TextStrokeTransparency = 0.35
-tipLabel.TextStrokeColor3 = Color3.fromRGB(30, 20, 12)
-tipLabel.Font = Enum.Font.FredokaOne
-tipLabel.TextSize = 12
-tipLabel.Text = DEFAULT_TIP_TEXT
-tipLabel.ZIndex = 5
-tipLabel.Parent = hudContainer
+-- Хотбар снизу экрана (WoodHudContainer)
+local hudContainer = Instance.new("Frame")
+hudContainer.Name = "WoodHudContainer"
+hudContainer.Size = UDim2.new(0, TOTAL_HOTBAR_WIDTH, 0, 56)
+hudContainer.Position = UDim2.new(0.5, -TOTAL_HOTBAR_WIDTH / 2, 1, -74)
+hudContainer.BackgroundTransparency = 1
+hudContainer.BorderSizePixel = 0
+hudContainer.Parent = screenGui
 
 -- Функциональный походный рюкзак (чистый пиксельный спрайт без рамки/ячейки)
 local backpackBtn = Instance.new("ImageButton")
@@ -110,11 +102,9 @@ bpKeyCorner.Parent = bpKeyBadge
 
 backpackBtn.MouseEnter:Connect(function()
     backpackBtn.ImageColor3 = Color3.fromRGB(255, 245, 210)
-    tipLabel.Text = "🎒 Походный рюкзак: кликните или нажмите [E], чтобы открыть поляну инвентаря"
 end)
 backpackBtn.MouseLeave:Connect(function()
     backpackBtn.ImageColor3 = Color3.fromRGB(255, 255, 255)
-    tipLabel.Text = DEFAULT_TIP_TEXT
 end)
 backpackBtn.MouseButton1Down:Connect(function()
     backpackBtn.Size = UDim2.new(0, 52, 0, 52)
@@ -668,17 +658,13 @@ local function createHotbarSlotUI(parent, slotIndex, pos)
     countLbl.ZIndex = 11
     countLbl.Parent = btn
 
-    -- Наведение курсора с информативной подсказкой
+    -- Наведение курсора (подсветка при ховере)
     btn.MouseEnter:Connect(function()
-        local slotData = currentInventorySlots[slotIndex]
-        local count = (slotData and slotData.count) or 0
-        tipLabel.Text = string.format("%s %s (%d шт.) — Нажмите [%d] или кликните для выбора блока", slotDef.icon, slotDef.name, count, slotIndex)
         if slotIndex ~= activeHotbarSlot then
             spriteImg.ImageColor3 = Color3.fromRGB(255, 250, 230)
         end
     end)
     btn.MouseLeave:Connect(function()
-        tipLabel.Text = DEFAULT_TIP_TEXT
         if slotIndex ~= activeHotbarSlot then
             local slotData = currentInventorySlots[slotIndex]
             if slotData and slotData.count > 0 then
@@ -1182,16 +1168,16 @@ mapBtn.MouseLeave:Connect(function()
     hideTooltip()
 end)
 
--- 3. ОКНО НАСТРОЕК (Шестеренка)
+-- 3. ОКНО НАСТРОЕК И РУКОВОДСТВА ПО УПРАВЛЕНИЮ
 local settingsModal = Instance.new("Frame")
 settingsModal.Name = "SettingsModal"
-settingsModal.Size = UDim2.new(0.50, 0, 0.58, 0)
+settingsModal.Size = UDim2.new(0, 520, 0, 500)
 settingsModal.Position = UDim2.new(0.5, 0, 0.5, 0)
 settingsModal.AnchorPoint = Vector2.new(0.5, 0.5)
-settingsModal.BackgroundColor3 = Color3.fromRGB(36, 28, 22)
+settingsModal.BackgroundColor3 = Color3.fromRGB(34, 26, 20)
 settingsModal.Visible = false
-settingsModal.ZIndex = 50
-settingsModal.Parent = backpackModal
+settingsModal.ZIndex = 60
+settingsModal.Parent = screenGui
 
 local setCorner = Instance.new("UICorner")
 setCorner.CornerRadius = UDim.new(0, 16)
@@ -1206,12 +1192,12 @@ local setTitle = Instance.new("TextLabel")
 setTitle.Size = UDim2.new(1, -60, 0, 36)
 setTitle.Position = UDim2.new(0, 20, 0, 12)
 setTitle.BackgroundTransparency = 1
-setTitle.Text = "⚙️ Настройки игры"
+setTitle.Text = "⚙️ Управление и Настройки"
 setTitle.TextColor3 = Color3.fromRGB(255, 225, 140)
 setTitle.Font = Enum.Font.FredokaOne
 setTitle.TextSize = 18
 setTitle.TextXAlignment = Enum.TextXAlignment.Left
-setTitle.ZIndex = 51
+setTitle.ZIndex = 61
 setTitle.Parent = settingsModal
 
 local setClose = Instance.new("TextButton")
@@ -1222,23 +1208,147 @@ setClose.Text = "✕"
 setClose.TextColor3 = Color3.fromRGB(255, 255, 255)
 setClose.Font = Enum.Font.FredokaOne
 setClose.TextSize = 16
-setClose.ZIndex = 51
+setClose.ZIndex = 61
 setClose.Parent = settingsModal
 local setCloseCorner = Instance.new("UICorner")
 setCloseCorner.CornerRadius = UDim.new(0, 8)
 setCloseCorner.Parent = setClose
 setClose.MouseButton1Click:Connect(function() settingsModal.Visible = false end)
 
+-- Скролл-контейнер для подробной инструкции и настроек
+local setScroll = Instance.new("ScrollingFrame")
+setScroll.Name = "ScrollContent"
+setScroll.Size = UDim2.new(1, -28, 1, -60)
+setScroll.Position = UDim2.new(0, 14, 0, 50)
+setScroll.BackgroundTransparency = 1
+setScroll.BorderSizePixel = 0
+setScroll.ScrollBarThickness = 6
+setScroll.ScrollBarImageColor3 = Color3.fromRGB(160, 120, 80)
+setScroll.CanvasSize = UDim2.new(0, 0, 0, 840)
+setScroll.ZIndex = 61
+setScroll.Parent = settingsModal
+
+local setListLayout = Instance.new("UIListLayout")
+setListLayout.Padding = UDim.new(0, 8)
+setListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+setListLayout.Parent = setScroll
+
+local function createSectionHeader(text, layoutOrder)
+    local lbl = Instance.new("TextLabel")
+    lbl.Name = "Header_" .. layoutOrder
+    lbl.Size = UDim2.new(1, -10, 0, 24)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = text
+    lbl.TextColor3 = Color3.fromRGB(255, 215, 100)
+    lbl.Font = Enum.Font.FredokaOne
+    lbl.TextSize = 14
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.LayoutOrder = layoutOrder
+    lbl.ZIndex = 62
+    lbl.Parent = setScroll
+    return lbl
+end
+
+local function createInstructionCard(icon, keyText, actionTitle, descText, layoutOrder)
+    local card = Instance.new("Frame")
+    card.Name = "Card_" .. layoutOrder
+    card.Size = UDim2.new(1, -10, 0, 44)
+    card.BackgroundColor3 = Color3.fromRGB(48, 38, 30)
+    card.BorderSizePixel = 0
+    card.LayoutOrder = layoutOrder
+    card.ZIndex = 62
+    card.Parent = setScroll
+
+    local cCorner = Instance.new("UICorner")
+    cCorner.CornerRadius = UDim.new(0, 8)
+    cCorner.Parent = card
+
+    local cStroke = Instance.new("UIStroke")
+    cStroke.Color = Color3.fromRGB(85, 65, 48)
+    cStroke.Thickness = 1
+    cStroke.Parent = card
+
+    local badge = Instance.new("TextLabel")
+    badge.Name = "KeyBadge"
+    badge.Size = UDim2.new(0, 78, 0, 26)
+    badge.Position = UDim2.new(0, 8, 0.5, 0)
+    badge.AnchorPoint = Vector2.new(0, 0.5)
+    badge.BackgroundColor3 = Color3.fromRGB(28, 20, 15)
+    badge.Text = keyText
+    badge.TextColor3 = Color3.fromRGB(255, 230, 120)
+    badge.Font = Enum.Font.FredokaOne
+    badge.TextSize = 10
+    badge.ZIndex = 63
+    badge.Parent = card
+
+    local bCorner = Instance.new("UICorner")
+    bCorner.CornerRadius = UDim.new(0, 6)
+    bCorner.Parent = badge
+
+    local titleLbl = Instance.new("TextLabel")
+    titleLbl.Name = "Title"
+    titleLbl.Size = UDim2.new(1, -100, 0, 17)
+    titleLbl.Position = UDim2.new(0, 94, 0, 5)
+    titleLbl.BackgroundTransparency = 1
+    titleLbl.Text = string.format("%s %s", icon, actionTitle)
+    titleLbl.TextColor3 = Color3.fromRGB(255, 245, 220)
+    titleLbl.Font = Enum.Font.FredokaOne
+    titleLbl.TextSize = 12
+    titleLbl.TextXAlignment = Enum.TextXAlignment.Left
+    titleLbl.ZIndex = 63
+    titleLbl.Parent = card
+
+    local descLbl = Instance.new("TextLabel")
+    descLbl.Name = "Desc"
+    descLbl.Size = UDim2.new(1, -100, 0, 17)
+    descLbl.Position = UDim2.new(0, 94, 0, 22)
+    descLbl.BackgroundTransparency = 1
+    descLbl.Text = descText
+    descLbl.TextColor3 = Color3.fromRGB(195, 175, 155)
+    descLbl.Font = Enum.Font.FredokaOne
+    descLbl.TextSize = 10
+    descLbl.TextXAlignment = Enum.TextXAlignment.Left
+    descLbl.ZIndex = 63
+    descLbl.Parent = card
+
+    return card
+end
+
+-- 1. Секция: Управление
+createSectionHeader("🎮 УПРАВЛЕНИЕ КОТЁНКОМ", 10)
+createInstructionCard("🐾", "[ЛКМ]", "Копать лапками", "Подойдите вплотную и зажмите ЛКМ — котик копает блок", 11)
+createInstructionCard("🧱", "[ПКМ] / [Q]", "Строить блок", "Ставит выбранный блок на подсвеченную воксельную грань", 12)
+createInstructionCard("🪵", "[1]  Дерево", "Хотбар: Бревно", "Выбирает деревянный блок для строительства", 13)
+createInstructionCard("🟤", "[2]  Земля", "Хотбар: Земля", "Выбирает блок земли для строительства", 14)
+createInstructionCard("🪨", "[3]  Камень", "Хотбар: Камень", "Выбирает каменный блок для строительства", 15)
+createInstructionCard("🌿", "[4]  Трава", "Хотбар: Трава", "Выбирает блок сочной травы для строительства", 16)
+createInstructionCard("🎒", "[E] / [B]", "Походный рюкзак", "Открыть/закрыть инвентарь поляны, блокнот и карту", 17)
+createInstructionCard("🐾", "[W A S D]", "Передвижение", "Котик ходит по поляне с процедурной анимацией лапок", 18)
+createInstructionCard("🦘", "[Пробел]", "Прыжок", "Прыжок котика на возвышенности и препятствия", 19)
+createInstructionCard("👀", "[Мышь]", "Взгляд и повороты", "Котик поворачивается и переступает лапками к курсору", 20)
+createInstructionCard("🧍", "[Стойка]", "Стройка вверх", "При стройке блоков над головой котик встаёт на задние лапы!", 21)
+
+-- 2. Секция: Подсказки
+createSectionHeader("💡 ПОЛЕЗНЫЕ ПОДСКАЗКИ", 30)
+createInstructionCard("🧲", "Авто", "Сбор лута", "Выпавшие блоки и ресурсы сами притягиваются в рюкзак", 31)
+createInstructionCard("🐾", "Близко", "Кошачья лапа", "Взаимодействие с блоками только вблизи (до 4.2 стада)", 32)
+createInstructionCard("🎒", "Поляна", "Сумки рюкзака", "В рюкзаке [E] доступны вкладки Портфель, Корзинка и Сумка", 33)
+createInstructionCard("⚙️", "[O]", "Настройки", "Быстрое открытие этого окна настроек в любой момент", 34)
+
+-- 3. Секция: Параметры
+createSectionHeader("⚙️ ПАРАМЕТРЫ ИГРЫ", 40)
+
 local soundBtn = Instance.new("TextButton")
-soundBtn.Size = UDim2.new(1, -40, 0, 38)
-soundBtn.Position = UDim2.new(0, 20, 0, 60)
+soundBtn.Name = "SoundBtn"
+soundBtn.Size = UDim2.new(1, -10, 0, 38)
 soundBtn.BackgroundColor3 = Color3.fromRGB(50, 40, 32)
 soundBtn.Text = "🔊 Звуки окружения: ВКЛЮЧЕНО"
 soundBtn.TextColor3 = Color3.fromRGB(255, 240, 200)
 soundBtn.Font = Enum.Font.FredokaOne
-soundBtn.TextSize = 13
-soundBtn.ZIndex = 51
-soundBtn.Parent = settingsModal
+soundBtn.TextSize = 12
+soundBtn.LayoutOrder = 41
+soundBtn.ZIndex = 62
+soundBtn.Parent = setScroll
 local sbCorner = Instance.new("UICorner")
 sbCorner.CornerRadius = UDim.new(0, 8)
 sbCorner.Parent = soundBtn
@@ -1249,15 +1359,16 @@ soundBtn.MouseButton1Click:Connect(function()
 end)
 
 local camBtn = Instance.new("TextButton")
-camBtn.Size = UDim2.new(1, -40, 0, 38)
-camBtn.Position = UDim2.new(0, 20, 0, 110)
+camBtn.Name = "CamBtn"
+camBtn.Size = UDim2.new(1, -10, 0, 38)
 camBtn.BackgroundColor3 = Color3.fromRGB(50, 40, 32)
 camBtn.Text = "🐱 Взгляд котёнка на курсор: ВКЛЮЧЕНО"
 camBtn.TextColor3 = Color3.fromRGB(255, 240, 200)
 camBtn.Font = Enum.Font.FredokaOne
-camBtn.TextSize = 13
-camBtn.ZIndex = 51
-camBtn.Parent = settingsModal
+camBtn.TextSize = 12
+camBtn.LayoutOrder = 42
+camBtn.ZIndex = 62
+camBtn.Parent = setScroll
 local cbCorner = Instance.new("UICorner")
 cbCorner.CornerRadius = UDim.new(0, 8)
 cbCorner.Parent = camBtn
@@ -1304,9 +1415,15 @@ UserInputService.InputBegan:Connect(function(input, processed)
 
     if input.KeyCode == Enum.KeyCode.E or input.KeyCode == Enum.KeyCode.B then
         setBackpackOpen(not isBackpackOpen)
-    elseif input.KeyCode == Enum.KeyCode.Escape and isBackpackOpen then
-        setBackpackOpen(false)
-    elseif not isBackpackOpen then
+    elseif input.KeyCode == Enum.KeyCode.O or input.KeyCode == Enum.KeyCode.F1 then
+        settingsModal.Visible = not settingsModal.Visible
+    elseif input.KeyCode == Enum.KeyCode.Escape then
+        if settingsModal.Visible then
+            settingsModal.Visible = false
+        elseif isBackpackOpen then
+            setBackpackOpen(false)
+        end
+    elseif not isBackpackOpen and not settingsModal.Visible then
         local slotNum = SLOT_KEY_MAP[input.KeyCode]
         if slotNum then
             activeHotbarSlot = slotNum
@@ -1496,13 +1613,32 @@ local isPlacingCooldown = false
 
 local lastDistanceWarningTick = 0
 local function showDistanceWarning()
-    if tick() - lastDistanceWarningTick < 1.0 then return end
+    if tick() - lastDistanceWarningTick < 1.2 then return end
     lastDistanceWarningTick = tick()
-    tipLabel.Text = "🐾 Слишком далеко! Подойдите вплотную к блоку"
-    task.delay(1.5, function()
-        if tipLabel.Text == "🐾 Слишком далеко! Подойдите вплотную к блоку" then
-            tipLabel.Text = DEFAULT_TIP_TEXT
-        end
+
+    local pill = Instance.new("TextLabel")
+    pill.Size = UDim2.new(0, 260, 0, 28)
+    pill.Position = UDim2.new(0.5, -130, 1, 0)
+    pill.BackgroundColor3 = Color3.fromRGB(35, 20, 20)
+    pill.BackgroundTransparency = 0.2
+    pill.TextColor3 = Color3.fromRGB(255, 140, 140)
+    pill.Font = Enum.Font.FredokaOne
+    pill.TextSize = 13
+    pill.Text = "🐾 Слишком далеко! Подойдите ближе"
+    pill.Parent = notifContainer
+
+    local pillCorner = Instance.new("UICorner")
+    pillCorner.CornerRadius = UDim.new(0, 8)
+    pillCorner.Parent = pill
+
+    local tween = TweenService:Create(pill, TweenInfo.new(1.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        Position = UDim2.new(0.5, -130, 0, 0),
+        TextTransparency = 1,
+        BackgroundTransparency = 1
+    })
+    tween:Play()
+    tween.Completed:Connect(function()
+        pill:Destroy()
     end)
 end
 
