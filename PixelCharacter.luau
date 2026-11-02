@@ -469,51 +469,47 @@ RunService.RenderStepped:Connect(function(dt)
         isTurningInPlace = false
     end
 
-    -- Плавная интерполяция стойки на задних лапках при установке/добыче наверх
+    -- Естественное аккуратное дотягивание передними лапками вверх при установке/добыче на верхнем уровне
     local wantsStand = (isPlacingUp or isDiggingUp)
     local targetStand = wantsStand and 1 or 0
-    standProgress = standProgress + (targetStand - standProgress) * math.clamp(dt * 10, 0, 1)
+    standProgress = standProgress + (targetStand - standProgress) * math.clamp(dt * 12, 0, 1)
 
     if wantsStand or standProgress > 0.02 then
         placeUpTimer = placeUpTimer + dt
         local p = math.sin(standProgress * math.pi * 0.5)
 
-        -- 1. Туловище встаёт на задние лапки (угол ~56 градусов вверх-назад)
-        local standAngle = math.rad(56) * p
-        local standLift = 0.44 * p
-        local standBack = 0.14 * p
-        torsoJoint.C0 = CFrame.new(0, TORSO_Y_OFFSET + standLift, 0.05 + standBack) * CFrame.Angles(standAngle, 0, 0)
+        -- 1. Туловище ВСЕГДА остаётся строго горизонтальным на 4 лапках (котёнок никогда не встаёт на задние лапы как сурикат)
+        torsoJoint.C0 = CFrame.new(0, TORSO_Y_OFFSET, 0.05) * CFrame.Angles(math.rad(-2) * p, 0, 0)
 
-        -- 2. Голова наклоняется вперёд-вверх, наблюдая за установкой блока
-        local headLookUp = math.rad(-40) * p
-        headJoint.C0 = CFrame.new(0, 0.68 + 0.04 * p, -0.65) * CFrame.Angles(headLookUp, 0, 0)
+        -- 2. Голова аккуратно и естественно приподнимает взгляд к верхнему блоку (не более 8 градусов)
+        local headLookUp = math.rad(-8) * p
+        headJoint.C0 = CFrame.new(0, 0.68, -0.65) * CFrame.Angles(headLookUp, 0, 0)
 
-        -- 3. Задние лапки остаются устойчиво примагниченными к земле
-        local backPawCounter = math.rad(-56) * p
-        pawBL.motor.C0 = CFrame.new(pawBL.relPos.X, pawBL.currentY, pawBL.relPos.Z) * CFrame.Angles(backPawCounter, 0, 0) * CFrame.new(0, -0.05 * p, 0)
-        pawBR.motor.C0 = CFrame.new(pawBR.relPos.X, pawBR.currentY, pawBR.relPos.Z) * CFrame.Angles(backPawCounter, 0, 0) * CFrame.new(0, -0.05 * p, 0)
+        -- 3. Задние лапки надёжно и ровно стоят на земле с полным сцеплением
+        pawBL.motor.C0 = CFrame.new(pawBL.relPos.X, pawBL.currentY, pawBL.relPos.Z)
+        pawBR.motor.C0 = CFrame.new(pawBR.relPos.X, pawBR.currentY, pawBR.relPos.Z)
 
-        -- 4. Передние лапки тянутся высоко вверх с милыми белыми носочками
-        local pawReachY = 0.36 * p
-        local pawReachZ = -0.28 * p
-        local pawAngle = math.rad(52) * p
+        -- 4. Только передние лапки аккуратно тянутся вперёд и вверх к блоку (как котик царапает когтеточку)
+        local pawReachY = 0.22 * p
+        local pawReachZ = -0.16 * p
+        local pawAngle = math.rad(30) * p
 
         if isDiggingUp then
-            -- При копании верхнего блока лапки яростно скребут вверх
-            local digSwing = math.sin(placeUpTimer * 16) * math.rad(25) * p
-            pawFL.motor.C0 = pawFL.origC0 * CFrame.new(0, pawReachY, pawReachZ) * CFrame.Angles(pawAngle + digSwing, 0, math.rad(-14 * p))
-            pawFR.motor.C0 = pawFR.origC0 * CFrame.new(0, pawReachY, pawReachZ) * CFrame.Angles(pawAngle - digSwing, 0, math.rad(14 * p))
+            -- При копании верхнего блока лапки быстро поочерёдно скребут
+            local digSwing = math.sin(placeUpTimer * 16) * math.rad(18) * p
+            pawFL.motor.C0 = pawFL.origC0 * CFrame.new(0, pawReachY, pawReachZ) * CFrame.Angles(pawAngle + digSwing, 0, math.rad(-8 * p))
+            pawFR.motor.C0 = pawFR.origC0 * CFrame.new(0, pawReachY, pawReachZ) * CFrame.Angles(pawAngle - digSwing, 0, math.rad(8 * p))
             updateHeldItemVisibility(true, false)
         else
-            -- При установке наверх: аккуратный хлопок/постукивание лапками по блоку
+            -- При установке наверх: аккуратное похлопывание лапками по блоку
             local tap = math.sin(placeUpTimer * 12) * math.rad(8) * p
-            pawFL.motor.C0 = pawFL.origC0 * CFrame.new(0, pawReachY, pawReachZ) * CFrame.Angles(pawAngle + tap, 0, math.rad(-14 * p))
-            pawFR.motor.C0 = pawFR.origC0 * CFrame.new(0, pawReachY, pawReachZ) * CFrame.Angles(pawAngle - tap, 0, math.rad(14 * p))
+            pawFL.motor.C0 = pawFL.origC0 * CFrame.new(0, pawReachY, pawReachZ) * CFrame.Angles(pawAngle + tap, 0, math.rad(-8 * p))
+            pawFR.motor.C0 = pawFR.origC0 * CFrame.new(0, pawReachY, pawReachZ) * CFrame.Angles(pawAngle - tap, 0, math.rad(8 * p))
             updateHeldItemVisibility(false, true)
         end
 
-        -- 5. Хвостик упирается назад для балансировки центра масс
-        tailMotor.C0 = tailOrigC0 * CFrame.Angles(math.rad(-36) * p, 0, 0)
+        -- 5. Хвостик мягко покачивается сзади
+        tailMotor.C0 = tailOrigC0 * CFrame.Angles(math.rad(8) * p, math.sin(placeUpTimer * 3) * math.rad(10) * p, 0)
 
     elseif isDigging then
         placeUpTimer = 0
@@ -650,8 +646,8 @@ RunService.RenderStepped:Connect(function(dt)
             local tailTurn = (-turnDir * math.rad(20) + math.sin(turnStepTimer) * math.rad(8)) * turnWeight
             tailMotor.C0 = tailOrigC0 * CFrame.Angles(math.rad(10 * turnWeight), tailTurn, 0)
 
-            -- Голова: плавно поворачивается в сторону мышки, предвосхищая движение тела
-            local headYaw = math.clamp(lastTargetAngleDiff * 0.65, math.rad(-38), math.rad(38)) * turnWeight
+            -- Голова: аккуратный и естественный взгляд в сторону мышки (не более 10 градусов)
+            local headYaw = math.clamp(lastTargetAngleDiff * 0.35, math.rad(-10), math.rad(10)) * turnWeight
             headJoint.C0 = CFrame.new(0, 0.68, -0.65) * CFrame.Angles(0, headYaw, 0)
         else
             -- Спокойное дыхание и покой (лапки неподвижно и ровно стоят на земле)
@@ -672,12 +668,12 @@ RunService.RenderStepped:Connect(function(dt)
                 local horiz = Vector3.new(delta.X, 0, delta.Z)
                 local deltaY = aimTargetPos.Y - (rootPart.Position.Y + 0.4)
                 local horizDist = math.max(0.8, horiz.Magnitude)
-                local headPitch = math.clamp(math.atan2(deltaY, horizDist), math.rad(-22), math.rad(24))
+                local headPitch = math.clamp(math.atan2(deltaY, horizDist) * 0.25, math.rad(-5), math.rad(5))
                 local localAim = rootPart.CFrame:VectorToObjectSpace(horiz.Unit)
-                local headYaw = math.clamp(math.atan2(localAim.X, -localAim.Z) * 0.5, math.rad(-25), math.rad(25))
+                local headYaw = math.clamp(math.atan2(localAim.X, -localAim.Z) * 0.3, math.rad(-10), math.rad(10))
                 headJoint.C0 = headJoint.C0:Lerp(CFrame.new(0, 0.68, -0.65) * CFrame.Angles(headPitch, headYaw, 0), math.clamp(dt * 12, 0, 1))
             else
-                local headTilt = math.sin(idleTimer * 0.4) * math.rad(3)
+                local headTilt = math.sin(idleTimer * 0.4) * math.rad(2.5)
                 headJoint.C0 = headJoint.C0:Lerp(CFrame.new(0, 0.68, -0.65) * CFrame.Angles(0, 0, headTilt), math.clamp(dt * 8, 0, 1))
             end
         end
