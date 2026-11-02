@@ -7,8 +7,32 @@ local Workspace = game:GetService("Workspace")
 local TweenService = game:GetService("TweenService")
 
 local player = Players.LocalPlayer
+local mouse = player:GetMouse()
 local voxelRemote = ReplicatedStorage:WaitForChild("VoxelRemote")
 local worldFolder = Workspace:WaitForChild("VoxelWorld")
+
+-- === КАСТОМНЫЙ КУРСОР МЫШИ: КОШАЧЬЯ ЛАПКА ===
+-- Пиксельная белая лапка котика с нежно-розовыми подушечками-бобами
+local CURSOR_PAW_NORMAL = "rbxassetid://127456161798155"
+local CURSOR_PAW_CLICK  = "rbxassetid://91970638084250"
+
+local function updatePawCursor()
+    if mouse then
+        local isPressed = UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1)
+        local target = isPressed and CURSOR_PAW_CLICK or CURSOR_PAW_NORMAL
+        if mouse.Icon ~= target then
+            mouse.Icon = target
+        end
+    end
+end
+
+updatePawCursor()
+RunService.RenderStepped:Connect(updatePawCursor)
+
+player.CharacterAdded:Connect(function()
+    task.wait(0.1)
+    updatePawCursor()
+end)
 
 -- Компактный размер блоков (1.5x1.5x1.5 studs)
 local BLOCK_SIZE = 1.5
