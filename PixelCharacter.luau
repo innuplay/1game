@@ -469,8 +469,8 @@ RunService.RenderStepped:Connect(function(dt)
         isTurningInPlace = false
     end
 
-    -- Естественное аккуратное дотягивание передними лапками вверх при установке/добыче на верхнем уровне
-    local wantsStand = (isPlacingUp or isDiggingUp)
+    -- Плавная анимация: котёнок грациозно встаёт на две задние лапки, когда ставит или добывает блок сверху
+    local wantsStand = (isPlacingUp == true or isDiggingUp == true)
     local targetStand = wantsStand and 1 or 0
     standProgress = standProgress + (targetStand - standProgress) * math.clamp(dt * 12, 0, 1)
 
@@ -478,38 +478,42 @@ RunService.RenderStepped:Connect(function(dt)
         placeUpTimer = placeUpTimer + dt
         local p = math.sin(standProgress * math.pi * 0.5)
 
-        -- 1. Туловище ВСЕГДА остаётся строго горизонтальным на 4 лапках (котёнок никогда не встаёт на задние лапы как сурикат)
-        torsoJoint.C0 = CFrame.new(0, TORSO_Y_OFFSET, 0.05) * CFrame.Angles(math.rad(-2) * p, 0, 0)
+        -- 1. Туловище грациозно поднимается и встаёт на задние лапки (угол ~46 градусов)
+        local standAngle = math.rad(46) * p
+        local standLift = 0.50 * p
+        local standBack = 0.20 * p
+        torsoJoint.C0 = CFrame.new(0, TORSO_Y_OFFSET + standLift, 0.05 + standBack) * CFrame.Angles(standAngle, 0, 0)
 
-        -- 2. Голова аккуратно и естественно приподнимает взгляд к верхнему блоку (не более 8 градусов)
-        local headLookUp = math.rad(-8) * p
-        headJoint.C0 = CFrame.new(0, 0.68, -0.65) * CFrame.Angles(headLookUp, 0, 0)
+        -- 2. Голова компенсирует наклон туловища, чтобы взгляд смотрел строго вперёд-вверх на устанавливаемый блок
+        -- (без неестественного запрокидывания назад!)
+        local headCounterAngle = -standAngle + math.rad(10) * p
+        headJoint.C0 = CFrame.new(0, 0.68, -0.65) * CFrame.Angles(headCounterAngle, 0, 0)
 
-        -- 3. Задние лапки надёжно и ровно стоят на земле с полным сцеплением
-        pawBL.motor.C0 = CFrame.new(pawBL.relPos.X, pawBL.currentY, pawBL.relPos.Z)
-        pawBR.motor.C0 = CFrame.new(pawBR.relPos.X, pawBR.currentY, pawBR.relPos.Z)
+        -- 3. Задние опорные лапки остаются неподвижно стоять на земле, сохраняя равновесие
+        pawBL.motor.C0 = CFrame.new(pawBL.relPos.X, pawBL.currentY, pawBL.relPos.Z) * CFrame.Angles(-standAngle, 0, 0)
+        pawBR.motor.C0 = CFrame.new(pawBR.relPos.X, pawBR.currentY, pawBR.relPos.Z) * CFrame.Angles(-standAngle, 0, 0)
 
-        -- 4. Только передние лапки аккуратно тянутся вперёд и вверх к блоку (как котик царапает когтеточку)
-        local pawReachY = 0.22 * p
-        local pawReachZ = -0.16 * p
-        local pawAngle = math.rad(30) * p
+        -- 4. Передние лапки поднимаются в воздух и аккуратно тянутся к блоку
+        local pawReachY = 0.32 * p
+        local pawReachZ = -0.30 * p
+        local pawAngle = math.rad(38) * p
 
         if isDiggingUp then
-            -- При копании верхнего блока лапки быстро поочерёдно скребут
+            -- Поочередные быстрые взмахи лапками при раскапывании верхнего блока
             local digSwing = math.sin(placeUpTimer * 16) * math.rad(18) * p
-            pawFL.motor.C0 = pawFL.origC0 * CFrame.new(0, pawReachY, pawReachZ) * CFrame.Angles(pawAngle + digSwing, 0, math.rad(-8 * p))
-            pawFR.motor.C0 = pawFR.origC0 * CFrame.new(0, pawReachY, pawReachZ) * CFrame.Angles(pawAngle - digSwing, 0, math.rad(8 * p))
+            pawFL.motor.C0 = pawFL.origC0 * CFrame.new(-0.03, pawReachY, pawReachZ) * CFrame.Angles(pawAngle + digSwing, math.rad(6), math.rad(-8 * p))
+            pawFR.motor.C0 = pawFR.origC0 * CFrame.new( 0.03, pawReachY, pawReachZ) * CFrame.Angles(pawAngle - digSwing, math.rad(-6), math.rad(8 * p))
             updateHeldItemVisibility(true, false)
         else
-            -- При установке наверх: аккуратное похлопывание лапками по блоку
-            local tap = math.sin(placeUpTimer * 12) * math.rad(8) * p
-            pawFL.motor.C0 = pawFL.origC0 * CFrame.new(0, pawReachY, pawReachZ) * CFrame.Angles(pawAngle + tap, 0, math.rad(-8 * p))
-            pawFR.motor.C0 = pawFR.origC0 * CFrame.new(0, pawReachY, pawReachZ) * CFrame.Angles(pawAngle - tap, 0, math.rad(8 * p))
+            -- Милое похлопывание лапками при установке блока сверху
+            local tap = math.sin(placeUpTimer * 14) * math.rad(10) * p
+            pawFL.motor.C0 = pawFL.origC0 * CFrame.new(-0.03, pawReachY, pawReachZ) * CFrame.Angles(pawAngle + tap, math.rad(6), math.rad(-8 * p))
+            pawFR.motor.C0 = pawFR.origC0 * CFrame.new( 0.03, pawReachY, pawReachZ) * CFrame.Angles(pawAngle - tap, math.rad(-6), math.rad(8 * p))
             updateHeldItemVisibility(false, true)
         end
 
-        -- 5. Хвостик мягко покачивается сзади
-        tailMotor.C0 = tailOrigC0 * CFrame.Angles(math.rad(8) * p, math.sin(placeUpTimer * 3) * math.rad(10) * p, 0)
+        -- 5. Хвостик опирается назад для идеального баланса и реалистичной физики
+        tailMotor.C0 = tailOrigC0 * CFrame.Angles(math.rad(-26) * p, math.sin(placeUpTimer * 4) * math.rad(8) * p, 0)
 
     elseif isDigging then
         placeUpTimer = 0
