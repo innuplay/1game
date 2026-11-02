@@ -12,6 +12,7 @@ local worldFolder = Workspace:WaitForChild("VoxelWorld")
 
 -- Компактный размер блоков (1.5x1.5x1.5 studs)
 local BLOCK_SIZE = 1.5
+local MAX_INTERACTION_DISTANCE = 4.2 -- studs (максимальная дистанция взаимодействия: только рядом с котиком)
 
 local function snapToGrid(pos, size)
     return Vector3.new(
@@ -1408,15 +1409,18 @@ local function getTargetBlockAndNormal()
     params.FilterType = Enum.RaycastFilterType.Include
 
     -- 1. ПРИОРИТЕТ 1: Курсор мыши в изометрии
-    -- Если игрок наводит мышку на любой блок в радиусе досягаемости (до 15.0 studs ~ 10 блоков)
+    -- Взаимодействовать можно ТОЛЬКО с блоками вплотную / рядом с котиком (нельзя издалека)
     local mousePos = UserInputService:GetMouseLocation()
     local unitRay = camera:ViewportPointToRay(mousePos.X, mousePos.Y)
     local mouseResult = Workspace:Raycast(unitRay.Origin, unitRay.Direction * 300, params)
 
     if mouseResult and mouseResult.Instance then
         local distToCat = (mouseResult.Position - root.Position).Magnitude
-        if distToCat <= 15.0 then
+        if distToCat <= MAX_INTERACTION_DISTANCE then
             return mouseResult.Instance, mouseResult.Normal
+        else
+            -- Блок находится далеко от котика: взаимодействовать и подсвечивать нельзя!
+            return nil, nil
         end
     end
 
@@ -1531,14 +1535,53 @@ local isDiggingKeyHeld = false
 local lastDigTick = 0
 local isPlacingCooldown = false
 
+local lastDistanceWarningTick = 0
+local function showDistanceWarning()
+    if tick() - lastDistanceWarningTick < 1.0 then return end
+    lastDistanceWarningTick = tick()
+    tipLabel.Text = "🐾 Слишком далеко! Подойдите вплотную к блоку"
+    task.delay(1.5, function()
+        if tipLabel.Text == "🐾 Слишком далеко! Подойдите вплотную к блоку" then
+            tipLabel.Text = DEFAULT_TIP_TEXT
+        end
+    end)
+end
+
+local function checkAndWarnFarClick()
+    local camera = Workspace.CurrentCamera
+    local character = player.Character
+    local root = character and character:FindFirstChild("HumanoidRootPart")
+    if not (camera and root) then return end
+
+    local mousePos = UserInputService:GetMouseLocation()
+    local unitRay = camera:ViewportPointToRay(mousePos.X, mousePos.Y)
+    local params = RaycastParams.new()
+    params.FilterDescendantsInstances = { worldFolder }
+    params.FilterType = Enum.RaycastFilterType.Include
+    local hit = Workspace:Raycast(unitRay.Origin, unitRay.Direction * 300, params)
+    if hit and hit.Instance then
+        local dist = (hit.Position - root.Position).Magnitude
+        if dist > MAX_INTERACTION_DISTANCE then
+            showDistanceWarning()
+        end
+    end
+end
+
 local function doDigStep()
     local character = player.Character
     if not character or isBackpackOpen then return end
+    local root = character:FindFirstChild("HumanoidRootPart")
+    if not root then return end
 
     if currentTargetBlock then
+        local dist = (currentTargetBlock.Position - root.Position).Magnitude
+        if dist > MAX_INTERACTION_DISTANCE + 0.8 then
+            showDistanceWarning()
+            return
+        end
+
         character:SetAttribute("TargetLookPos", currentTargetBlock.Position)
-        local root = character:FindFirstChild("HumanoidRootPart")
-        if root and currentTargetBlock.Position.Y >= (root.Position.Y - 0.2) then
+        if currentTargetBlock.Position.Y >= (root.Position.Y - 0.2) then
             character:SetAttribute("IsDiggingUp", true)
             character:SetAttribute("IsDigging", false)
         else
@@ -1546,12 +1589,27 @@ local function doDigStep()
             character:SetAttribute("IsDiggingUp", false)
         end
         voxelRemote:FireServer("Hit", { Block = currentTargetBlock })
+    else
+        checkAndWarnFarClick()
     end
 end
 
 local function doPlaceStep()
     local character = player.Character
-    if not character or isBackpackOpen or isPlacingCooldown or not currentTargetBlock or not currentTargetNormal then return end
+    if not character or isBackpackOpen or isPlacingCooldown then return end
+    local root = character:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+
+    if not currentTargetBlock or not currentTargetNormal then
+        checkAndWarnFarClick()
+        return
+    end
+
+    local dist = (currentTargetBlock.Position - root.Position).Magnitude
+    if dist > MAX_INTERACTION_DISTANCE + 0.8 then
+        showDistanceWarning()
+        return
+    end
 
     local activeItem = currentInventorySlots[activeHotbarSlot]
     if not (activeItem and activeItem.count > 0) then return end
@@ -1559,18 +1617,20 @@ local function doPlaceStep()
     local def = itemsDefinition[activeItem.id]
     if not (def and def.isBlock) then return end
 
-    local root = character:FindFirstChild("HumanoidRootPart")
     local newPos = snapToGrid(currentTargetBlock.Position + (currentTargetNormal * BLOCK_SIZE), BLOCK_SIZE)
+    local distNew = (newPos - root.Position).Magnitude
+    if distNew > MAX_INTERACTION_DISTANCE + 1.2 then
+        showDistanceWarning()
+        return
+    end
+
     character:SetAttribute("TargetLookPos", newPos)
 
     -- Проверяем, ставится ли блок НАВЕРХ
     local isUpwards = false
-    if root then
-        -- Если ставится на верхнюю грань блока или позиция нового блока выше уровня лапок котика
-        if (currentTargetNormal.Y > 0.5 and currentTargetBlock.Position.Y >= (root.Position.Y - 0.75)) or
-           (newPos.Y >= root.Position.Y - 0.1) then
-            isUpwards = true
-        end
+    if (currentTargetNormal.Y > 0.5 and currentTargetBlock.Position.Y >= (root.Position.Y - 0.75)) or
+       (newPos.Y >= root.Position.Y - 0.1) then
+        isUpwards = true
     end
 
     isPlacingCooldown = true

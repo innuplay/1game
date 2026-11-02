@@ -7,7 +7,7 @@ local RunService = game:GetService("RunService")
 
 -- Базовый размер воксельного блока (1.5x1.5x1.5 studs)
 local BLOCK_SIZE = 1.5
-local MAX_REACH = 18
+local MAX_REACH = 5.2 -- studs (максимальная дистанция взаимодействия с блоками: только рядом с котиком)
 
 -- === БАЗА ПРЕДМЕТОВ ===
 local ITEMS = {
@@ -745,6 +745,8 @@ voxelRemote.OnServerEvent:Connect(function(player, action, data)
         if dist > MAX_REACH then return end
 
         local newPos = snapToGrid(targetBlock.Position + (normal * BLOCK_SIZE), BLOCK_SIZE)
+        local distNew = (rootPart.Position - newPos).Magnitude
+        if distNew > MAX_REACH + 0.8 then return end
 
         for _, pl in ipairs(Players:GetPlayers()) do
             local ch = pl.Character
