@@ -517,8 +517,8 @@ local function sortInventory(player, containerType)
     syncPlayerInventory(player)
 end
 
--- === ДРОП ЛУТА ===
-local function spawnLootDrop(itemId, position)
+-- === ДРОП ЛУТА И АВТОМАТИЧЕСКИЙ СБОР КУБИКОВ ===
+local function spawnLootDrop(itemId, position, targetPlayer)
     local itemDef = ITEMS[itemId]
     if not itemDef then return end
 
@@ -531,69 +531,102 @@ local function spawnLootDrop(itemId, position)
     dropPart.CanCollide = false
     dropPart.CastShadow = false
 
-    local spawnPos = position + Vector3.new(math.random(-2, 2) * 0.1, 0.3, math.random(-2, 2) * 0.1)
+    local spawnPos = position + Vector3.new(math.random(-2, 2) * 0.1, 0.35, math.random(-2, 2) * 0.1)
     dropPart.Position = spawnPos
 
     dropPart:SetAttribute("ItemId", itemId)
     dropPart:SetAttribute("BaseY", spawnPos.Y)
     dropPart:SetAttribute("SpawnTick", tick())
+    if targetPlayer then
+        dropPart:SetAttribute("TargetUserId", targetPlayer.UserId)
+    end
     dropPart.Parent = lootFolder
 
     game:GetService("Debris"):AddItem(dropPart, 90)
     return dropPart
 end
 
-local lastPickupCheck = 0
-RunService.Heartbeat:Connect(function()
+RunService.Heartbeat:Connect(function(dt)
     local now = tick()
-
     local drops = lootFolder:GetChildren()
+    local players = Players:GetPlayers()
+
     for _, drop in ipairs(drops) do
-        if drop:IsA("BasePart") then
-            local baseY = drop:GetAttribute("BaseY") or drop.Position.Y
-            local spawnTick = drop:GetAttribute("SpawnTick") or 0
-            local elapsed = now - spawnTick
-            drop.Position = Vector3.new(drop.Position.X, baseY + math.sin(elapsed * 3.5) * 0.12, drop.Position.Z)
-            drop.Orientation = Vector3.new(0, (elapsed * 90) % 360, 0)
-        end
-    end
+        if drop:IsA("BasePart") and drop.Parent == lootFolder then
+            local itemId = drop:GetAttribute("ItemId")
+            local itemDef = itemId and ITEMS[itemId]
+            local targetUserId = drop:GetAttribute("TargetUserId")
 
-    if now - lastPickupCheck > 0.15 then
-        lastPickupCheck = now
-        for _, player in ipairs(Players:GetPlayers()) do
-            local char = player.Character
-            local hrp = char and char:FindFirstChild("HumanoidRootPart")
-            if hrp then
-                for _, drop in ipairs(drops) do
-                    if drop:IsA("BasePart") and drop.Parent == lootFolder then
-                        local dist = (hrp.Position - drop.Position).Magnitude
-                        if dist < 2.5 then
-                            local itemId = drop:GetAttribute("ItemId")
-                            if itemId then
-                                local picked = addItemToInventory(player, itemId, 1)
-                                if picked then
-                                    local p = Instance.new("Part")
-                                    p.Size = Vector3.new(0.2, 0.2, 0.2)
-                                    p.Position = drop.Position
-                                    p.Anchored = true
-                                    p.CanCollide = false
-                                    p.Material = Enum.Material.Neon
-                                    p.Color = Color3.fromRGB(255, 255, 200)
-                                    p.Parent = Workspace
-                                    local tw = TweenService:Create(p, TweenInfo.new(0.25), {
-                                        Position = hrp.Position,
-                                        Size = Vector3.new(0.05, 0.05, 0.05),
-                                        Transparency = 1
-                                    })
-                                    tw:Play()
-                                    tw.Completed:Connect(function() p:Destroy() end)
+            -- Ищем ближайшего игрока или целевого котика (кто разрушил блок)
+            local targetHrp = nil
+            local targetPlr = nil
+            local minDist = 999
 
-                                    drop:Destroy()
-                                end
-                            end
-                        end
+            for _, player in ipairs(players) do
+                local char = player.Character
+                local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    local dist = (hrp.Position - drop.Position).Magnitude
+                    -- Если это котик, который сломал блок — увеличенный радиус магнита (до 15 стад), иначе 9 стад
+                    local maxAttractDist = (targetUserId == player.UserId) and 15.0 or 9.0
+                    if dist <= maxAttractDist and dist < minDist then
+                        minDist = dist
+                        targetHrp = hrp
+                        targetPlr = player
                     end
                 end
+            end
+
+            if targetHrp and targetPlr then
+                -- Магнитное притяжение кубика прямо к котику
+                local direction = (targetHrp.Position - drop.Position)
+                local dist = direction.Magnitude
+
+                if dist <= 1.8 then
+                    -- Кубик долетел до лапок котика — автоматически собираем в инвентарь!
+                    local picked = addItemToInventory(targetPlr, itemId, 1)
+                    if picked then
+                        -- Всплывающее уведомление на экране (+1 Трава)
+                        if itemDef then
+                            voxelRemote:FireClient(targetPlr, "ItemPickedUp", {
+                                name = itemDef.name or itemId,
+                                count = 1
+                            })
+                        end
+
+                        -- Красивый золотистый визуальный всплеск сбора
+                        local p = Instance.new("Part")
+                        p.Size = Vector3.new(0.25, 0.25, 0.25)
+                        p.Position = drop.Position
+                        p.Anchored = true
+                        p.CanCollide = false
+                        p.Material = Enum.Material.Neon
+                        p.Color = Color3.fromRGB(255, 245, 170)
+                        p.Parent = Workspace
+                        local tw = TweenService:Create(p, TweenInfo.new(0.18), {
+                            Position = targetHrp.Position,
+                            Size = Vector3.new(0.04, 0.04, 0.04),
+                            Transparency = 1
+                        })
+                        tw:Play()
+                        tw.Completed:Connect(function() p:Destroy() end)
+
+                        drop:Destroy()
+                    end
+                else
+                    -- Кубик плавно и быстро летит по воздуху прямо в лапки котика
+                    local speed = math.clamp(16 + (15 - dist) * 1.5, 14, 28)
+                    local step = math.min(dist, speed * dt)
+                    drop.Position = drop.Position + (direction.Unit * step)
+                    drop.Orientation = drop.Orientation + Vector3.new(dt * 360, dt * 540, 0)
+                end
+            else
+                -- Если игроков рядом нет — мягко покачивается над землей
+                local baseY = drop:GetAttribute("BaseY") or drop.Position.Y
+                local spawnTick = drop:GetAttribute("SpawnTick") or 0
+                local elapsed = now - spawnTick
+                drop.Position = Vector3.new(drop.Position.X, baseY + math.sin(elapsed * 3.5) * 0.10, drop.Position.Z)
+                drop.Orientation = Vector3.new(0, (elapsed * 90) % 360, 0)
             end
         end
     end
@@ -706,10 +739,10 @@ voxelRemote.OnServerEvent:Connect(function(player, action, data)
             block:Destroy()
 
             if cfg.DropId then
-                spawnLootDrop(cfg.DropId, blockPos)
+                spawnLootDrop(cfg.DropId, blockPos, player)
             end
             if math.random(1, 100) <= 15 then
-                spawnLootDrop("fish", blockPos + Vector3.new(0, 0.4, 0))
+                spawnLootDrop("fish", blockPos + Vector3.new(0, 0.4, 0), player)
             end
 
             voxelRemote:FireClient(player, "BlockDestroyed", { Position = blockPos })
