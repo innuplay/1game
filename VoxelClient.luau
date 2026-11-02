@@ -236,21 +236,36 @@ end
 
 -- === АКТИВНЫЕ ОБЪЕКТЫ НАВЕРХУ И ВНИЗУ ===
 
--- Индикатор активной выбранной сумки (золотое сияние)
--- Индикатор активной выбранной сумки (деликатная мягкая подсветка только объекта, без жёлтых рамок)
-local activeBagIndicator = Instance.new("Frame")
-activeBagIndicator.Name = "ActiveBagIndicator"
-activeBagIndicator.Size = UDim2.new(0.176, 0, 0.210, 0)
-activeBagIndicator.Position = UDim2.new(0.354, 0, 0.138, 0)
-activeBagIndicator.AnchorPoint = Vector2.new(0.5, 0.5)
-activeBagIndicator.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-activeBagIndicator.BackgroundTransparency = 0.85
-activeBagIndicator.ZIndex = 22
-activeBagIndicator.Parent = backpackModal
+-- Ассеты контурной подсветки сумок строго по их форме (без прямоугольников, квадратов и рамок)
+local BAG_OUTLINE_ASSETS = {
+    backpack = "rbxassetid://93711194854425",
+    toolbag = "rbxassetid://79657876756852",
+    basket = "rbxassetid://133098409496358"
+}
 
-local indCorner = Instance.new("UICorner")
-indCorner.CornerRadius = UDim.new(0, 14)
-indCorner.Parent = activeBagIndicator
+-- Индикатор активной выбранной сумки (светящийся контур точно повторяет форму активного объекта)
+local activeBagOutline = Instance.new("ImageLabel")
+activeBagOutline.Name = "ActiveBagOutline"
+activeBagOutline.Size = UDim2.new(1, 0, 1, 0)
+activeBagOutline.Position = UDim2.new(0, 0, 0, 0)
+activeBagOutline.BackgroundTransparency = 1
+activeBagOutline.Image = BAG_OUTLINE_ASSETS.backpack
+activeBagOutline.ScaleType = Enum.ScaleType.Fit
+activeBagOutline.ZIndex = 22
+activeBagOutline.Parent = backpackModal
+
+-- Контур предпросмотра при наведении курсора мыши на сумку
+local hoverBagOutline = Instance.new("ImageLabel")
+hoverBagOutline.Name = "HoverBagOutline"
+hoverBagOutline.Size = UDim2.new(1, 0, 1, 0)
+hoverBagOutline.Position = UDim2.new(0, 0, 0, 0)
+hoverBagOutline.BackgroundTransparency = 1
+hoverBagOutline.Image = ""
+hoverBagOutline.ImageTransparency = 0.40
+hoverBagOutline.ScaleType = Enum.ScaleType.Fit
+hoverBagOutline.Visible = false
+hoverBagOutline.ZIndex = 23
+hoverBagOutline.Parent = backpackModal
 
 -- 1. БЛОКНОТ (Книга рецептов и заданий)
 local notebookBtn = Instance.new("TextButton")
@@ -258,15 +273,10 @@ notebookBtn.Name = "NotebookBtn"
 notebookBtn.Size = UDim2.new(0.078, 0, 0.147, 0)
 notebookBtn.Position = UDim2.new(0.225, 0, 0.157, 0)
 notebookBtn.AnchorPoint = Vector2.new(0.5, 0.5)
-notebookBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 notebookBtn.BackgroundTransparency = 1
 notebookBtn.Text = ""
 notebookBtn.ZIndex = 30
 notebookBtn.Parent = backpackModal
-
-local nbBtnCorner = Instance.new("UICorner")
-nbBtnCorner.CornerRadius = UDim.new(0, 8)
-nbBtnCorner.Parent = notebookBtn
 
 -- 2. ПОРТФЕЛЬ / РЮКЗАК (Ресурсы и блоки)
 local backpackTabBtn = Instance.new("TextButton")
@@ -274,15 +284,10 @@ backpackTabBtn.Name = "BackpackTabBtn"
 backpackTabBtn.Size = UDim2.new(0.176, 0, 0.210, 0)
 backpackTabBtn.Position = UDim2.new(0.354, 0, 0.138, 0)
 backpackTabBtn.AnchorPoint = Vector2.new(0.5, 0.5)
-backpackTabBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 backpackTabBtn.BackgroundTransparency = 1
 backpackTabBtn.Text = ""
 backpackTabBtn.ZIndex = 30
 backpackTabBtn.Parent = backpackModal
-
-local bpTabCorner = Instance.new("UICorner")
-bpTabCorner.CornerRadius = UDim.new(0, 14)
-bpTabCorner.Parent = backpackTabBtn
 
 -- 3. СУМКА С ИНСТРУМЕНТАМИ (Топор, кирка, лопата)
 local toolbagTabBtn = Instance.new("TextButton")
@@ -290,15 +295,10 @@ toolbagTabBtn.Name = "ToolbagTabBtn"
 toolbagTabBtn.Size = UDim2.new(0.176, 0, 0.215, 0)
 toolbagTabBtn.Position = UDim2.new(0.534, 0, 0.143, 0)
 toolbagTabBtn.AnchorPoint = Vector2.new(0.5, 0.5)
-toolbagTabBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 toolbagTabBtn.BackgroundTransparency = 1
 toolbagTabBtn.Text = ""
 toolbagTabBtn.ZIndex = 30
 toolbagTabBtn.Parent = backpackModal
-
-local tbTabCorner = Instance.new("UICorner")
-tbTabCorner.CornerRadius = UDim.new(0, 14)
-tbTabCorner.Parent = toolbagTabBtn
 
 -- 4. КОРЗИНКА (Еда, ягоды, грибы, припасы)
 local basketTabBtn = Instance.new("TextButton")
@@ -306,15 +306,10 @@ basketTabBtn.Name = "BasketTabBtn"
 basketTabBtn.Size = UDim2.new(0.110, 0, 0.205, 0)
 basketTabBtn.Position = UDim2.new(0.684, 0, 0.145, 0)
 basketTabBtn.AnchorPoint = Vector2.new(0.5, 0.5)
-basketTabBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 basketTabBtn.BackgroundTransparency = 1
 basketTabBtn.Text = ""
 basketTabBtn.ZIndex = 30
 basketTabBtn.Parent = backpackModal
-
-local bskTabCorner = Instance.new("UICorner")
-bskTabCorner.CornerRadius = UDim.new(0, 14)
-bskTabCorner.Parent = basketTabBtn
 
 -- 5. КАРТА (Остров котёнка)
 local mapBtn = Instance.new("TextButton")
@@ -322,15 +317,10 @@ mapBtn.Name = "MapBtn"
 mapBtn.Size = UDim2.new(0.166, 0, 0.210, 0)
 mapBtn.Position = UDim2.new(0.820, 0, 0.154, 0)
 mapBtn.AnchorPoint = Vector2.new(0.5, 0.5)
-mapBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 mapBtn.BackgroundTransparency = 1
 mapBtn.Text = ""
 mapBtn.ZIndex = 30
 mapBtn.Parent = backpackModal
-
-local mapBtnCorner = Instance.new("UICorner")
-mapBtnCorner.CornerRadius = UDim.new(0, 12)
-mapBtnCorner.Parent = mapBtn
 
 -- 6. КРЕСТИК ЗАКРЫТИЯ [X]
 local closeBtn = Instance.new("TextButton")
@@ -338,22 +328,15 @@ closeBtn.Name = "CloseBtn"
 closeBtn.Size = UDim2.new(0.029, 0, 0.046, 0)
 closeBtn.Position = UDim2.new(0.976, 0, 0.059, 0)
 closeBtn.AnchorPoint = Vector2.new(0.5, 0.5)
-closeBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 closeBtn.BackgroundTransparency = 1
 closeBtn.Text = ""
 closeBtn.ZIndex = 35
 closeBtn.Parent = backpackModal
 
-local closeCorner = Instance.new("UICorner")
-closeCorner.CornerRadius = UDim.new(0, 6)
-closeCorner.Parent = closeBtn
-
 closeBtn.MouseEnter:Connect(function()
-    closeBtn.BackgroundTransparency = 0.82
     showTooltip("Закрыть [Esc]")
 end)
 closeBtn.MouseLeave:Connect(function()
-    closeBtn.BackgroundTransparency = 1
     hideTooltip()
 end)
 
@@ -374,11 +357,9 @@ gearCorner.CornerRadius = UDim.new(1, 0)
 gearCorner.Parent = gearBtn
 
 gearBtn.MouseEnter:Connect(function()
-    gearBtn.BackgroundTransparency = 0.88
     showTooltip("⚙️ Настройки игры")
 end)
 gearBtn.MouseLeave:Connect(function()
-    gearBtn.BackgroundTransparency = 1
     hideTooltip()
 end)
 
@@ -556,12 +537,14 @@ local function createGrassSlotUI(parent, localIndex, pos)
 
     btn.MouseEnter:Connect(function()
         if btn:GetAttribute("HasItem") and not btn:GetAttribute("IsSelected") then
-            halo.BackgroundTransparency = 0.85
+            iconLabel.TextStrokeColor3 = Color3.fromRGB(255, 255, 220)
+            iconLabel.TextStrokeTransparency = 0
         end
     end)
     btn.MouseLeave:Connect(function()
         if not btn:GetAttribute("IsSelected") then
-            halo.BackgroundTransparency = 1
+            iconLabel.TextStrokeColor3 = Color3.fromRGB(15, 15, 15)
+            iconLabel.TextStrokeTransparency = 0.5
         end
     end)
 
@@ -594,14 +577,13 @@ local function createHotbarSlotUI(parent, slotIndex, pos)
     spriteImg.ZIndex = 6
     spriteImg.Parent = btn
 
-    -- Активная белая рамка выбора (обводит пиксельный закругленный контур ячейки)
+    -- Активная белая рамка выбора (обводит пиксельный закругленный контур ячейки, без белой плашки)
     local activeBorder = Instance.new("Frame")
     activeBorder.Name = "ActiveBorder"
     activeBorder.Size = UDim2.new(1, 6, 1, 6)
     activeBorder.Position = UDim2.new(0.5, 0, 0.5, 0)
     activeBorder.AnchorPoint = Vector2.new(0.5, 0.5)
-    activeBorder.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    activeBorder.BackgroundTransparency = 0.92
+    activeBorder.BackgroundTransparency = 1
     activeBorder.Visible = (slotIndex == activeHotbarSlot)
     activeBorder.ZIndex = 9
     activeBorder.Parent = btn
@@ -762,25 +744,24 @@ for r = 1, 4 do
     end
 end
 
--- Переключение активной сумки (подсветка строго по габаритам сумки, без рамок)
+-- Переключение активной сумки (контурная подсветка точно по форме активного объекта)
 local function setActiveBagTab(tab)
     activeBagTab = tab
     selectedBackpackSlot = nil
 
+    if BAG_OUTLINE_ASSETS[tab] then
+        activeBagOutline.Image = BAG_OUTLINE_ASSETS[tab]
+        activeBagOutline.Visible = true
+    else
+        activeBagOutline.Visible = false
+    end
+    hoverBagOutline.Visible = false
+
     if tab == "backpack" then
-        activeBagIndicator.Position = UDim2.new(0.354, 0, 0.138, 0)
-        activeBagIndicator.Size = UDim2.new(0.176, 0, 0.210, 0)
-        indCorner.CornerRadius = UDim.new(0, 14)
         bagTitleBadge.Text = "🎒 Портфель: Ресурсы и блоки"
     elseif tab == "toolbag" then
-        activeBagIndicator.Position = UDim2.new(0.534, 0, 0.143, 0)
-        activeBagIndicator.Size = UDim2.new(0.176, 0, 0.215, 0)
-        indCorner.CornerRadius = UDim.new(0, 14)
         bagTitleBadge.Text = "🧰 Сумка: Походные инструменты"
     elseif tab == "basket" then
-        activeBagIndicator.Position = UDim2.new(0.684, 0, 0.145, 0)
-        activeBagIndicator.Size = UDim2.new(0.110, 0, 0.205, 0)
-        indCorner.CornerRadius = UDim.new(0, 14)
         bagTitleBadge.Text = "🧺 Корзинка: Еда, ягоды и припасы"
     end
 
@@ -789,31 +770,40 @@ end
 
 backpackTabBtn.MouseButton1Click:Connect(function() setActiveBagTab("backpack") end)
 backpackTabBtn.MouseEnter:Connect(function()
-    if activeBagTab ~= "backpack" then backpackTabBtn.BackgroundTransparency = 0.90 end
+    if activeBagTab ~= "backpack" then
+        hoverBagOutline.Image = BAG_OUTLINE_ASSETS.backpack
+        hoverBagOutline.Visible = true
+    end
     showTooltip("🎒 Портфель (Ресурсы и блоки)")
 end)
 backpackTabBtn.MouseLeave:Connect(function()
-    backpackTabBtn.BackgroundTransparency = 1
+    hoverBagOutline.Visible = false
     hideTooltip()
 end)
 
 toolbagTabBtn.MouseButton1Click:Connect(function() setActiveBagTab("toolbag") end)
 toolbagTabBtn.MouseEnter:Connect(function()
-    if activeBagTab ~= "toolbag" then toolbagTabBtn.BackgroundTransparency = 0.90 end
+    if activeBagTab ~= "toolbag" then
+        hoverBagOutline.Image = BAG_OUTLINE_ASSETS.toolbag
+        hoverBagOutline.Visible = true
+    end
     showTooltip("🧰 Сумка (Инструменты)")
 end)
 toolbagTabBtn.MouseLeave:Connect(function()
-    toolbagTabBtn.BackgroundTransparency = 1
+    hoverBagOutline.Visible = false
     hideTooltip()
 end)
 
 basketTabBtn.MouseButton1Click:Connect(function() setActiveBagTab("basket") end)
 basketTabBtn.MouseEnter:Connect(function()
-    if activeBagTab ~= "basket" then basketTabBtn.BackgroundTransparency = 0.90 end
+    if activeBagTab ~= "basket" then
+        hoverBagOutline.Image = BAG_OUTLINE_ASSETS.basket
+        hoverBagOutline.Visible = true
+    end
     showTooltip("🧺 Корзинка (Еда и сбор)")
 end)
 basketTabBtn.MouseLeave:Connect(function()
-    basketTabBtn.BackgroundTransparency = 1
+    hoverBagOutline.Visible = false
     hideTooltip()
 end)
 
@@ -855,14 +845,25 @@ local function renderGrassSlotUI(btn, slotData, isSelected)
         countLbl.Visible = true
 
         if isSelected then
-            if halo then halo.BackgroundTransparency = 0.65 end
+            iconLabel.TextStrokeColor3 = Color3.fromRGB(255, 255, 255)
+            iconLabel.TextStrokeTransparency = 0
+            iconLabel.TextSize = 28
+            nameLbl.TextColor3 = Color3.fromRGB(255, 240, 140)
+            nameLbl.TextStrokeTransparency = 0
         else
-            if halo then halo.BackgroundTransparency = 1 end
+            iconLabel.TextStrokeColor3 = Color3.fromRGB(15, 15, 15)
+            iconLabel.TextStrokeTransparency = 0.5
+            iconLabel.TextSize = 24
+            nameLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+            nameLbl.TextStrokeTransparency = 0.25
         end
+        if halo then halo.BackgroundTransparency = 1 end
     else
         btn:SetAttribute("HasItem", false)
         btn:SetAttribute("IsSelected", false)
         iconLabel.Visible = false
+        iconLabel.TextSize = 24
+        iconLabel.TextStrokeTransparency = 0.5
         colorBox.Visible = false
         nameLbl.Visible = false
         countLbl.Visible = false
@@ -1050,11 +1051,9 @@ notebookBtn.MouseButton1Click:Connect(function()
     notebookModal.Visible = not notebookModal.Visible
 end)
 notebookBtn.MouseEnter:Connect(function()
-    notebookBtn.BackgroundTransparency = 0.88
     showTooltip("📖 Блокнот: Рецепты и Задания")
 end)
 notebookBtn.MouseLeave:Connect(function()
-    notebookBtn.BackgroundTransparency = 1
     hideTooltip()
 end)
 
@@ -1160,11 +1159,9 @@ mapBtn.MouseButton1Click:Connect(function()
     end
 end)
 mapBtn.MouseEnter:Connect(function()
-    mapBtn.BackgroundTransparency = 0.88
     showTooltip("🗺️ Карта Острова")
 end)
 mapBtn.MouseLeave:Connect(function()
-    mapBtn.BackgroundTransparency = 1
     hideTooltip()
 end)
 
