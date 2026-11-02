@@ -18,6 +18,7 @@ local ITEMS = {
         isBlock = true,
         blockType = "Grass",
         category = "resources",
+        sprite = "rbxassetid://114424346454200",
         icon = "🌿",
         color = Color3.fromRGB(90, 175, 55),
         material = Enum.Material.Grass
@@ -28,6 +29,7 @@ local ITEMS = {
         isBlock = true,
         blockType = "Wood",
         category = "resources",
+        sprite = "rbxassetid://102991854156536",
         icon = "🪵",
         color = Color3.fromRGB(120, 75, 40),
         material = Enum.Material.WoodPlanks
@@ -38,6 +40,7 @@ local ITEMS = {
         isBlock = true,
         blockType = "Stone",
         category = "resources",
+        sprite = "rbxassetid://109072643235539",
         icon = "🪨",
         color = Color3.fromRGB(135, 140, 145),
         material = Enum.Material.Slate
@@ -48,6 +51,7 @@ local ITEMS = {
         isBlock = true,
         blockType = "Dirt",
         category = "resources",
+        sprite = "rbxassetid://104779952223143",
         icon = "🟤",
         color = Color3.fromRGB(100, 70, 45),
         material = Enum.Material.Ground
@@ -375,13 +379,11 @@ local function getOrCreateInventory(player)
                 [3] = { id = "stone_block", count = 16, max = 64 },
                 [4] = { id = "grass_block", count = 32, max = 64 },
 
-                -- Портфель: Ресурсы и блоки (10..29)
-                [10] = { id = "clay",       count = 10, max = 64 },
-                [11] = { id = "sand",       count = 3,  max = 64 },
-                [12] = { id = "ore",        count = 8,  max = 64 },
-                [13] = { id = "coal",       count = 2,  max = 64 },
-                [14] = { id = "bones",      count = 1,  max = 64 },
-                [15] = { id = "twigs",      count = 10, max = 64 },
+                -- Портфель: Ресурсы и блоки в пиксель-арт стилистике (10..29)
+                [10] = { id = "wood_block",  count = 24, max = 64 },
+                [11] = { id = "dirt_block",  count = 32, max = 64 },
+                [12] = { id = "stone_block", count = 16, max = 64 },
+                [13] = { id = "grass_block", count = 32, max = 64 },
 
                 -- Корзинка: Еда и урожай (30..44)
                 [30] = { id = "mushrooms",  count = 5,  max = 32 },

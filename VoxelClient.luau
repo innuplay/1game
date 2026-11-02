@@ -474,7 +474,20 @@ local function createGrassSlotUI(parent, localIndex, pos)
     haloCorner.CornerRadius = UDim.new(1, 0)
     haloCorner.Parent = halo
 
-    -- Иконка/эмодзи предмета
+    -- Пиксель-арт спрайт предмета (стилистика пиксельных ячеек)
+    local itemSprite = Instance.new("ImageLabel")
+    itemSprite.Name = "ItemSprite"
+    itemSprite.Size = UDim2.new(0, 44, 0, 44)
+    itemSprite.Position = UDim2.new(0.40, 0, 0.38, 0)
+    itemSprite.AnchorPoint = Vector2.new(0.5, 0.5)
+    itemSprite.BackgroundTransparency = 1
+    itemSprite.ResampleMode = Enum.ResamplerMode.Pixelated
+    itemSprite.ScaleType = Enum.ScaleType.Fit
+    itemSprite.Visible = false
+    itemSprite.ZIndex = 27
+    itemSprite.Parent = btn
+
+    -- Иконка/эмодзи предмета (запасной вариант)
     local iconLabel = Instance.new("TextLabel")
     iconLabel.Name = "IconLabel"
     iconLabel.Size = UDim2.new(0, 36, 0, 32)
@@ -539,12 +552,16 @@ local function createGrassSlotUI(parent, localIndex, pos)
         if btn:GetAttribute("HasItem") and not btn:GetAttribute("IsSelected") then
             iconLabel.TextStrokeColor3 = Color3.fromRGB(255, 255, 220)
             iconLabel.TextStrokeTransparency = 0
+            itemSprite.Size = UDim2.new(0, 48, 0, 48)
+            itemSprite.ImageColor3 = Color3.fromRGB(255, 255, 230)
         end
     end)
     btn.MouseLeave:Connect(function()
         if not btn:GetAttribute("IsSelected") then
             iconLabel.TextStrokeColor3 = Color3.fromRGB(15, 15, 15)
             iconLabel.TextStrokeTransparency = 0.5
+            itemSprite.Size = UDim2.new(0, 44, 0, 44)
+            itemSprite.ImageColor3 = Color3.fromRGB(255, 255, 255)
         end
     end)
 
@@ -814,6 +831,7 @@ end)
 -- Обновление одного слота на траве (мягкая круглая подсветка выбранного предмета, без рамок)
 local function renderGrassSlotUI(btn, slotData, isSelected)
     local halo = btn:FindFirstChild("Halo")
+    local itemSprite = btn:FindFirstChild("ItemSprite")
     local iconLabel = btn:FindFirstChild("IconLabel")
     local colorBox = btn:FindFirstChild("ColorBox")
     local nameLbl = btn:FindFirstChild("NameLabel")
@@ -829,14 +847,35 @@ local function renderGrassSlotUI(btn, slotData, isSelected)
         btn:SetAttribute("HasItem", true)
         btn:SetAttribute("IsSelected", isSelected)
 
-        if def.icon and def.icon ~= "" then
+        -- Проверяем наличие пиксель-арт спрайта (в стилистике ячеек из второго изображения)
+        local spriteAsset = def.sprite
+        if not spriteAsset and (slotData.id == "wood_block" or slotData.id == "dirt_block" or slotData.id == "stone_block" or slotData.id == "grass_block") then
+            local spriteFallback = {
+                wood_block  = "rbxassetid://102991854156536",
+                dirt_block  = "rbxassetid://104779952223143",
+                stone_block = "rbxassetid://109072643235539",
+                grass_block = "rbxassetid://114424346454200",
+            }
+            spriteAsset = spriteFallback[slotData.id]
+        end
+
+        if spriteAsset and spriteAsset ~= "" then
+            if itemSprite then
+                itemSprite.Image = spriteAsset
+                itemSprite.Visible = true
+            end
+            iconLabel.Visible = false
+            colorBox.Visible = false
+        elseif def.icon and def.icon ~= "" then
             iconLabel.Text = def.icon
             iconLabel.Visible = true
             colorBox.Visible = false
+            if itemSprite then itemSprite.Visible = false end
         else
             colorBox.BackgroundColor3 = def.color or Color3.fromRGB(150, 150, 150)
             colorBox.Visible = true
             iconLabel.Visible = false
+            if itemSprite then itemSprite.Visible = false end
         end
 
         nameLbl.Text = def.name or slotData.id
@@ -845,12 +884,20 @@ local function renderGrassSlotUI(btn, slotData, isSelected)
         countLbl.Visible = true
 
         if isSelected then
+            if itemSprite and itemSprite.Visible then
+                itemSprite.Size = UDim2.new(0, 48, 0, 48)
+                itemSprite.ImageColor3 = Color3.fromRGB(255, 255, 230)
+            end
             iconLabel.TextStrokeColor3 = Color3.fromRGB(255, 255, 255)
             iconLabel.TextStrokeTransparency = 0
             iconLabel.TextSize = 28
             nameLbl.TextColor3 = Color3.fromRGB(255, 240, 140)
             nameLbl.TextStrokeTransparency = 0
         else
+            if itemSprite and itemSprite.Visible then
+                itemSprite.Size = UDim2.new(0, 44, 0, 44)
+                itemSprite.ImageColor3 = Color3.fromRGB(255, 255, 255)
+            end
             iconLabel.TextStrokeColor3 = Color3.fromRGB(15, 15, 15)
             iconLabel.TextStrokeTransparency = 0.5
             iconLabel.TextSize = 24
@@ -861,6 +908,7 @@ local function renderGrassSlotUI(btn, slotData, isSelected)
     else
         btn:SetAttribute("HasItem", false)
         btn:SetAttribute("IsSelected", false)
+        if itemSprite then itemSprite.Visible = false end
         iconLabel.Visible = false
         iconLabel.TextSize = 24
         iconLabel.TextStrokeTransparency = 0.5
