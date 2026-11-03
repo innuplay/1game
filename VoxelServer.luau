@@ -289,14 +289,36 @@ local function applySeason(seasonId)
     BLOCK_CONFIG.Grass.Color = sCfg.grassColor
     ITEMS.grass_block.color = sCfg.grassColor
 
-    -- Перекрашиваем все существующие блоки травы в мире под выбранный сезон
+    -- РџРµСЂРµРєСЂР°С€РёРІР°РµРј Р±Р»РѕРєРё С‚СЂР°РІС‹ Рё РєСЂРѕРЅ С†РІРµС‚СѓС‰РёС… РґРµСЂРµРІСЊРµРІ РІРµСЃРЅРѕР№
     for _, block in ipairs(worldFolder:GetChildren()) do
         if block:GetAttribute("BlockType") == "Grass" then
-            block.Color = sCfg.grassColor
+            local isCanopy = block:GetAttribute("IsCanopy")
+            local treeType = block:GetAttribute("TreeType")
+            if isCanopy and treeType then
+                if seasonId == "spring" then
+                    if treeType == "Sakura" then
+                        block.Color = Color3.fromRGB(255, 185, 215) -- РќРµР¶РЅРѕ-СЂРѕР·РѕРІР°СЏ С†РІРµС‚СѓС‰Р°СЏ СЃР°РєСѓСЂР°!
+                    else
+                        block.Color = Color3.fromRGB(255, 240, 248) -- Р‘РµР»Рѕ-СЂРѕР·РѕРІС‹Р№ С†РІРµС‚ СЏР±Р»РѕРЅРё!
+                    end
+                elseif seasonId == "autumn" then
+                    if treeType == "Sakura" then
+                        block.Color = Color3.fromRGB(215, 95, 30) -- РћСЃРµРЅРЅСЏСЏ СЃР°РєСѓСЂР°
+                    else
+                        block.Color = Color3.fromRGB(235, 165, 35) -- Р—РѕР»РѕС‚РёСЃС‚Р°СЏ СЏР±Р»РѕРЅСЏ
+                    end
+                elseif seasonId == "winter" then
+                    block.Color = Color3.fromRGB(230, 240, 250) -- Р—Р°СЃРЅРµР¶РµРЅРЅР°СЏ РєСЂРѕРЅР°
+                else
+                    block.Color = Color3.fromRGB(60, 165, 50) -- Р›РµС‚РЅСЏСЏ СЃРѕС‡РЅР°СЏ РєСЂРѕРЅР°
+                end
+            else
+                block.Color = sCfg.grassColor
+            end
         end
     end
 
-    -- Оповещаем всех клиентов о смене сезона
+    -- РћРїРѕРІРµС‰Р°РµРј РІСЃРµС… РєР»РёРµРЅС‚РѕРІ Рѕ СЃРјРµРЅРµ СЃРµР·РѕРЅР°
     voxelRemote:FireAllClients("SeasonChanged", {
         season = currentSeason,
         seasonName = sCfg.name,
@@ -758,34 +780,41 @@ local function generateWorld()
     end
 
     -- Вспомогательная функция для генерации аккуратного воксельного деревца
-    local function spawnVoxelTree(bx, bz, trunkHeight)
+    local function spawnVoxelTree(bx, bz, trunkHeight, treeType)
         local posX = bx * BLOCK_SIZE
         local posZ = bz * BLOCK_SIZE
-        -- Ствол из древесины
+        -- РЎС‚РІРѕР» РёР· РґСЂРµРІРµСЃРёРЅС‹
         for h = 1, trunkHeight do
             createBlock("Wood", Vector3.new(posX, BASE_Y + h * BLOCK_SIZE, posZ), false)
         end
-        -- Пушистая лиственная крона (из блоков листвы/травы)
+        -- Р›РёСЃС‚РІРµРЅРЅР°СЏ РєСЂРѕРЅР° (СЃ СЂР°Р·РјРµС‚РєРѕР№ С‚РёРїР° РґРµСЂРµРІР°)
         local topY = BASE_Y + trunkHeight * BLOCK_SIZE
         for dx = -1, 1 do
             for dz = -1, 1 do
-                createBlock("Grass", Vector3.new(posX + dx * BLOCK_SIZE, topY, posZ + dz * BLOCK_SIZE), false)
+                local blk = createBlock("Grass", Vector3.new(posX + dx * BLOCK_SIZE, topY, posZ + dz * BLOCK_SIZE), false)
+                if blk then
+                    blk:SetAttribute("IsCanopy", true)
+                    blk:SetAttribute("TreeType", treeType or "Sakura")
+                end
                 if math.abs(dx) + math.abs(dz) <= 1 then
-                    createBlock("Grass", Vector3.new(posX + dx * BLOCK_SIZE, topY + BLOCK_SIZE, posZ + dz * BLOCK_SIZE), false)
+                    local topBlk = createBlock("Grass", Vector3.new(posX + dx * BLOCK_SIZE, topY + BLOCK_SIZE, posZ + dz * BLOCK_SIZE), false)
+                    if topBlk then
+                        topBlk:SetAttribute("IsCanopy", true)
+                        topBlk:SetAttribute("TreeType", treeType or "Sakura")
+                    end
                 end
             end
         end
     end
 
-    -- 2. Расставляем деревья по периметру поляны (центр остаётся свободным для бега котика)
-    spawnVoxelTree(-9, -6, 3)
-    spawnVoxelTree(10, -8, 3)
-    spawnVoxelTree(-10, 8, 3)
-    spawnVoxelTree(9, 7, 3)
-    spawnVoxelTree(2, -12, 3)
-    spawnVoxelTree(-5, 12, 3)
+    -- 2. РЎС‚Р°РІРёРј С†РІРµС‚СѓС‰РёРµ РґРµСЂРµРІСЊСЏ (РЎР°РєСѓСЂС‹ Рё РЇР±Р»РѕРЅРё)
+    spawnVoxelTree(-9, -6, 3, "Sakura")
+    spawnVoxelTree(10, -8, 3, "Apple")
+    spawnVoxelTree(-10, 8, 3, "Sakura")
+    spawnVoxelTree(9, 7, 3, "Apple")
+    spawnVoxelTree(2, -12, 3, "Sakura")
+    spawnVoxelTree(-5, 12, 3, "Apple")
 
-    -- 3. Каменные валуны для добычи ресурсов
     local function spawnBoulder(bx, bz)
         local posX = bx * BLOCK_SIZE
         local posZ = bz * BLOCK_SIZE
@@ -807,15 +836,21 @@ end
 if #worldFolder:GetChildren() == 0 then
     generateWorld()
 else
-    -- Обновляем материалы и цвета на всех существующих блоках воксельного мира
+    -- РћР±РЅРѕРІР»СЏРµРј РјР°С‚РµСЂРёР°Р»С‹, С‚РµРєСЃС‚СѓСЂС‹ Рё СЂР°Р·РјРµС‡Р°РµРј РєСЂРѕРЅС‹ С†РІРµС‚СѓС‰РёС… РґРµСЂРµРІСЊРµРІ
     for _, block in ipairs(worldFolder:GetChildren()) do
         if block:IsA("BasePart") then
             local bType = block:GetAttribute("BlockType")
             if bType and BLOCK_CONFIG[bType] then
                 applyBlockTextures(block, bType)
             end
+            if bType == "Grass" and block.Position.Y > 2.0 then
+                block:SetAttribute("IsCanopy", true)
+                local isApple = (block.Position.X > 0)
+                block:SetAttribute("TreeType", isApple and "Apple" or "Sakura")
+            end
         end
     end
+    applySeason(currentSeason)
 end
 
 -- === ЧАСТИЦЫ ===

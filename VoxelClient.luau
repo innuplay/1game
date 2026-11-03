@@ -904,10 +904,12 @@ end
 local groundPuddles = {}
 local groundSnowCaps = {}
 local groundLeafPatches = {}
+local groundSpringFlowers = {}
 
-local puddleWetness = 0 -- от 0 (сухо) до 1 (полные зеркальные лужи)
+local puddleWetness = 0
 local snowCoverage = (currentSeasonId == "winter") and 1 or 0
 local leavesCoverage = (currentSeasonId == "autumn") and 1 or 0
+local flowersCoverage = (currentSeasonId == "spring") and 1 or 0
 
 local function setupGroundWeatherDecor()
     local worldFolder = Workspace:FindFirstChild("VoxelWorld")
@@ -920,6 +922,7 @@ local function setupGroundWeatherDecor()
     table.clear(groundPuddles)
     table.clear(groundSnowCaps)
     table.clear(groundLeafPatches)
+    table.clear(groundSpringFlowers)
 
     -- РџРѕСЃС‚СЂРѕРµРЅРёРµ РїСЂРѕСЃС‚СЂР°РЅСЃС‚РІРµРЅРЅРѕР№ СЃРµС‚РєРё РІРѕРєСЃРµР»РµР№ РґР»СЏ РїРѕРёСЃРєР° РѕС‚РєСЂС‹С‚РѕР№ РїРѕРІРµСЂС…РЅРѕСЃС‚Рё
     local blockGrid = {}
@@ -947,9 +950,9 @@ local function setupGroundWeatherDecor()
 
     local rng = Random.new(777)
     for i, block in ipairs(grassBlocks) do
-        -- РўРѕС‡РЅС‹Р№ РІРµСЂС… Р±Р»РѕРєР°: Position.Y + Size.Y / 2 (РґР»СЏ Р±Р»РѕРєР° 1.5 studs СЌС‚Рѕ Position.Y + 0.75)
+        -- РўРѕС‡РЅС‹Р№ РІРµСЂС… Р±Р»РѕРєР°: Position.Y + Size.Y / 2
         local topY = block.Position.Y + (block.Size.Y / 2)
-        local isGroundLevel = (block.Position.Y <= 3.0) -- РЅР°Р·РµРјРЅР°СЏ С‚СЂР°РІР° Рё С…РѕР»РјС‹ (РєСЂРѕРјРµ РІРµСЂС…СѓС€РµРє РґРµСЂРµРІСЊРµРІ)
+        local isGroundLevel = (block.Position.Y <= 3.0) -- РЅР°Р·РµРјРЅР°СЏ С‚СЂР°РІР° Рё С…РѕР»РјС‹
 
         -- 1. РЎРЅРµР¶РЅС‹Р№ РїРѕРєСЂРѕРІ РЅР° Р±Р»РѕРєР°С… (Р·РёРјРѕР№)
         local sH = 0.06
@@ -968,7 +971,7 @@ local function setupGroundWeatherDecor()
         snowCap.Parent = groundDecorFolder
         table.insert(groundSnowCaps, snowCap)
 
-        -- 2. Р›СѓР¶Рё (С‚РѕР»СЊРєРѕ РЅР° Р·РµРјР»Рµ, РЅР°РїРѕР»РЅСЏСЋС‚СЃСЏ РІРѕ РІСЂРµРјСЏ РґРѕР¶РґСЏ, СЃРѕС…РЅСѓС‚ РЅР° СЃРѕР»РЅС†Рµ)
+        -- 2. Р›СѓР¶Рё (РЅР°РїРѕР»РЅСЏСЋС‚СЃСЏ РІ РґРѕР¶РґСЊ РёР»Рё РІРµСЃРЅРѕР№ РѕС‚ С‚Р°СЏРЅРёСЏ СЃРЅРµРіР°)
         if isGroundLevel and ((i % 4 == 0) or (i % 7 == 0)) then
             local pH = 0.015
             local pRadius = 0.45 + rng:NextNumber(-0.05, 0.1)
@@ -999,7 +1002,7 @@ local function setupGroundWeatherDecor()
             table.insert(groundPuddles, puddle)
         end
 
-        -- 3. РћРїР°РІС€РёРµ Р»РёСЃС‚СЊСЏ (С‚РѕР»СЊРєРѕ РЅР° Р·РµРјР»Рµ, Р»РµР¶Р°С‚ СЂРѕРІРЅРѕ РЅР° С‚СЂР°РІРµ РѕСЃРµРЅСЊСЋ)
+        -- 3. РћРїР°РІС€РёРµ Р»РёСЃС‚СЊСЏ (РѕСЃРµРЅСЊСЋ)
         if isGroundLevel and (i % 2 == 0) then
             local lH = 0.012
             local leafColors = {
@@ -1030,8 +1033,58 @@ local function setupGroundWeatherDecor()
 
             table.insert(groundLeafPatches, leafPatch)
         end
+
+        -- 4. Р’РµСЃРµРЅРЅРёРµ РїРµСЂРІРѕС†РІРµС‚С‹ (РїРѕРґСЃРЅРµР¶РЅРёРєРё, РєСЂРѕРєСѓСЃС‹, РѕРґСѓРІР°РЅС‡РёРєРё)
+        if isGroundLevel and ((i % 3 == 0) or (i % 5 == 0)) then
+            local flower = Instance.new("Part")
+            flower.Name = "SpringFlower"
+            local fType = (i % 3)
+            local fColor
+            if fType == 0 then
+                fColor = Color3.fromRGB(255, 225, 45) -- Р—РѕР»РѕС‚РёСЃС‚С‹Р№ РѕРґСѓРІР°РЅС‡РёРє
+            elseif fType == 1 then
+                fColor = Color3.fromRGB(252, 255, 255) -- Р‘РµР»С‹Р№ РїРѕРґСЃРЅРµР¶РЅРёРє
+            else
+                fColor = Color3.fromRGB(165, 120, 245) -- РЎРёРЅРµ-С„РёРѕР»РµС‚РѕРІС‹Р№ РєСЂРѕРєСѓСЃ
+            end
+
+            local fH = 0.08
+            local fSize = 0.28 + rng:NextNumber(-0.04, 0.04)
+            flower.Size = Vector3.new(fSize, fH, fSize)
+            flower.Position = Vector3.new(
+                block.Position.X + rng:NextNumber(-0.35, 0.35),
+                topY + (fH / 2) + 0.002,
+                block.Position.Z + rng:NextNumber(-0.35, 0.35)
+            )
+            flower.Color = fColor
+            flower.Material = Enum.Material.SmoothPlastic
+            flower.Anchored = true
+            flower.CanCollide = false
+            flower.CanTouch = false
+            flower.CanQuery = false
+            flower.CastShadow = false
+            flower.Transparency = (currentSeasonId == "spring") and 0 or 1
+            flower.Parent = groundDecorFolder
+
+            local stem = Instance.new("Part")
+            stem.Name = "Stem"
+            stem.Size = Vector3.new(0.08, 0.04, 0.08)
+            stem.Position = Vector3.new(flower.Position.X, topY + 0.02, flower.Position.Z)
+            stem.Color = Color3.fromRGB(65, 145, 45)
+            stem.Material = Enum.Material.SmoothPlastic
+            stem.Anchored = true
+            stem.CanCollide = false
+            stem.CanTouch = false
+            stem.CanQuery = false
+            stem.CastShadow = false
+            stem.Transparency = (currentSeasonId == "spring") and 0 or 1
+            stem.Parent = flower
+
+            table.insert(groundSpringFlowers, flower)
+        end
     end
 end
+
 local function updateGroundDecor(dt, isRaining)
     if #groundSnowCaps == 0 then
         local wf = Workspace:FindFirstChild("VoxelWorld")
@@ -1040,11 +1093,12 @@ local function updateGroundDecor(dt, isRaining)
         end
     end
 
-    -- 1. Дождевые лужи: наполняются во время дождя, сохнут после него
+    -- 1. Р›СѓР¶Рё: РІРѕ РІСЂРµРјСЏ РґРѕР¶РґСЏ РёР»Рё РІРµСЃРЅРѕР№ РїСЂРё С‚Р°СЏРЅРёРё СЃРЅРµРіР° (РІРµСЃРЅРѕР№ РІСЃРµРіРґР° РµСЃС‚СЊ С‚Р°Р»Р°СЏ РІР»Р°РіР°!)
+    local minWetness = (currentSeasonId == "spring") and 0.32 or 0.0
     if isRaining then
         puddleWetness = math.clamp(puddleWetness + dt / 6, 0, 1)
     else
-        puddleWetness = math.clamp(puddleWetness - dt / 18, 0, 1)
+        puddleWetness = math.clamp(puddleWetness - dt / 18, minWetness, 1)
     end
 
     local pTrans = 1 - (puddleWetness * 0.65)
@@ -1054,12 +1108,12 @@ local function updateGroundDecor(dt, isRaining)
         end
     end
 
-    -- 2. Снежные сугробы: зимой нарастают (1), весной тают (0)
+    -- 2. РЎРЅРµР¶РЅС‹Рµ С€Р°РїРєРё: Р·РёРјРѕР№ СѓРєСЂС‹РІР°СЋС‚ (1), РІРµСЃРЅРѕР№ РїР»Р°РІРЅРѕ С‚Р°СЋС‚ (0)
     local targetSnow = (currentSeasonId == "winter") and 1 or 0
     if snowCoverage < targetSnow then
         snowCoverage = math.clamp(snowCoverage + dt / 4, 0, 1)
     elseif snowCoverage > targetSnow then
-        snowCoverage = math.clamp(snowCoverage - dt / 6, 0, 1)
+        snowCoverage = math.clamp(snowCoverage - dt / 4, 0, 1)
     end
 
     local sTrans = 1 - snowCoverage
@@ -1069,7 +1123,7 @@ local function updateGroundDecor(dt, isRaining)
         end
     end
 
-    -- 3. Опавшие листья: осенью устилают траву (1), зимой скрываются под снегом (0)
+    -- 3. РћРїР°РІС€РёРµ Р»РёСЃС‚СЊСЏ: РѕСЃРµРЅСЊСЋ СѓРєСЂС‹РІР°СЋС‚ С‚СЂР°РІСѓ (1), РІРµСЃРЅРѕР№/Р·РёРјРѕР№ РёСЃС‡РµР·Р°СЋС‚ (0)
     local targetLeaves = (currentSeasonId == "autumn") and 1 or 0
     if leavesCoverage < targetLeaves then
         leavesCoverage = math.clamp(leavesCoverage + dt / 4, 0, 1)
@@ -1083,13 +1137,24 @@ local function updateGroundDecor(dt, isRaining)
             leaf.Transparency = lTrans
         end
     end
-end
 
--- Первоначальная генерация наземного декора после создания мира
-task.spawn(function()
-    task.wait(0.6)
-    setupGroundWeatherDecor()
-end)
+    -- 4. Р’РµСЃРµРЅРЅРёРµ РїРµСЂРІРѕС†РІРµС‚С‹: РІРµСЃРЅРѕР№ СЂР°СЃРїСѓСЃРєР°СЋС‚СЃСЏ (1), РІ РґСЂСѓРіРёРµ СЃРµР·РѕРЅС‹ РёСЃС‡РµР·Р°СЋС‚ (0)
+    local targetFlowers = (currentSeasonId == "spring") and 1 or 0
+    if flowersCoverage < targetFlowers then
+        flowersCoverage = math.clamp(flowersCoverage + dt / 3, 0, 1)
+    elseif flowersCoverage > targetFlowers then
+        flowersCoverage = math.clamp(flowersCoverage - dt / 4, 0, 1)
+    end
+
+    local flTrans = 1 - flowersCoverage
+    for _, fl in ipairs(groundSpringFlowers) do
+        if fl.Parent then
+            fl.Transparency = flTrans
+            local stem = fl:FindFirstChild("Stem")
+            if stem then stem.Transparency = flTrans end
+        end
+    end
+end
 
 local function setSeason(seasonKey, notifyServer)
     local cfg = SEASON_CONFIGS[seasonKey]
