@@ -632,7 +632,7 @@ local DAY_CYCLE_SECONDS = 120 -- 1 игровые сутки (24 часа) = 2 �
 
 local weatherAnchor = Instance.new("Part")
 weatherAnchor.Name = "WeatherAnchor"
-weatherAnchor.Size = Vector3.new(60, 2, 60)
+weatherAnchor.Size = Vector3.new(220, 2, 220)
 weatherAnchor.Transparency = 1
 weatherAnchor.Anchored = true
 weatherAnchor.CanCollide = false
@@ -641,12 +641,23 @@ weatherAnchor.CanQuery = false
 weatherAnchor.CastShadow = false
 weatherAnchor.Parent = Workspace
 
+local firefliesAnchor = Instance.new("Part")
+firefliesAnchor.Name = "FirefliesAnchor"
+firefliesAnchor.Size = Vector3.new(120, 2, 120)
+firefliesAnchor.Transparency = 1
+firefliesAnchor.Anchored = true
+firefliesAnchor.CanCollide = false
+firefliesAnchor.CanTouch = false
+firefliesAnchor.CanQuery = false
+firefliesAnchor.CastShadow = false
+firefliesAnchor.Parent = Workspace
+
 -- 1. Осенние летящие листья (золотые, оранжевые, багряные листья)
 local leavesEmitter = Instance.new("ParticleEmitter")
 leavesEmitter.Name = "LeavesEmitter"
-leavesEmitter.Rate = 22
-leavesEmitter.Lifetime = NumberRange.new(3.5, 5.0)
-leavesEmitter.Speed = NumberRange.new(9, 15)
+leavesEmitter.Rate = 95
+leavesEmitter.Lifetime = NumberRange.new(5.0, 7.5)
+leavesEmitter.Speed = NumberRange.new(8, 14)
 leavesEmitter.SpreadAngle = Vector2.new(20, 20)
 leavesEmitter.EmissionDirection = Enum.NormalId.Bottom
 leavesEmitter.Acceleration = Vector3.new(12, -8, 6)
@@ -673,8 +684,8 @@ leavesEmitter.Parent = weatherAnchor
 -- 2. Порывистый ветер (серебристо-белые полосы завихрения воздуха)
 local windEmitter = Instance.new("ParticleEmitter")
 windEmitter.Name = "WindEmitter"
-windEmitter.Rate = 12
-windEmitter.Lifetime = NumberRange.new(1.2, 1.8)
+windEmitter.Rate = 35
+windEmitter.Lifetime = NumberRange.new(1.8, 2.8)
 windEmitter.Speed = NumberRange.new(30, 45)
 windEmitter.SpreadAngle = Vector2.new(10, 10)
 windEmitter.EmissionDirection = Enum.NormalId.Right
@@ -697,8 +708,8 @@ windEmitter.Parent = weatherAnchor
 -- 3. Дождь (падающие наклонные струи воды)
 local rainEmitter = Instance.new("ParticleEmitter")
 rainEmitter.Name = "RainEmitter"
-rainEmitter.Rate = 150
-rainEmitter.Lifetime = NumberRange.new(0.45, 0.65)
+rainEmitter.Rate = 850
+rainEmitter.Lifetime = NumberRange.new(0.65, 0.90)
 rainEmitter.Speed = NumberRange.new(50, 70)
 rainEmitter.SpreadAngle = Vector2.new(4, 4)
 rainEmitter.EmissionDirection = Enum.NormalId.Bottom
@@ -716,8 +727,8 @@ rainEmitter.Parent = weatherAnchor
 -- 4. Пушистый снег (мягко кружащиеся белые хлопья снега)
 local snowEmitter = Instance.new("ParticleEmitter")
 snowEmitter.Name = "SnowEmitter"
-snowEmitter.Rate = 90
-snowEmitter.Lifetime = NumberRange.new(3.5, 5.0)
+snowEmitter.Rate = 380
+snowEmitter.Lifetime = NumberRange.new(5.5, 8.0)
 snowEmitter.Speed = NumberRange.new(5, 9)
 snowEmitter.SpreadAngle = Vector2.new(15, 15)
 snowEmitter.EmissionDirection = Enum.NormalId.Bottom
@@ -740,8 +751,8 @@ snowEmitter.Parent = weatherAnchor
 -- 5. Ледяной град (быстрые плотные ледяные крупинки)
 local hailEmitter = Instance.new("ParticleEmitter")
 hailEmitter.Name = "HailEmitter"
-hailEmitter.Rate = 55
-hailEmitter.Lifetime = NumberRange.new(0.35, 0.55)
+hailEmitter.Rate = 220
+hailEmitter.Lifetime = NumberRange.new(0.55, 0.80)
 hailEmitter.Speed = NumberRange.new(65, 85)
 hailEmitter.SpreadAngle = Vector2.new(6, 6)
 hailEmitter.EmissionDirection = Enum.NormalId.Bottom
@@ -756,8 +767,8 @@ hailEmitter.Parent = weatherAnchor
 -- 6. Весенние цветочные лепестки (розовые и белые лепестки сакуры)
 local petalsEmitter = Instance.new("ParticleEmitter")
 petalsEmitter.Name = "PetalsEmitter"
-petalsEmitter.Rate = 22
-petalsEmitter.Lifetime = NumberRange.new(3.2, 4.8)
+petalsEmitter.Rate = 100
+petalsEmitter.Lifetime = NumberRange.new(5.0, 7.5)
 petalsEmitter.Speed = NumberRange.new(6, 11)
 petalsEmitter.SpreadAngle = Vector2.new(20, 20)
 petalsEmitter.EmissionDirection = Enum.NormalId.Bottom
@@ -784,8 +795,8 @@ petalsEmitter.Parent = weatherAnchor
 -- 7. Ночные светлячки (теплое мерцание в летнюю ночь)
 local firefliesEmitter = Instance.new("ParticleEmitter")
 firefliesEmitter.Name = "FirefliesEmitter"
-firefliesEmitter.Rate = 12
-firefliesEmitter.Lifetime = NumberRange.new(3.5, 5.5)
+firefliesEmitter.Rate = 28
+firefliesEmitter.Lifetime = NumberRange.new(3.5, 6.0)
 firefliesEmitter.Speed = NumberRange.new(1.5, 3.5)
 firefliesEmitter.SpreadAngle = Vector2.new(45, 45)
 firefliesEmitter.EmissionDirection = Enum.NormalId.Top
@@ -804,7 +815,7 @@ firefliesEmitter.Transparency = NumberSequence.new({
     NumberSequenceKeypoint.new(1, 1)
 })
 firefliesEmitter.Enabled = false
-firefliesEmitter.Parent = weatherAnchor
+firefliesEmitter.Parent = firefliesAnchor
 
 -- 8. Система молний и раскатов грома
 local nextLightningTime = 0
@@ -1284,8 +1295,25 @@ local function updateDayNightAndWeather(dt)
     end
 
     local cam = Workspace.CurrentCamera
-    if cam and weatherAnchor then
-        weatherAnchor.CFrame = CFrame.new(cam.CFrame.Position + Vector3.new(0, 18, 0))
+    local char = player.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    local focusPos = root and root.Position or Vector3.new(0, 1, 0)
+
+    if weatherAnchor then
+        if cam then
+            local camPos = cam.CFrame.Position
+            -- РЎРјРµС€РёРІР°РµРј РїРѕР·РёС†РёСЋ: 65% С„РѕРєСѓСЃ РЅР° РїРµСЂСЃРѕРЅР°Р¶Рµ/РїРѕР»СЏРЅРµ, 35% РїРѕР·РёС†РёСЏ РєР°РјРµСЂС‹.
+            -- Р­С‚Рѕ РіР°СЂР°РЅС‚РёСЂСѓРµС‚ 100% РѕР±СЉРµРјРЅРѕРµ РїРѕРєСЂС‹С‚РёРµ РІСЃРµР№ РїРѕР»СЏРЅС‹ Рё РІРёРґРёРјРѕР№ РѕР±Р»Р°СЃС‚Рё СЌРєСЂР°РЅР° РїСЂРё Р»СЋР±РѕРј Р·СѓРјРµ (РѕС‚ 18 РґРѕ 140 СЃС‚Р°РґСЃРѕРІ)
+            local midX = (focusPos.X * 0.65) + (camPos.X * 0.35)
+            local midZ = (focusPos.Z * 0.65) + (camPos.Z * 0.35)
+            weatherAnchor.CFrame = CFrame.new(midX, 36, midZ)
+        else
+            weatherAnchor.CFrame = CFrame.new(focusPos.X, 36, focusPos.Z)
+        end
+    end
+
+    if firefliesAnchor then
+        firefliesAnchor.CFrame = CFrame.new(focusPos.X, 2.0, focusPos.Z)
     end
 
     -- Актуализация погодных явлений под текущее время года и время суток
