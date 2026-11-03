@@ -190,6 +190,135 @@ end)
 
 
 
+-- === ПАНЕЛЬ ЖИЗНЕННЫХ ПОКАЗАТЕЛЕЙ (В ЛЕВОМ НИЖНЕМ УГЛУ) ===
+-- Иконки: Еда (зеленая вилка и нож), Вода (голубая капля), Энергия (желтая молния)
+local VITALITY_ICONS = {
+    hunger = "rbxassetid://85498299233584",
+    thirst = "rbxassetid://138664811721806",
+    energy = "rbxassetid://129785022833362",
+}
+
+local catStats = {
+    hunger = 100,
+    thirst = 100,
+    energy = 100,
+}
+
+local vitalityFrame = Instance.new("Frame")
+vitalityFrame.Name = "VitalityStatusPanel"
+vitalityFrame.Size = UDim2.new(0, 146, 0, 72)
+vitalityFrame.Position = UDim2.new(0, 16, 1, -86) -- Левый нижний угол экрана
+vitalityFrame.BackgroundColor3 = Color3.fromRGB(111, 98, 77)
+vitalityFrame.BorderSizePixel = 0
+vitalityFrame.ZIndex = 5
+vitalityFrame.Parent = screenGui
+
+local vitCorner = Instance.new("UICorner")
+vitCorner.CornerRadius = UDim.new(0, 10)
+vitCorner.Parent = vitalityFrame
+
+local vitStroke = Instance.new("UIStroke")
+vitStroke.Color = Color3.fromRGB(80, 70, 55)
+vitStroke.Thickness = 1.5
+vitStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+vitStroke.Parent = vitalityFrame
+
+local vitalityUIElements = {}
+
+local function createVitalityColumn(name, iconId, colIndex, defaultPercent)
+    local colW = 146 / 3
+    local colFrame = Instance.new("Frame")
+    colFrame.Name = "Col_" .. name
+    colFrame.Size = UDim2.new(0, math.floor(colW), 1, 0)
+    colFrame.Position = UDim2.new(0, math.floor((colIndex - 1) * colW), 0, 0)
+    colFrame.BackgroundTransparency = 1
+    colFrame.ZIndex = 6
+    colFrame.Parent = vitalityFrame
+
+    -- Пиксельная иконка
+    local icon = Instance.new("ImageLabel")
+    icon.Name = "Icon"
+    icon.Size = UDim2.new(0, 24, 0, 28)
+    icon.Position = UDim2.new(0.5, -12, 0, 6)
+    icon.BackgroundTransparency = 1
+    icon.Image = iconId
+    icon.ResampleMode = Enum.ResamplerMode.Pixelated
+    icon.ScaleType = Enum.ScaleType.Fit
+    icon.ZIndex = 7
+    icon.Parent = colFrame
+
+    -- Текст процентов под иконкой
+    local pctLabel = Instance.new("TextLabel")
+    pctLabel.Name = "PercentText"
+    pctLabel.Size = UDim2.new(1, 0, 0, 16)
+    pctLabel.Position = UDim2.new(0, 0, 0, 36)
+    pctLabel.BackgroundTransparency = 1
+    pctLabel.Text = math.floor(defaultPercent) .. "%"
+    pctLabel.TextColor3 = Color3.fromRGB(235, 230, 210)
+    pctLabel.Font = Enum.Font.FredokaOne
+    pctLabel.TextSize = 11
+    pctLabel.ZIndex = 7
+    pctLabel.Parent = colFrame
+
+    local txtStroke = Instance.new("UIStroke")
+    txtStroke.Color = Color3.fromRGB(40, 35, 25)
+    txtStroke.Thickness = 1
+    txtStroke.Parent = pctLabel
+
+    -- Темная подложка горизонтальной полоски
+    local barBg = Instance.new("Frame")
+    barBg.Name = "BarBg"
+    barBg.Size = UDim2.new(0, 32, 0, 3)
+    barBg.Position = UDim2.new(0.5, -16, 0, 56)
+    barBg.BackgroundColor3 = Color3.fromRGB(65, 75, 60)
+    barBg.BorderSizePixel = 0
+    barBg.ZIndex = 7
+    barBg.Parent = colFrame
+
+    local barBgCorner = Instance.new("UICorner")
+    barBgCorner.CornerRadius = UDim.new(0, 1.5)
+    barBgCorner.Parent = barBg
+
+    -- Заполненная часть полоски (активная)
+    local barFill = Instance.new("Frame")
+    barFill.Name = "BarFill"
+    barFill.Size = UDim2.new(math.clamp(defaultPercent / 100, 0, 1), 0, 1, 0)
+    barFill.Position = UDim2.new(0, 0, 0, 0)
+    barFill.BackgroundColor3 = (defaultPercent > 10) and Color3.fromRGB(132, 204, 118) or Color3.fromRGB(75, 85, 70)
+    barFill.BorderSizePixel = 0
+    barFill.ZIndex = 8
+    barFill.Parent = barBg
+
+    local barFillCorner = Instance.new("UICorner")
+    barFillCorner.CornerRadius = UDim.new(0, 1.5)
+    barFillCorner.Parent = barFill
+
+    vitalityUIElements[name] = {
+        label = pctLabel,
+        bar = barFill,
+    }
+end
+
+createVitalityColumn("hunger", VITALITY_ICONS.hunger, 1, catStats.hunger)
+createVitalityColumn("thirst", VITALITY_ICONS.thirst, 2, catStats.thirst)
+createVitalityColumn("energy", VITALITY_ICONS.energy, 3, catStats.energy)
+
+local function updateVitalityDisplay()
+    for statName, val in pairs(catStats) do
+        local el = vitalityUIElements[statName]
+        if el then
+            el.label.Text = math.floor(val) .. "%"
+            local frac = math.clamp(val / 100, 0, 1)
+            el.bar.Size = UDim2.new(frac, 0, 1, 0)
+            if frac > 0.1 then
+                el.bar.BackgroundColor3 = Color3.fromRGB(132, 204, 118)
+            else
+                el.bar.BackgroundColor3 = Color3.fromRGB(75, 85, 70)
+            end
+        end
+    end
+end
+
 -- Всплывающее уведомление о сборе лута
 local notifContainer = Instance.new("Frame")
 notifContainer.Name = "NotifContainer"
@@ -1904,11 +2033,26 @@ UserInputService.InputEnded:Connect(function(input)
 end)
 
 -- Интервал копания лапками — 0.55 секунды (плавный, размеренный ритм)
-RunService.Heartbeat:Connect(function()
+local lastVitalityTick = 0
+RunService.Heartbeat:Connect(function(dt)
     if isDiggingKeyHeld and not isBackpackOpen then
         if tick() - lastDigTick > 0.55 then
             lastDigTick = tick()
             doDigStep()
+            catStats.energy = math.max(0, catStats.energy - 1.2)
         end
+    end
+
+    -- Плавное обновление показателей котика (энергия, голод, жажда)
+    if tick() - lastVitalityTick >= 0.1 then
+        lastVitalityTick = tick()
+        local char = player.Character
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        if hum and hum.MoveDirection.Magnitude > 0.1 then
+            catStats.energy = math.max(0, catStats.energy - 0.12)
+        else
+            catStats.energy = math.min(100, catStats.energy + 0.3)
+        end
+        updateVitalityDisplay()
     end
 end)
