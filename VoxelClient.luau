@@ -913,28 +913,50 @@ local function setupGroundWeatherDecor()
     local worldFolder = Workspace:FindFirstChild("VoxelWorld")
     if not worldFolder then return end
 
+    local allChildren = worldFolder:GetChildren()
+    if #allChildren < 30 then return end
+
     groundDecorFolder:ClearAllChildren()
     table.clear(groundPuddles)
     table.clear(groundSnowCaps)
     table.clear(groundLeafPatches)
 
+    -- РџРѕСЃС‚СЂРѕРµРЅРёРµ РїСЂРѕСЃС‚СЂР°РЅСЃС‚РІРµРЅРЅРѕР№ СЃРµС‚РєРё РІРѕРєСЃРµР»РµР№ РґР»СЏ РїРѕРёСЃРєР° РѕС‚РєСЂС‹С‚РѕР№ РїРѕРІРµСЂС…РЅРѕСЃС‚Рё
+    local blockGrid = {}
+    for _, block in ipairs(allChildren) do
+        if block:IsA("BasePart") then
+            local gx = math.floor((block.Position.X / BLOCK_SIZE) + 0.5)
+            local gy = math.floor((block.Position.Y / BLOCK_SIZE) + 0.5)
+            local gz = math.floor((block.Position.Z / BLOCK_SIZE) + 0.5)
+            blockGrid[gx .. "_" .. gy .. "_" .. gz] = block
+        end
+    end
+
     local grassBlocks = {}
-    for _, block in ipairs(worldFolder:GetChildren()) do
+    for _, block in ipairs(allChildren) do
         if block:IsA("BasePart") and block:GetAttribute("BlockType") == "Grass" then
-            table.insert(grassBlocks, block)
+            local gx = math.floor((block.Position.X / BLOCK_SIZE) + 0.5)
+            local gy = math.floor((block.Position.Y / BLOCK_SIZE) + 0.5)
+            local gz = math.floor((block.Position.Z / BLOCK_SIZE) + 0.5)
+            -- РџСЂРѕРІРµСЂСЏРµРј: РїСЂСЏРјРѕ РЅР°Рґ Р±Р»РѕРєРѕРј РЅРµС‚ РґСЂСѓРіРѕРіРѕ Р±Р»РѕРєР° (РѕС‚РєСЂС‹С‚Р°СЏ РїРѕРІРµСЂС…РЅРѕСЃС‚СЊ РїРѕРґ РЅРµР±РѕРј)
+            if not blockGrid[gx .. "_" .. (gy + 1) .. "_" .. gz] then
+                table.insert(grassBlocks, block)
+            end
         end
     end
 
     local rng = Random.new(777)
     for i, block in ipairs(grassBlocks) do
-        local topY = block.Position.Y + 2.5 / 2
+        -- РўРѕС‡РЅС‹Р№ РІРµСЂС… Р±Р»РѕРєР°: Position.Y + Size.Y / 2 (РґР»СЏ Р±Р»РѕРєР° 1.5 studs СЌС‚Рѕ Position.Y + 0.75)
+        local topY = block.Position.Y + (block.Size.Y / 2)
+        local isGroundLevel = (block.Position.Y <= 3.0) -- РЅР°Р·РµРјРЅР°СЏ С‚СЂР°РІР° Рё С…РѕР»РјС‹ (РєСЂРѕРјРµ РІРµСЂС…СѓС€РµРє РґРµСЂРµРІСЊРµРІ)
 
-        -- 1. Снежные сугробики и шапки
+        -- 1. РЎРЅРµР¶РЅС‹Р№ РїРѕРєСЂРѕРІ РЅР° Р±Р»РѕРєР°С… (Р·РёРјРѕР№)
+        local sH = 0.06
         local snowCap = Instance.new("Part")
         snowCap.Name = "SnowCap"
-        local sH = 0.12 + rng:NextNumber(0, 0.08)
-        snowCap.Size = Vector3.new(2.3 + rng:NextNumber(-0.15, 0.15), sH, 2.3 + rng:NextNumber(-0.15, 0.15))
-        snowCap.Position = Vector3.new(block.Position.X, topY + sH / 2, block.Position.Z)
+        snowCap.Size = Vector3.new(BLOCK_SIZE * 0.98, sH, BLOCK_SIZE * 0.98)
+        snowCap.Position = Vector3.new(block.Position.X, topY + (sH / 2), block.Position.Z)
         snowCap.Color = Color3.fromRGB(246, 250, 255)
         snowCap.Material = Enum.Material.Sand
         snowCap.Anchored = true
@@ -946,17 +968,17 @@ local function setupGroundWeatherDecor()
         snowCap.Parent = groundDecorFolder
         table.insert(groundSnowCaps, snowCap)
 
-        -- 2. Маленькие водяные зеркальные лужицы
-        if (i % 3 == 0) or (i % 7 == 0) then
-            local pSizeX = 1.3 + rng:NextNumber(0, 0.6)
-            local pSizeZ = 1.1 + rng:NextNumber(0, 0.5)
+        -- 2. Р›СѓР¶Рё (С‚РѕР»СЊРєРѕ РЅР° Р·РµРјР»Рµ, РЅР°РїРѕР»РЅСЏСЋС‚СЃСЏ РІРѕ РІСЂРµРјСЏ РґРѕР¶РґСЏ, СЃРѕС…РЅСѓС‚ РЅР° СЃРѕР»РЅС†Рµ)
+        if isGroundLevel and ((i % 4 == 0) or (i % 7 == 0)) then
+            local pH = 0.015
+            local pRadius = 0.45 + rng:NextNumber(-0.05, 0.1)
             local puddle = Instance.new("Part")
             puddle.Name = "Puddle"
-            puddle.Size = Vector3.new(pSizeX, 0.04, pSizeZ)
+            puddle.Size = Vector3.new(pRadius * 2, pH, pRadius * 2)
             puddle.Position = Vector3.new(
-                block.Position.X + rng:NextNumber(-0.4, 0.4),
-                topY + 0.02,
-                block.Position.Z + rng:NextNumber(-0.4, 0.4)
+                block.Position.X + rng:NextNumber(-0.15, 0.15),
+                topY + (pH / 2) + 0.002,
+                block.Position.Z + rng:NextNumber(-0.15, 0.15)
             )
             puddle.Color = Color3.fromRGB(115, 165, 215)
             puddle.Material = Enum.Material.Glass
@@ -971,14 +993,15 @@ local function setupGroundWeatherDecor()
 
             local mesh = Instance.new("SpecialMesh")
             mesh.MeshType = Enum.MeshType.Sphere
-            mesh.Scale = Vector3.new(1, 0.04, 1)
+            mesh.Scale = Vector3.new(1, pH / (pRadius * 2), 1)
             mesh.Parent = puddle
 
             table.insert(groundPuddles, puddle)
         end
 
-        -- 3. Опавшие осенние листья
-        if (i % 2 == 0) then
+        -- 3. РћРїР°РІС€РёРµ Р»РёСЃС‚СЊСЏ (С‚РѕР»СЊРєРѕ РЅР° Р·РµРјР»Рµ, Р»РµР¶Р°С‚ СЂРѕРІРЅРѕ РЅР° С‚СЂР°РІРµ РѕСЃРµРЅСЊСЋ)
+        if isGroundLevel and (i % 2 == 0) then
+            local lH = 0.012
             local leafColors = {
                 Color3.fromRGB(225, 125, 20),
                 Color3.fromRGB(195, 65, 15),
@@ -987,11 +1010,13 @@ local function setupGroundWeatherDecor()
             }
             local leafPatch = Instance.new("Part")
             leafPatch.Name = "LeafPatch"
-            leafPatch.Size = Vector3.new(0.9 + rng:NextNumber(-0.2, 0.3), 0.03, 0.8 + rng:NextNumber(-0.2, 0.3))
+            local lW = 0.45 + rng:NextNumber(-0.08, 0.08)
+            local lL = 0.38 + rng:NextNumber(-0.06, 0.06)
+            leafPatch.Size = Vector3.new(lW, lH, lL)
             leafPatch.Position = Vector3.new(
-                block.Position.X + rng:NextNumber(-0.5, 0.5),
-                topY + 0.015,
-                block.Position.Z + rng:NextNumber(-0.5, 0.5)
+                block.Position.X + rng:NextNumber(-0.35, 0.35),
+                topY + (lH / 2) + 0.001,
+                block.Position.Z + rng:NextNumber(-0.35, 0.35)
             )
             leafPatch.Color = leafColors[rng:NextInteger(1, #leafColors)]
             leafPatch.Material = Enum.Material.SmoothPlastic
@@ -1007,7 +1032,6 @@ local function setupGroundWeatherDecor()
         end
     end
 end
-
 local function updateGroundDecor(dt, isRaining)
     if #groundSnowCaps == 0 then
         local wf = Workspace:FindFirstChild("VoxelWorld")
@@ -1149,37 +1173,51 @@ local function updateDayNightAndWeather(dt)
 
     -- Плавное освещение:
     -- Светлеет строго в 5 утра (рассвет 05:00 - 06:30)
-    -- Темнеет строго в 11 вечера (закат 21:00 - 23:00, ночь 23:00 - 05:00)
-    Lighting.ClockTime = inGameTime
-    if inGameTime >= 23 or inGameTime < 5 then
-        -- Полноценная уютная ночь (23:00 - 05:00)
-        Lighting.Brightness = cfg.brightnessNight
-        Lighting.OutdoorAmbient = cfg.ambientNight
-        Lighting.Ambient = Color3.fromRGB(25, 25, 38)
-        Lighting.ColorShift_Top = Color3.fromRGB(130, 160, 215)
-    elseif inGameTime >= 5 and inGameTime < 6.5 then
-        -- Плавный рассвет / восход солнца (05:00 - 06:30)
-        local a = (inGameTime - 5) / 1.5
+        -- РџР»Р°РІРЅРѕРµ РѕСЃРІРµС‰РµРЅРёРµ:
+    -- РЎРІРµС‚Р»РµРµС‚ РЎРўР РћР“Рћ СЃ 05:00 СѓС‚СЂР° (СЂР°СЃСЃРІРµС‚ 05:00 - 05:45).
+    -- РџРѕР»РЅС‹Р№ СЏСЃРЅС‹Р№ СЃРІРµС‚Р»С‹Р№ РґРµРЅСЊ РїСЂРѕРґРѕР»Р¶Р°РµС‚СЃСЏ Р’РЎР• Р’Р Р•РњРЇ РґРѕ 23:00 (11 РІРµС‡РµСЂР°)!
+    -- РўРµРјРЅРµС‚СЊ РЅР°С‡РёРЅР°РµС‚ РЎРўР РћР“Рћ СЃ 23:00 РІРµС‡РµСЂР° (Р·Р°РєР°С‚ 23:00 - 23:45).
+    -- РЎ 23:45 РґРѕ 05:00 - С‚РµРјРЅР°СЏ РЅРѕС‡СЊ.
+
+    -- РЎРёРЅС…СЂРѕРЅРёР·Р°С†РёСЏ РІРёР·СѓР°Р»СЊРЅРѕРіРѕ СЃРѕР»РЅС†Р° Roblox СЃ РёРіСЂРѕРІС‹РјРё СЃСѓС‚РєР°РјРё:
+    local robloxClockTime
+    if inGameTime >= 5 and inGameTime < 23 then
+        local dayFrac = (inGameTime - 5) / 18
+        robloxClockTime = 6.2 + dayFrac * 11.6 -- СЃРѕР»РЅС†Рµ РЅР° РЅРµР±Рµ СЃ 05:00 (РІРѕСЃС…РѕРґ 6.2) РґРѕ 23:00 (Р·Р°РєР°С‚ 17.8)
+    else
+        local nightFrac = (inGameTime >= 23 and (inGameTime - 23) or (inGameTime + 1)) / 6
+        robloxClockTime = (17.8 + nightFrac * 12.4) % 24 -- РЅРѕС‡СЊ СЃ Р»СѓРЅРѕР№ РѕС‚ 23:00 РґРѕ 05:00
+    end
+    Lighting.ClockTime = robloxClockTime
+
+    if inGameTime >= 5 and inGameTime < 5.75 then
+        -- Р Р°СЃСЃРІРµС‚ (05:00 - 05:45): СЃРІРµС‚Р»РµРµС‚ РЎРўР РћР“Рћ СЃ 5 СѓС‚СЂР°!
+        local a = (inGameTime - 5) / 0.75
         Lighting.Brightness = cfg.brightnessNight + (cfg.brightnessDay - cfg.brightnessNight) * a
         Lighting.OutdoorAmbient = cfg.ambientNight:Lerp(cfg.ambientDay, a)
         Lighting.Ambient = Color3.fromRGB(25, 25, 38):Lerp(Color3.fromRGB(90, 95, 105), a)
-        Lighting.ColorShift_Top = Color3.fromRGB(130, 160, 215):Lerp(Color3.fromRGB(255, 190, 140), math.sin(a * math.pi)):Lerp(cfg.colorShiftTop, a)
-    elseif inGameTime >= 6.5 and inGameTime < 21 then
-        -- Ясный солнечный день (06:30 - 21:00)
+        Lighting.ColorShift_Top = Color3.fromRGB(130, 160, 215):Lerp(Color3.fromRGB(255, 200, 150), math.sin(a * math.pi)):Lerp(cfg.colorShiftTop, a)
+    elseif inGameTime >= 5.75 and inGameTime < 23 then
+        -- РџРѕР»РЅС‹Р№ СЃРІРµС‚Р»С‹Р№ РґРµРЅСЊ (05:45 - 23:00): СЃРІРµС‚Р»Рѕ РІСЃРµ РІСЂРµРјСЏ РґРѕ 11 РІРµС‡РµСЂР°!
         Lighting.Brightness = cfg.brightnessDay
         Lighting.OutdoorAmbient = cfg.ambientDay
         Lighting.Ambient = Color3.fromRGB(90, 95, 105)
         Lighting.ColorShift_Top = cfg.colorShiftTop
-    else
-        -- Плавный закат / сумерки (21:00 - 23:00)
-        local a = (inGameTime - 21) / 2.0
+    elseif inGameTime >= 23 and inGameTime < 23.75 then
+        -- Р—Р°РєР°С‚ (23:00 - 23:45): С‚РµРјРЅРµРµС‚ РЎРўР РћР“Рћ СЃ 11 РІРµС‡РµСЂР° (23:00)!
+        local a = (inGameTime - 23) / 0.75
         Lighting.Brightness = cfg.brightnessDay + (cfg.brightnessNight - cfg.brightnessDay) * a
         Lighting.OutdoorAmbient = cfg.ambientDay:Lerp(cfg.ambientNight, a)
         Lighting.Ambient = Color3.fromRGB(90, 95, 105):Lerp(Color3.fromRGB(25, 25, 38), a)
-        Lighting.ColorShift_Top = cfg.colorShiftTop:Lerp(Color3.fromRGB(255, 130, 80), math.sin(a * math.pi)):Lerp(Color3.fromRGB(130, 160, 215), a)
+        Lighting.ColorShift_Top = cfg.colorShiftTop:Lerp(Color3.fromRGB(255, 120, 60), math.sin(a * math.pi)):Lerp(Color3.fromRGB(130, 160, 215), a)
+    else
+        -- РўРµРјРЅР°СЏ РЅРѕС‡СЊ (23:45 - 05:00): С‚РµРјРЅРѕ СЂРѕРІРЅРѕ РґРѕ 5 СѓС‚СЂР°!
+        Lighting.Brightness = cfg.brightnessNight
+        Lighting.OutdoorAmbient = cfg.ambientNight
+        Lighting.Ambient = Color3.fromRGB(25, 25, 38)
+        Lighting.ColorShift_Top = Color3.fromRGB(130, 160, 215)
     end
 
-    -- Позиционирование эмиттера погоды над камерой игрока
     local cam = Workspace.CurrentCamera
     if cam and weatherAnchor then
         weatherAnchor.CFrame = CFrame.new(cam.CFrame.Position + Vector3.new(0, 18, 0))
