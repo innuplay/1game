@@ -207,11 +207,32 @@ local ITEMS = {
 }
 
 local BLOCK_CONFIG = {
-    Grass = { Color = Color3.fromRGB(68, 168, 48),   Material = Enum.Material.Grass,      HP = 1, DropId = "grass_block" },
+    Grass = { Color = Color3.fromRGB(135, 145, 45),  Material = Enum.Material.Grass,      HP = 1, DropId = "grass_block" },
     Wood  = { Color = Color3.fromRGB(110, 68, 38),   Material = Enum.Material.WoodPlanks, HP = 1, DropId = "wood_block" },
     Stone = { Color = Color3.fromRGB(122, 128, 138), Material = Enum.Material.Slate,      HP = 1, DropId = "stone_block" },
     Dirt  = { Color = Color3.fromRGB(98, 64, 38),    Material = Enum.Material.Ground,     HP = 1, DropId = "dirt_block" }
 }
+
+-- === ВРЕМЕНА ГОДА (ОСЕНЬ, ЗИМА, ВЕСНА, ЛЕТО) ===
+local SEASON_CONFIGS = {
+    autumn = {
+        name = "Осень",
+        grassColor = Color3.fromRGB(135, 145, 45),
+    },
+    winter = {
+        name = "Зима",
+        grassColor = Color3.fromRGB(225, 235, 245),
+    },
+    spring = {
+        name = "Весна",
+        grassColor = Color3.fromRGB(75, 185, 50),
+    },
+    summer = {
+        name = "Лето",
+        grassColor = Color3.fromRGB(68, 168, 48),
+    }
+}
+local currentSeason = "autumn"
 
 -- === НАСТРОЙКА ОСВЕЩЕНИЯ (МЯГКИЙ КОНТРАСТ, БЕЗ СЛЕПЯЩИХ БЛИКОВ) ===
 local Lighting = game:GetService("Lighting")
@@ -256,6 +277,27 @@ if not voxelRemote then
     voxelRemote = Instance.new("RemoteEvent")
     voxelRemote.Name = "VoxelRemote"
     voxelRemote.Parent = ReplicatedStorage
+end
+
+local function applySeason(seasonId)
+    local sCfg = SEASON_CONFIGS[seasonId]
+    if not sCfg then return end
+    currentSeason = seasonId
+    BLOCK_CONFIG.Grass.Color = sCfg.grassColor
+    ITEMS.grass_block.color = sCfg.grassColor
+
+    -- Перекрашиваем все существующие блоки травы в мире под выбранный сезон
+    for _, block in ipairs(worldFolder:GetChildren()) do
+        if block:GetAttribute("BlockType") == "Grass" then
+            block.Color = sCfg.grassColor
+        end
+    end
+
+    -- Оповещаем всех клиентов о смене сезона
+    voxelRemote:FireAllClients("SeasonChanged", {
+        season = currentSeason,
+        seasonName = sCfg.name
+    })
 end
 
 local function snapToGrid(pos, size)
@@ -791,9 +833,17 @@ Players.PlayerAdded:Connect(function(player)
         end
         task.wait(0.2)
         syncPlayerInventory(player)
+        voxelRemote:FireClient(player, "SeasonChanged", {
+            season = currentSeason,
+            seasonName = SEASON_CONFIGS[currentSeason].name
+        })
     end)
     task.wait(0.4)
     syncPlayerInventory(player)
+    voxelRemote:FireClient(player, "SeasonChanged", {
+        season = currentSeason,
+        seasonName = SEASON_CONFIGS[currentSeason].name
+    })
 end)
 
 for _, pl in ipairs(Players:GetPlayers()) do
@@ -912,5 +962,10 @@ voxelRemote.OnServerEvent:Connect(function(player, action, data)
 
     elseif action == "SortInventory" then
         sortInventory(player, data and data.containerType or "backpack")
+
+    elseif action == "SetSeason" then
+        if data and data.season and SEASON_CONFIGS[data.season] then
+            applySeason(data.season)
+        end
     end
 end)

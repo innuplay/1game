@@ -5,6 +5,7 @@ local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 local TweenService = game:GetService("TweenService")
+local Lighting = game:GetService("Lighting")
 
 local player = Players.LocalPlayer
 local mouse = player:GetMouse()
@@ -319,6 +320,238 @@ local function updateVitalityDisplay()
 end
 
 -- Всплывающее уведомление о сборе лута
+-- === ВРЕМЕНА ГОДА И ДЕНЬ / НОЧЬ (НОЧЬ С 23:00 ДО 05:00, ЗОЛОТЫЕ ЧАСЫ БЕЗ ЦИФР) ===
+local SEASON_CONFIGS = {
+    autumn = {
+        name = "Осень",
+        tempBase = 8,
+        tempNight = 3,
+        tempDay = 12,
+        ambientDay = Color3.fromRGB(135, 125, 110),
+        ambientNight = Color3.fromRGB(38, 42, 60),
+        colorShiftTop = Color3.fromRGB(255, 230, 190),
+        brightnessDay = 1.5,
+        brightnessNight = 0.35,
+    },
+    winter = {
+        name = "Зима",
+        tempBase = -8,
+        tempNight = -16,
+        tempDay = -4,
+        ambientDay = Color3.fromRGB(130, 145, 165),
+        ambientNight = Color3.fromRGB(30, 36, 62),
+        colorShiftTop = Color3.fromRGB(210, 230, 255),
+        brightnessDay = 1.3,
+        brightnessNight = 0.35,
+    },
+    spring = {
+        name = "Весна",
+        tempBase = 14,
+        tempNight = 6,
+        tempDay = 18,
+        ambientDay = Color3.fromRGB(135, 148, 130),
+        ambientNight = Color3.fromRGB(36, 42, 58),
+        colorShiftTop = Color3.fromRGB(245, 250, 220),
+        brightnessDay = 1.6,
+        brightnessNight = 0.35,
+    },
+    summer = {
+        name = "Лето",
+        tempBase = 24,
+        tempNight = 16,
+        tempDay = 28,
+        ambientDay = Color3.fromRGB(150, 145, 130),
+        ambientNight = Color3.fromRGB(42, 44, 62),
+        colorShiftTop = Color3.fromRGB(255, 245, 215),
+        brightnessDay = 1.7,
+        brightnessNight = 0.35,
+    }
+}
+local currentSeasonId = "autumn"
+local inGameTime = 14.0 -- Стартуем в 14:00 (ясный день)
+local seasonButtonsUI = {}
+
+-- Виджет в верхнем правом углу экрана
+local seasonWidget = Instance.new("Frame")
+seasonWidget.Name = "SeasonTimeWidget"
+seasonWidget.Size = UDim2.new(0, 130, 0, 72)
+seasonWidget.Position = UDim2.new(1, -16, 0, 16)
+seasonWidget.AnchorPoint = Vector2.new(1, 0)
+seasonWidget.BackgroundTransparency = 1
+seasonWidget.ZIndex = 5
+seasonWidget.Parent = screenGui
+
+-- Золотые часы без цифр
+local clockIcon = Instance.new("ImageLabel")
+clockIcon.Name = "ClockIcon"
+clockIcon.Size = UDim2.new(0, 32, 0, 32)
+clockIcon.Position = UDim2.new(0, 0, 0, 0)
+clockIcon.BackgroundTransparency = 1
+clockIcon.Image = "rbxassetid://82825016999107"
+clockIcon.ScaleType = Enum.ScaleType.Fit
+clockIcon.ZIndex = 6
+clockIcon.Parent = seasonWidget
+
+-- Часовая стрелка (вращается по времени суток)
+local hourHand = Instance.new("Frame")
+hourHand.Name = "HourHand"
+hourHand.Size = UDim2.new(0, 2, 0, 8)
+hourHand.Position = UDim2.new(0.5, 0, 0.5, 0)
+hourHand.AnchorPoint = Vector2.new(0.5, 1)
+hourHand.BackgroundColor3 = Color3.fromRGB(45, 30, 20)
+hourHand.BorderSizePixel = 0
+hourHand.ZIndex = 7
+hourHand.Parent = clockIcon
+local hCorner = Instance.new("UICorner")
+hCorner.CornerRadius = UDim.new(1, 0)
+hCorner.Parent = hourHand
+
+-- Минутная стрелка (вращается по минутам)
+local minuteHand = Instance.new("Frame")
+minuteHand.Name = "MinuteHand"
+minuteHand.Size = UDim2.new(0, 1.5, 0, 11)
+minuteHand.Position = UDim2.new(0.5, 0, 0.5, 0)
+minuteHand.AnchorPoint = Vector2.new(0.5, 1)
+minuteHand.BackgroundColor3 = Color3.fromRGB(45, 30, 20)
+minuteHand.BorderSizePixel = 0
+minuteHand.ZIndex = 7
+minuteHand.Parent = clockIcon
+local mCorner = Instance.new("UICorner")
+mCorner.CornerRadius = UDim.new(1, 0)
+mCorner.Parent = minuteHand
+
+-- Центральная ось стрелок
+local pin = Instance.new("Frame")
+pin.Name = "ClockPin"
+pin.Size = UDim2.new(0, 3, 0, 3)
+pin.Position = UDim2.new(0.5, 0, 0.5, 0)
+pin.AnchorPoint = Vector2.new(0.5, 0.5)
+pin.BackgroundColor3 = Color3.fromRGB(45, 30, 20)
+pin.BorderSizePixel = 0
+pin.ZIndex = 8
+pin.Parent = clockIcon
+local pCorner = Instance.new("UICorner")
+pCorner.CornerRadius = UDim.new(1, 0)
+pCorner.Parent = pin
+
+-- Название сезона ("Осень")
+local seasonLabel = Instance.new("TextLabel")
+seasonLabel.Name = "SeasonLabel"
+seasonLabel.Size = UDim2.new(1, -38, 0, 26)
+seasonLabel.Position = UDim2.new(0, 38, 0, 3)
+seasonLabel.BackgroundTransparency = 1
+seasonLabel.Text = "Осень"
+seasonLabel.TextColor3 = Color3.fromRGB(240, 235, 220)
+seasonLabel.Font = Enum.Font.FredokaOne
+seasonLabel.TextSize = 15
+seasonLabel.TextXAlignment = Enum.TextXAlignment.Left
+seasonLabel.ZIndex = 6
+seasonLabel.Parent = seasonWidget
+local sStroke = Instance.new("UIStroke")
+sStroke.Color = Color3.fromRGB(30, 20, 15)
+sStroke.Thickness = 1.2
+sStroke.Parent = seasonLabel
+
+-- Золотой термометр
+local thermoIcon = Instance.new("ImageLabel")
+thermoIcon.Name = "ThermoIcon"
+thermoIcon.Size = UDim2.new(0, 13, 0, 30)
+thermoIcon.Position = UDim2.new(0, 9, 0, 38)
+thermoIcon.BackgroundTransparency = 1
+thermoIcon.Image = "rbxassetid://78871414670017"
+thermoIcon.ScaleType = Enum.ScaleType.Fit
+thermoIcon.ZIndex = 6
+thermoIcon.Parent = seasonWidget
+
+-- Значение температуры ("+8 °C")
+local tempLabel = Instance.new("TextLabel")
+tempLabel.Name = "TempLabel"
+tempLabel.Size = UDim2.new(1, -38, 0, 24)
+tempLabel.Position = UDim2.new(0, 38, 0, 42)
+tempLabel.BackgroundTransparency = 1
+tempLabel.Text = "+8 °C"
+tempLabel.TextColor3 = Color3.fromRGB(240, 235, 220)
+tempLabel.Font = Enum.Font.FredokaOne
+tempLabel.TextSize = 14
+tempLabel.TextXAlignment = Enum.TextXAlignment.Left
+tempLabel.ZIndex = 6
+tempLabel.Parent = seasonWidget
+local tStroke = Instance.new("UIStroke")
+tStroke.Color = Color3.fromRGB(30, 20, 15)
+tStroke.Thickness = 1.2
+tStroke.Parent = tempLabel
+
+local function setSeason(seasonKey, notifyServer)
+    local cfg = SEASON_CONFIGS[seasonKey]
+    if not cfg then return end
+    currentSeasonId = seasonKey
+    seasonLabel.Text = cfg.name
+
+    -- Подсветка кнопок в окне настроек
+    for sKey, btnData in pairs(seasonButtonsUI) do
+        if sKey == currentSeasonId then
+            btnData.stroke.Color = Color3.fromRGB(255, 215, 100)
+            btnData.stroke.Thickness = 2
+            btnData.button.BackgroundColor3 = Color3.fromRGB(70, 56, 42)
+        else
+            btnData.stroke.Color = Color3.fromRGB(85, 65, 48)
+            btnData.stroke.Thickness = 1
+            btnData.button.BackgroundColor3 = Color3.fromRGB(48, 38, 30)
+        end
+    end
+
+    if notifyServer then
+        voxelRemote:FireServer("SetSeason", { season = seasonKey })
+    end
+end
+
+local function updateDayNightAndWeather(dt)
+    -- Продвижение внутриигрового времени: 1 игровые сутки (24ч) = 720 секунд (12 минут реального времени)
+    inGameTime = (inGameTime + dt * (24 / 720)) % 24
+
+    -- Вращение часовой и минутной стрелок на золотых часах без цифр
+    hourHand.Rotation = ((inGameTime % 12) / 12) * 360
+    minuteHand.Rotation = ((inGameTime * 60) % 60 / 60) * 360
+
+    local cfg = SEASON_CONFIGS[currentSeasonId] or SEASON_CONFIGS.autumn
+
+    -- Динамическая температура: пик тепла днем (14-16 ч), минимум ночью (04 ч)
+    local tAngle = (inGameTime - 4) / 24 * (math.pi * 2)
+    local heatFactor = (1 - math.cos(tAngle)) / 2
+    local curTemp = math.floor(cfg.tempNight + (cfg.tempDay - cfg.tempNight) * heatFactor + 0.5)
+    tempLabel.Text = (curTemp > 0 and ("+" .. curTemp) or tostring(curTemp)) .. " °C"
+
+    -- Освещение: ночь длится строго с 23:00 до 05:00
+    Lighting.ClockTime = inGameTime
+    if inGameTime >= 23 or inGameTime < 5 then
+        -- Полноценная уютная ночь (23:00 - 05:00)
+        Lighting.Brightness = cfg.brightnessNight
+        Lighting.OutdoorAmbient = cfg.ambientNight
+        Lighting.Ambient = Color3.fromRGB(25, 25, 38)
+        Lighting.ColorShift_Top = Color3.fromRGB(130, 160, 215)
+    elseif inGameTime >= 5 and inGameTime < 6.5 then
+        -- Рассвет (05:00 - 06:30)
+        local a = (inGameTime - 5) / 1.5
+        Lighting.Brightness = cfg.brightnessNight + (cfg.brightnessDay - cfg.brightnessNight) * a
+        Lighting.OutdoorAmbient = cfg.ambientNight:Lerp(cfg.ambientDay, a)
+        Lighting.Ambient = Color3.fromRGB(25, 25, 38):Lerp(Color3.fromRGB(90, 95, 105), a)
+        Lighting.ColorShift_Top = Color3.fromRGB(255, 180, 140):Lerp(cfg.colorShiftTop, a)
+    elseif inGameTime >= 6.5 and inGameTime < 20 then
+        -- Ясный день (06:30 - 20:00)
+        Lighting.Brightness = cfg.brightnessDay
+        Lighting.OutdoorAmbient = cfg.ambientDay
+        Lighting.Ambient = Color3.fromRGB(90, 95, 105)
+        Lighting.ColorShift_Top = cfg.colorShiftTop
+    else
+        -- Закат и сумерки (20:00 - 23:00)
+        local a = (inGameTime - 20) / 3
+        Lighting.Brightness = cfg.brightnessDay + (cfg.brightnessNight - cfg.brightnessDay) * a
+        Lighting.OutdoorAmbient = cfg.ambientDay:Lerp(cfg.ambientNight, a)
+        Lighting.Ambient = Color3.fromRGB(90, 95, 105):Lerp(Color3.fromRGB(25, 25, 38), a)
+        Lighting.ColorShift_Top = cfg.colorShiftTop:Lerp(Color3.fromRGB(255, 130, 90), math.sin(a * math.pi)):Lerp(Color3.fromRGB(130, 160, 215), a)
+    end
+end
+
 local notifContainer = Instance.new("Frame")
 notifContainer.Name = "NotifContainer"
 notifContainer.Size = UDim2.new(0, 260, 0, 100)
@@ -1470,7 +1703,7 @@ setScroll.BackgroundTransparency = 1
 setScroll.BorderSizePixel = 0
 setScroll.ScrollBarThickness = 6
 setScroll.ScrollBarImageColor3 = Color3.fromRGB(160, 120, 80)
-setScroll.CanvasSize = UDim2.new(0, 0, 0, 840)
+setScroll.CanvasSize = UDim2.new(0, 0, 0, 960)
 setScroll.ZIndex = 61
 setScroll.Parent = settingsModal
 
@@ -1619,6 +1852,61 @@ local cbCorner = Instance.new("UICorner")
 cbCorner.CornerRadius = UDim.new(0, 8)
 cbCorner.Parent = camBtn
 
+-- 4. Секция: Времена года (Осень, Зима, Весна, Лето)
+createSectionHeader("🌿 ВРЕМЕНА ГОДА", 50)
+
+local seasonsGrid = Instance.new("Frame")
+seasonsGrid.Name = "SeasonsGrid"
+seasonsGrid.Size = UDim2.new(1, -10, 0, 80)
+seasonsGrid.BackgroundTransparency = 1
+seasonsGrid.LayoutOrder = 51
+seasonsGrid.ZIndex = 62
+seasonsGrid.Parent = setScroll
+
+local sGridLay = Instance.new("UIGridLayout")
+sGridLay.CellSize = UDim2.new(0.5, -6, 0, 36)
+sGridLay.CellPadding = UDim2.new(0, 8, 0, 8)
+sGridLay.SortOrder = Enum.SortOrder.LayoutOrder
+sGridLay.Parent = seasonsGrid
+
+local seasonDefs = {
+    { id = "autumn", name = "🍂 Осень", order = 1 },
+    { id = "winter", name = "❄️ Зима",  order = 2 },
+    { id = "spring", name = "🌸 Весна", order = 3 },
+    { id = "summer", name = "☀️ Лето",  order = 4 },
+}
+
+for _, sDef in ipairs(seasonDefs) do
+    local sBtn = Instance.new("TextButton")
+    sBtn.Name = "SeasonBtn_" .. sDef.id
+    sBtn.BackgroundColor3 = (sDef.id == currentSeasonId) and Color3.fromRGB(70, 56, 42) or Color3.fromRGB(48, 38, 30)
+    sBtn.Text = sDef.name
+    sBtn.TextColor3 = Color3.fromRGB(255, 235, 180)
+    sBtn.Font = Enum.Font.FredokaOne
+    sBtn.TextSize = 13
+    sBtn.LayoutOrder = sDef.order
+    sBtn.ZIndex = 63
+    sBtn.Parent = seasonsGrid
+
+    local sCorner = Instance.new("UICorner")
+    sCorner.CornerRadius = UDim.new(0, 8)
+    sCorner.Parent = sBtn
+
+    local sBtnStroke = Instance.new("UIStroke")
+    sBtnStroke.Color = (sDef.id == currentSeasonId) and Color3.fromRGB(255, 215, 100) or Color3.fromRGB(85, 65, 48)
+    sBtnStroke.Thickness = (sDef.id == currentSeasonId) and 2 or 1
+    sBtnStroke.Parent = sBtn
+
+    seasonButtonsUI[sDef.id] = {
+        button = sBtn,
+        stroke = sBtnStroke
+    }
+
+    sBtn.MouseButton1Click:Connect(function()
+        setSeason(sDef.id, true)
+    end)
+end
+
 gearBtn.MouseButton1Click:Connect(function()
     settingsModal.Visible = not settingsModal.Visible
 end)
@@ -1699,6 +1987,11 @@ voxelRemote.OnClientEvent:Connect(function(action, data)
 
     elseif action == "ItemPickedUp" then
         showPickupNotification(data.name, data.count)
+
+    elseif action == "SeasonChanged" then
+        if data and data.season then
+            setSeason(data.season, false)
+        end
     end
 end)
 
@@ -2054,4 +2347,7 @@ RunService.Heartbeat:Connect(function(dt)
         end
         updateVitalityDisplay()
     end
+
+    -- Обновление суточного цикла дня и ночи, стрелок часов и температуры
+    updateDayNightAndWeather(dt)
 end)
