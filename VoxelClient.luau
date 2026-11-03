@@ -119,11 +119,11 @@ player.CharacterAdded:Connect(function()
     updateCustomCursor()
 end)
 
--- 1. СПРАЙТОВЫЙ ПИКСЕЛЬНЫЙ ХОТБАР (4 СЛОТА: ДЕРЕВО, ЗЕМЛЯ, КАМЕНЬ, ТРАВА + КНОПКА РЮКЗАКА)
+-- 1. СПРАЙТОВЫЙ ПИКСЕЛЬНЫЙ ХОТБАР (4 СЛОТА: ДЕРЕВО, ЗЕМЛЯ, КАМЕНЬ, ТРАВА)
 local NUM_HOTBAR_SLOTS = 4
 local SLOT_SIZE = 54
 local SLOT_GAP = 8
-local TOTAL_HOTBAR_WIDTH = (NUM_HOTBAR_SLOTS * SLOT_SIZE) + ((NUM_HOTBAR_SLOTS - 1) * SLOT_GAP) + 12 + 56 -- 216 + 24 + 12 + 56 = 308px
+local TOTAL_HOTBAR_WIDTH = (NUM_HOTBAR_SLOTS * SLOT_SIZE) + ((NUM_HOTBAR_SLOTS - 1) * SLOT_GAP) -- 216 + 24 = 240px
 
 local HOTBAR_SLOT_DEFS = {
     [1] = { id = "wood_block",  sprite = "rbxassetid://102991854156536", name = "Дерево", icon = "🪵" },
@@ -140,11 +140,12 @@ hudContainer.BackgroundTransparency = 1
 hudContainer.BorderSizePixel = 0
 hudContainer.Parent = screenGui
 
--- Функциональный походный рюкзак (чистый пиксельный спрайт без рамки/ячейки)
+-- 2. ФУНКЦИОНАЛЬНЫЙ ПОХОДНЫЙ РЮКЗАК (В САМОМ ПРАВОМ НИЖНЕМ УГЛУ)
 local backpackBtn = Instance.new("ImageButton")
 backpackBtn.Name = "OpenBackpackBtn"
-backpackBtn.Size = UDim2.new(0, 56, 0, 56)
-backpackBtn.Position = UDim2.new(0, 252, 0, 0)
+backpackBtn.Size = UDim2.new(0, 58, 0, 58)
+backpackBtn.AnchorPoint = Vector2.new(1, 1)
+backpackBtn.Position = UDim2.new(1, -16, 1, -16) -- Самый правый нижний угол экрана
 backpackBtn.BackgroundTransparency = 1
 backpackBtn.BorderSizePixel = 0
 backpackBtn.Image = "rbxassetid://94027994735248"
@@ -152,7 +153,7 @@ backpackBtn.ResampleMode = Enum.ResamplerMode.Pixelated
 backpackBtn.ScaleType = Enum.ScaleType.Fit
 backpackBtn.AutoButtonColor = false
 backpackBtn.ZIndex = 6
-backpackBtn.Parent = hudContainer
+backpackBtn.Parent = screenGui
 
 -- Бейдж горячей клавиши [E]
 local bpKeyBadge = Instance.new("TextLabel")
@@ -180,12 +181,10 @@ backpackBtn.MouseLeave:Connect(function()
     backpackBtn.ImageColor3 = Color3.fromRGB(255, 255, 255)
 end)
 backpackBtn.MouseButton1Down:Connect(function()
-    backpackBtn.Size = UDim2.new(0, 52, 0, 52)
-    backpackBtn.Position = UDim2.new(0, 254, 0, 2)
+    backpackBtn.Size = UDim2.new(0, 53, 0, 53)
 end)
 backpackBtn.MouseButton1Up:Connect(function()
-    backpackBtn.Size = UDim2.new(0, 56, 0, 56)
-    backpackBtn.Position = UDim2.new(0, 252, 0, 0)
+    backpackBtn.Size = UDim2.new(0, 58, 0, 58)
 end)
 
 
