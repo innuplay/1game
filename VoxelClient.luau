@@ -511,9 +511,9 @@ hourPivot.Parent = clockIcon
 
 local hourHand = Instance.new("Frame")
 hourHand.Name = "HourHand"
-hourHand.Size = UDim2.new(0, 2, 0, 8)
-hourHand.Position = UDim2.new(0.5, -1, 0.5, -8) -- СЂР°СЃС‚РµС‚ СЃС‚СЂРѕРіРѕ РІРІРµСЂС… РѕС‚ РѕСЃРё
-hourHand.BackgroundColor3 = Color3.fromRGB(45, 25, 15)
+hourHand.Size = UDim2.new(0, 2.5, 0, 8)
+hourHand.Position = UDim2.new(0.5, -1.25, 0.5, -8)
+hourHand.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 hourHand.BorderSizePixel = 0
 hourHand.ZIndex = 7
 hourHand.Parent = hourPivot
@@ -522,7 +522,6 @@ local hCorner = Instance.new("UICorner")
 hCorner.CornerRadius = UDim.new(1, 0)
 hCorner.Parent = hourHand
 
--- РџРѕРІРѕСЂРѕС‚РЅР°СЏ РѕСЃСЊ РјРёРЅСѓС‚РЅРѕР№ СЃС‚СЂРµР»РєРё
 local minutePivot = Instance.new("Frame")
 minutePivot.Name = "MinutePivot"
 minutePivot.Size = UDim2.new(1, 0, 1, 0)
@@ -534,9 +533,9 @@ minutePivot.Parent = clockIcon
 
 local minuteHand = Instance.new("Frame")
 minuteHand.Name = "MinuteHand"
-minuteHand.Size = UDim2.new(0, 1.5, 0, 11)
-minuteHand.Position = UDim2.new(0.5, -0.75, 0.5, -11) -- СЂР°СЃС‚РµС‚ СЃС‚СЂРѕРіРѕ РІРІРµСЂС… РѕС‚ РѕСЃРё
-minuteHand.BackgroundColor3 = Color3.fromRGB(45, 25, 15)
+minuteHand.Size = UDim2.new(0, 1.8, 0, 11.5)
+minuteHand.Position = UDim2.new(0.5, -0.9, 0.5, -11.5)
+minuteHand.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 minuteHand.BorderSizePixel = 0
 minuteHand.ZIndex = 8
 minuteHand.Parent = minutePivot
@@ -545,32 +544,12 @@ local mCorner = Instance.new("UICorner")
 mCorner.CornerRadius = UDim.new(1, 0)
 mCorner.Parent = minuteHand
 
--- РџРѕРІРѕСЂРѕС‚РЅР°СЏ РѕСЃСЊ СЃРµРєСѓРЅРґРЅРѕР№ СЃС‚СЂРµР»РєРё (Р¶РёРІРѕР№ С…РѕРґ СЃС‚СЂРµР»РѕРє С‡Р°СЃРѕРІ)
-local secondPivot = Instance.new("Frame")
-secondPivot.Name = "SecondPivot"
-secondPivot.Size = UDim2.new(1, 0, 1, 0)
-secondPivot.Position = UDim2.new(0.5, 0, 0.5, 0)
-secondPivot.AnchorPoint = Vector2.new(0.5, 0.5)
-secondPivot.BackgroundTransparency = 1
-secondPivot.ZIndex = 9
-secondPivot.Parent = clockIcon
-
-local secondHand = Instance.new("Frame")
-secondHand.Name = "SecondHand"
-secondHand.Size = UDim2.new(0, 1, 0, 12)
-secondHand.Position = UDim2.new(0.5, -0.5, 0.5, -12)
-secondHand.BackgroundColor3 = Color3.fromRGB(195, 45, 35) -- Р±РѕСЂРґРѕРІРѕ-РєСЂР°СЃРЅР°СЏ СЃРµРєСѓРЅРґРЅР°СЏ СЃС‚СЂРµР»РєР°
-secondHand.BorderSizePixel = 0
-secondHand.ZIndex = 9
-secondHand.Parent = secondPivot
-
--- Р¦РµРЅС‚СЂР°Р»СЊРЅР°СЏ РјРµС‚Р°Р»Р»РёС‡РµСЃРєР°СЏ Р·Р°РєР»РµРїРєР° РѕСЃРё СЃС‚СЂРµР»РѕРє
 local pin = Instance.new("Frame")
 pin.Name = "ClockPin"
 pin.Size = UDim2.new(0, 4, 0, 4)
 pin.Position = UDim2.new(0.5, 0, 0.5, 0)
 pin.AnchorPoint = Vector2.new(0.5, 0.5)
-pin.BackgroundColor3 = Color3.fromRGB(45, 25, 15)
+pin.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 pin.BorderSizePixel = 0
 pin.ZIndex = 10
 pin.Parent = clockIcon
@@ -660,6 +639,8 @@ end
 -- ============================================================
 -- === ПОГОДНАЯ СИСТЕМА (ДОЖДЬ, СНЕГ, ВЕТЕР, ЛИСТЬЯ, ГРАД, ЛЕПЕСТКИ, СВЕТЛЯЧКИ) ===
 -- ============================================================
+local DAY_CYCLE_SECONDS = 120 -- 1 игровые сутки (24 часа) = 2 минуты реального времени
+
 local weatherAnchor = Instance.new("Part")
 weatherAnchor.Name = "WeatherAnchor"
 weatherAnchor.Size = Vector3.new(60, 2, 60)
@@ -847,14 +828,12 @@ local function triggerLightningStrike()
         local cam = Workspace.CurrentCamera
         local camPos = cam and cam.CFrame.Position or Vector3.new(0, 20, 0)
 
-        -- Позиция удара молнии в небе
         local offsetX = math.random(-110, 110)
         local offsetZ = math.random(-110, 110)
         local topPos = camPos + Vector3.new(offsetX, 95, offsetZ)
         local groundY = 12
         local bottomPos = camPos + Vector3.new(offsetX + math.random(-15, 15), groundY, offsetZ + math.random(-15, 15))
 
-        -- Зигзаг молнии из неоновых сегментов
         local boltModel = Instance.new("Model")
         boltModel.Name = "LightningBoltVisual"
 
@@ -886,7 +865,6 @@ local function triggerLightningStrike()
         end
         boltModel.Parent = Workspace
 
-        -- Раскат грома
         local thunderSound = Instance.new("Sound")
         thunderSound.SoundId = "rbxassetid://9114223171"
         thunderSound.Volume = 0.75
@@ -895,7 +873,6 @@ local function triggerLightningStrike()
         thunderSound:Play()
         game:GetService("Debris"):AddItem(thunderSound, 5)
 
-        -- Ослепительная небесная вспышка
         local origBrightness = Lighting.Brightness
         local origColorShift = Lighting.ColorShift_Top
         local origAmbient = Lighting.Ambient
@@ -924,6 +901,182 @@ local function triggerLightningStrike()
         end)
     end)
 end
+
+-- ============================================================
+-- === НАЗЕМНЫЕ СЛЕДЫ ПОГОДЫ (ЛУЖИ, СНЕЖНЫЕ СУГРОБЫ, ЛИСТЬЯ) ===
+-- ============================================================
+local groundDecorFolder = Workspace:FindFirstChild("WeatherGroundDecor")
+if not groundDecorFolder then
+    groundDecorFolder = Instance.new("Folder")
+    groundDecorFolder.Name = "WeatherGroundDecor"
+    groundDecorFolder.Parent = Workspace
+end
+
+local groundPuddles = {}
+local groundSnowCaps = {}
+local groundLeafPatches = {}
+
+local puddleWetness = 0 -- от 0 (сухо) до 1 (полные зеркальные лужи)
+local snowCoverage = (currentSeasonId == "winter") and 1 or 0
+local leavesCoverage = (currentSeasonId == "autumn") and 1 or 0
+
+local function setupGroundWeatherDecor()
+    local worldFolder = Workspace:FindFirstChild("VoxelWorld")
+    if not worldFolder then return end
+
+    groundDecorFolder:ClearAllChildren()
+    table.clear(groundPuddles)
+    table.clear(groundSnowCaps)
+    table.clear(groundLeafPatches)
+
+    local grassBlocks = {}
+    for _, block in ipairs(worldFolder:GetChildren()) do
+        if block:IsA("BasePart") and block:GetAttribute("BlockType") == "Grass" then
+            table.insert(grassBlocks, block)
+        end
+    end
+
+    local rng = Random.new(777)
+    for i, block in ipairs(grassBlocks) do
+        local topY = block.Position.Y + 2.5 / 2
+
+        -- 1. Снежные сугробики и шапки
+        local snowCap = Instance.new("Part")
+        snowCap.Name = "SnowCap"
+        local sH = 0.12 + rng:NextNumber(0, 0.08)
+        snowCap.Size = Vector3.new(2.3 + rng:NextNumber(-0.15, 0.15), sH, 2.3 + rng:NextNumber(-0.15, 0.15))
+        snowCap.Position = Vector3.new(block.Position.X, topY + sH / 2, block.Position.Z)
+        snowCap.Color = Color3.fromRGB(246, 250, 255)
+        snowCap.Material = Enum.Material.Sand
+        snowCap.Anchored = true
+        snowCap.CanCollide = false
+        snowCap.CanTouch = false
+        snowCap.CanQuery = false
+        snowCap.CastShadow = false
+        snowCap.Transparency = (currentSeasonId == "winter") and 0 or 1
+        snowCap.Parent = groundDecorFolder
+        table.insert(groundSnowCaps, snowCap)
+
+        -- 2. Маленькие водяные зеркальные лужицы
+        if (i % 3 == 0) or (i % 7 == 0) then
+            local pSizeX = 1.3 + rng:NextNumber(0, 0.6)
+            local pSizeZ = 1.1 + rng:NextNumber(0, 0.5)
+            local puddle = Instance.new("Part")
+            puddle.Name = "Puddle"
+            puddle.Size = Vector3.new(pSizeX, 0.04, pSizeZ)
+            puddle.Position = Vector3.new(
+                block.Position.X + rng:NextNumber(-0.4, 0.4),
+                topY + 0.02,
+                block.Position.Z + rng:NextNumber(-0.4, 0.4)
+            )
+            puddle.Color = Color3.fromRGB(115, 165, 215)
+            puddle.Material = Enum.Material.Glass
+            puddle.Reflectance = 0.45
+            puddle.Anchored = true
+            puddle.CanCollide = false
+            puddle.CanTouch = false
+            puddle.CanQuery = false
+            puddle.CastShadow = false
+            puddle.Transparency = 1
+            puddle.Parent = groundDecorFolder
+
+            local mesh = Instance.new("SpecialMesh")
+            mesh.MeshType = Enum.MeshType.Sphere
+            mesh.Scale = Vector3.new(1, 0.04, 1)
+            mesh.Parent = puddle
+
+            table.insert(groundPuddles, puddle)
+        end
+
+        -- 3. Опавшие осенние листья
+        if (i % 2 == 0) then
+            local leafColors = {
+                Color3.fromRGB(225, 125, 20),
+                Color3.fromRGB(195, 65, 15),
+                Color3.fromRGB(240, 165, 25),
+                Color3.fromRGB(165, 45, 10),
+            }
+            local leafPatch = Instance.new("Part")
+            leafPatch.Name = "LeafPatch"
+            leafPatch.Size = Vector3.new(0.9 + rng:NextNumber(-0.2, 0.3), 0.03, 0.8 + rng:NextNumber(-0.2, 0.3))
+            leafPatch.Position = Vector3.new(
+                block.Position.X + rng:NextNumber(-0.5, 0.5),
+                topY + 0.015,
+                block.Position.Z + rng:NextNumber(-0.5, 0.5)
+            )
+            leafPatch.Color = leafColors[rng:NextInteger(1, #leafColors)]
+            leafPatch.Material = Enum.Material.SmoothPlastic
+            leafPatch.Anchored = true
+            leafPatch.CanCollide = false
+            leafPatch.CanTouch = false
+            leafPatch.CanQuery = false
+            leafPatch.CastShadow = false
+            leafPatch.Transparency = (currentSeasonId == "autumn") and 0 or 1
+            leafPatch.Parent = groundDecorFolder
+
+            table.insert(groundLeafPatches, leafPatch)
+        end
+    end
+end
+
+local function updateGroundDecor(dt, isRaining)
+    if #groundSnowCaps == 0 then
+        local wf = Workspace:FindFirstChild("VoxelWorld")
+        if wf and #wf:GetChildren() >= 30 then
+            setupGroundWeatherDecor()
+        end
+    end
+
+    -- 1. Дождевые лужи: наполняются во время дождя, сохнут после него
+    if isRaining then
+        puddleWetness = math.clamp(puddleWetness + dt / 6, 0, 1)
+    else
+        puddleWetness = math.clamp(puddleWetness - dt / 18, 0, 1)
+    end
+
+    local pTrans = 1 - (puddleWetness * 0.65)
+    for _, puddle in ipairs(groundPuddles) do
+        if puddle.Parent then
+            puddle.Transparency = pTrans
+        end
+    end
+
+    -- 2. Снежные сугробы: зимой нарастают (1), весной тают (0)
+    local targetSnow = (currentSeasonId == "winter") and 1 or 0
+    if snowCoverage < targetSnow then
+        snowCoverage = math.clamp(snowCoverage + dt / 4, 0, 1)
+    elseif snowCoverage > targetSnow then
+        snowCoverage = math.clamp(snowCoverage - dt / 6, 0, 1)
+    end
+
+    local sTrans = 1 - snowCoverage
+    for _, snow in ipairs(groundSnowCaps) do
+        if snow.Parent then
+            snow.Transparency = sTrans
+        end
+    end
+
+    -- 3. Опавшие листья: осенью устилают траву (1), зимой скрываются под снегом (0)
+    local targetLeaves = (currentSeasonId == "autumn") and 1 or 0
+    if leavesCoverage < targetLeaves then
+        leavesCoverage = math.clamp(leavesCoverage + dt / 4, 0, 1)
+    elseif leavesCoverage > targetLeaves then
+        leavesCoverage = math.clamp(leavesCoverage - dt / 6, 0, 1)
+    end
+
+    local lTrans = 1 - leavesCoverage
+    for _, leaf in ipairs(groundLeafPatches) do
+        if leaf.Parent then
+            leaf.Transparency = lTrans
+        end
+    end
+end
+
+-- Первоначальная генерация наземного декора после создания мира
+task.spawn(function()
+    task.wait(0.6)
+    setupGroundWeatherDecor()
+end)
 
 local function setSeason(seasonKey, notifyServer)
     local cfg = SEASON_CONFIGS[seasonKey]
@@ -977,9 +1130,9 @@ local function setSeason(seasonKey, notifyServer)
 end
 
 local function updateDayNightAndWeather(dt)
-    -- Продвижение внутриигрового времени: 1 игровые сутки (24ч) = 720 секунд (12 минут реального времени)
+    -- Продвижение времени: 1 игровые сутки (24ч) = 120 секунд (2 минуты реального времени)
     local oldTime = inGameTime
-    inGameTime = (inGameTime + dt * (24 / 720)) % 24
+    inGameTime = (inGameTime + dt * (24 / DAY_CYCLE_SECONDS)) % 24
 
     -- Каждые 1 внутриигровые сутки: переход к следующему времени года строго Осень -> Зима -> Весна -> Лето -> Осень...
     if inGameTime < oldTime then
@@ -993,20 +1146,21 @@ local function updateDayNightAndWeather(dt)
         setSeason(nextSeason, true)
     end
 
-    -- Вращение часовой и минутной стрелок на золотых часах без цифр
+    -- Вращение только черной часовой и минутной стрелок (секундная убрана)
     hourPivot.Rotation = ((inGameTime % 12) / 12) * 360
     minutePivot.Rotation = (inGameTime % 1) * 360
-    secondPivot.Rotation = ((tick() * 1.5) % 60 / 60) * 360
 
     local cfg = SEASON_CONFIGS[currentSeasonId] or SEASON_CONFIGS.autumn
 
-    -- Динамическая температура: пик тепла днем (14-16 ч), минимум ночью (04 ч)
-    local tAngle = (inGameTime - 4) / 24 * (math.pi * 2)
+    -- Реалистичная температура: пик холода рано утром (04:30), пик тепла днем (14:30)
+    local tAngle = (inGameTime - 4.5) / 24 * (math.pi * 2)
     local heatFactor = (1 - math.cos(tAngle)) / 2
     local curTemp = math.floor(cfg.tempNight + (cfg.tempDay - cfg.tempNight) * heatFactor + 0.5)
     tempLabel.Text = (curTemp > 0 and ("+" .. curTemp) or tostring(curTemp)) .. " °C"
 
-    -- Освещение: ночь длится строго с 23:00 до 05:00
+    -- Плавное освещение:
+    -- Светлеет строго в 5 утра (рассвет 05:00 - 06:30)
+    -- Темнеет строго в 11 вечера (закат 21:00 - 23:00, ночь 23:00 - 05:00)
     Lighting.ClockTime = inGameTime
     if inGameTime >= 23 or inGameTime < 5 then
         -- Полноценная уютная ночь (23:00 - 05:00)
@@ -1015,25 +1169,25 @@ local function updateDayNightAndWeather(dt)
         Lighting.Ambient = Color3.fromRGB(25, 25, 38)
         Lighting.ColorShift_Top = Color3.fromRGB(130, 160, 215)
     elseif inGameTime >= 5 and inGameTime < 6.5 then
-        -- Рассвет (05:00 - 06:30)
+        -- Плавный рассвет / восход солнца (05:00 - 06:30)
         local a = (inGameTime - 5) / 1.5
         Lighting.Brightness = cfg.brightnessNight + (cfg.brightnessDay - cfg.brightnessNight) * a
         Lighting.OutdoorAmbient = cfg.ambientNight:Lerp(cfg.ambientDay, a)
         Lighting.Ambient = Color3.fromRGB(25, 25, 38):Lerp(Color3.fromRGB(90, 95, 105), a)
-        Lighting.ColorShift_Top = Color3.fromRGB(255, 180, 140):Lerp(cfg.colorShiftTop, a)
-    elseif inGameTime >= 6.5 and inGameTime < 20 then
-        -- Ясный день (06:30 - 20:00)
+        Lighting.ColorShift_Top = Color3.fromRGB(130, 160, 215):Lerp(Color3.fromRGB(255, 190, 140), math.sin(a * math.pi)):Lerp(cfg.colorShiftTop, a)
+    elseif inGameTime >= 6.5 and inGameTime < 21 then
+        -- Ясный солнечный день (06:30 - 21:00)
         Lighting.Brightness = cfg.brightnessDay
         Lighting.OutdoorAmbient = cfg.ambientDay
         Lighting.Ambient = Color3.fromRGB(90, 95, 105)
         Lighting.ColorShift_Top = cfg.colorShiftTop
     else
-        -- Закат и сумерки (20:00 - 23:00)
-        local a = (inGameTime - 20) / 3
+        -- Плавный закат / сумерки (21:00 - 23:00)
+        local a = (inGameTime - 21) / 2.0
         Lighting.Brightness = cfg.brightnessDay + (cfg.brightnessNight - cfg.brightnessDay) * a
         Lighting.OutdoorAmbient = cfg.ambientDay:Lerp(cfg.ambientNight, a)
         Lighting.Ambient = Color3.fromRGB(90, 95, 105):Lerp(Color3.fromRGB(25, 25, 38), a)
-        Lighting.ColorShift_Top = cfg.colorShiftTop:Lerp(Color3.fromRGB(255, 130, 90), math.sin(a * math.pi)):Lerp(Color3.fromRGB(130, 160, 215), a)
+        Lighting.ColorShift_Top = cfg.colorShiftTop:Lerp(Color3.fromRGB(255, 130, 80), math.sin(a * math.pi)):Lerp(Color3.fromRGB(130, 160, 215), a)
     end
 
     -- Позиционирование эмиттера погоды над камерой игрока
@@ -1058,9 +1212,10 @@ local function updateDayNightAndWeather(dt)
         or (isSummer and inGameTime >= 14 and inGameTime < 17)
 
     -- 3. Дождь: осенью днем/вечером (13-19), весной днем (12-17), летом при грозе (14-17)
-    rainEmitter.Enabled = (isAutumn and inGameTime >= 13 and inGameTime < 19)
+    local isRaining = (isAutumn and inGameTime >= 13 and inGameTime < 19)
         or (isSpring and inGameTime >= 12 and inGameTime < 17)
         or (isSummer and inGameTime >= 14 and inGameTime < 17)
+    rainEmitter.Enabled = isRaining
 
     -- 4. Пушистый снег: зимой
     snowEmitter.Enabled = isWinter
@@ -1081,7 +1236,11 @@ local function updateDayNightAndWeather(dt)
         nextLightningTime = tick() + math.random(11, 20)
         triggerLightningStrike()
     end
+
+    -- 9. Обновление следов погоды на земле (лужи, сугробы, листья)
+    updateGroundDecor(dt, isRaining)
 end
+
 
 
 -- 2. МОДАЛЬНОЕ ОКНО РЮКЗАКА (Интерактивная лесная поляна)
@@ -2295,6 +2454,110 @@ local function createInstructionCard(icon, keyText, actionTitle, descText, layou
     return card
 end
 
+createSectionHeader("⏰ ВРЕМЯ СУТОК", 1)
+
+local timeGrid = Instance.new("Frame")
+timeGrid.Name = "TimeGrid"
+timeGrid.Size = UDim2.new(1, -10, 0, 76)
+timeGrid.BackgroundTransparency = 1
+timeGrid.LayoutOrder = 2
+timeGrid.ZIndex = 62
+timeGrid.Parent = setScroll
+
+local tGridLay = Instance.new("UIGridLayout")
+tGridLay.CellSize = UDim2.new(0.5, -6, 0, 34)
+tGridLay.CellPadding = UDim2.new(0, 8, 0, 8)
+tGridLay.Parent = timeGrid
+
+local timeOptions = {
+    { text = "☀️ Полдень (12:00)", time = 12.0, order = 1 },
+    { text = "🌙 Ночь (23:00)",   time = 23.0, order = 2 },
+    { text = "🌅 Рассвет (05:00)", time = 5.0,  order = 3 },
+    { text = "🌇 Закат (21:00)",  time = 21.0, order = 4 },
+}
+
+for _, opt in ipairs(timeOptions) do
+    local tBtn = Instance.new("TextButton")
+    tBtn.Name = "TimeBtn_" .. opt.time
+    tBtn.BackgroundColor3 = Color3.fromRGB(48, 38, 30)
+    tBtn.Text = opt.text
+    tBtn.TextColor3 = Color3.fromRGB(255, 235, 180)
+    tBtn.Font = Enum.Font.FredokaOne
+    tBtn.TextSize = 12
+    tBtn.LayoutOrder = opt.order
+    tBtn.ZIndex = 63
+    tBtn.Parent = timeGrid
+
+    local tCorner = Instance.new("UICorner")
+    tCorner.CornerRadius = UDim.new(0, 8)
+    tCorner.Parent = tBtn
+
+    local tStroke = Instance.new("UIStroke")
+    tStroke.Color = Color3.fromRGB(85, 65, 48)
+    tStroke.Thickness = 1
+    tStroke.Parent = tBtn
+
+    tBtn.MouseButton1Click:Connect(function()
+        inGameTime = opt.time
+        voxelRemote:FireServer("SetTime", { time = opt.time })
+        showPickupNotification("⏰ Время суток: " .. opt.text, 0)
+    end)
+end
+
+createSectionHeader("🌿 ВРЕМЕНА ГОДА", 3)
+
+local seasonsGrid = Instance.new("Frame")
+seasonsGrid.Name = "SeasonsGrid"
+seasonsGrid.Size = UDim2.new(1, -10, 0, 76)
+seasonsGrid.BackgroundTransparency = 1
+seasonsGrid.LayoutOrder = 4
+seasonsGrid.ZIndex = 62
+seasonsGrid.Parent = setScroll
+
+local sGridLay = Instance.new("UIGridLayout")
+sGridLay.CellSize = UDim2.new(0.5, -6, 0, 34)
+sGridLay.CellPadding = UDim2.new(0, 8, 0, 8)
+sGridLay.Parent = seasonsGrid
+
+local seasonDefs = {
+    { id = "autumn", name = "🍂 Осень", order = 1 },
+    { id = "winter", name = "❄️ Зима",  order = 2 },
+    { id = "spring", name = "🌸 Весна", order = 3 },
+    { id = "summer", name = "☀️ Лето",  order = 4 },
+}
+
+for _, sDef in ipairs(seasonDefs) do
+    local sBtn = Instance.new("TextButton")
+    sBtn.Name = "SeasonBtn_" .. sDef.id
+    sBtn.BackgroundColor3 = (sDef.id == currentSeasonId) and Color3.fromRGB(70, 56, 42) or Color3.fromRGB(48, 38, 30)
+    sBtn.Text = sDef.name
+    sBtn.TextColor3 = Color3.fromRGB(255, 235, 180)
+    sBtn.Font = Enum.Font.FredokaOne
+    sBtn.TextSize = 13
+    sBtn.LayoutOrder = sDef.order
+    sBtn.ZIndex = 63
+    sBtn.Parent = seasonsGrid
+
+    local sCorner = Instance.new("UICorner")
+    sCorner.CornerRadius = UDim.new(0, 8)
+    sCorner.Parent = sBtn
+
+    local sBtnStroke = Instance.new("UIStroke")
+    sBtnStroke.Color = (sDef.id == currentSeasonId) and Color3.fromRGB(255, 215, 100) or Color3.fromRGB(85, 65, 48)
+    sBtnStroke.Thickness = (sDef.id == currentSeasonId) and 2 or 1
+    sBtnStroke.Parent = sBtn
+
+    seasonButtonsUI[sDef.id] = {
+        button = sBtn,
+        stroke = sBtnStroke
+    }
+
+    sBtn.MouseButton1Click:Connect(function()
+        setSeason(sDef.id, true)
+    end)
+end
+
+
 -- 1. Секция: Управление
 createSectionHeader("🎮 УПРАВЛЕНИЕ КОТЁНКОМ", 10)
 createInstructionCard("🐾", "[ЛКМ]", "Копать лапками", "Подойдите вплотную и зажмите ЛКМ — котик копает блок", 11)
@@ -2355,59 +2618,6 @@ cbCorner.CornerRadius = UDim.new(0, 8)
 cbCorner.Parent = camBtn
 
 -- 4. Секция: Времена года (Осень, Зима, Весна, Лето)
-createSectionHeader("🌿 ВРЕМЕНА ГОДА", 50)
-
-local seasonsGrid = Instance.new("Frame")
-seasonsGrid.Name = "SeasonsGrid"
-seasonsGrid.Size = UDim2.new(1, -10, 0, 80)
-seasonsGrid.BackgroundTransparency = 1
-seasonsGrid.LayoutOrder = 51
-seasonsGrid.ZIndex = 62
-seasonsGrid.Parent = setScroll
-
-local sGridLay = Instance.new("UIGridLayout")
-sGridLay.CellSize = UDim2.new(0.5, -6, 0, 36)
-sGridLay.CellPadding = UDim2.new(0, 8, 0, 8)
-sGridLay.SortOrder = Enum.SortOrder.LayoutOrder
-sGridLay.Parent = seasonsGrid
-
-local seasonDefs = {
-    { id = "autumn", name = "🍂 Осень", order = 1 },
-    { id = "winter", name = "❄️ Зима",  order = 2 },
-    { id = "spring", name = "🌸 Весна", order = 3 },
-    { id = "summer", name = "☀️ Лето",  order = 4 },
-}
-
-for _, sDef in ipairs(seasonDefs) do
-    local sBtn = Instance.new("TextButton")
-    sBtn.Name = "SeasonBtn_" .. sDef.id
-    sBtn.BackgroundColor3 = (sDef.id == currentSeasonId) and Color3.fromRGB(70, 56, 42) or Color3.fromRGB(48, 38, 30)
-    sBtn.Text = sDef.name
-    sBtn.TextColor3 = Color3.fromRGB(255, 235, 180)
-    sBtn.Font = Enum.Font.FredokaOne
-    sBtn.TextSize = 13
-    sBtn.LayoutOrder = sDef.order
-    sBtn.ZIndex = 63
-    sBtn.Parent = seasonsGrid
-
-    local sCorner = Instance.new("UICorner")
-    sCorner.CornerRadius = UDim.new(0, 8)
-    sCorner.Parent = sBtn
-
-    local sBtnStroke = Instance.new("UIStroke")
-    sBtnStroke.Color = (sDef.id == currentSeasonId) and Color3.fromRGB(255, 215, 100) or Color3.fromRGB(85, 65, 48)
-    sBtnStroke.Thickness = (sDef.id == currentSeasonId) and 2 or 1
-    sBtnStroke.Parent = sBtn
-
-    seasonButtonsUI[sDef.id] = {
-        button = sBtn,
-        stroke = sBtnStroke
-    }
-
-    sBtn.MouseButton1Click:Connect(function()
-        setSeason(sDef.id, true)
-    end)
-end
 
 gearBtn.MouseButton1Click:Connect(function()
     settingsModal.Visible = not settingsModal.Visible
@@ -2500,6 +2710,10 @@ voxelRemote.OnClientEvent:Connect(function(action, data)
     elseif action == "SeasonChanged" then
         if data and data.season then
             setSeason(data.season, false)
+        end
+    elseif action == "TimeChanged" then
+        if data and data.time then
+            inGameTime = data.time
         end
     end
 end)

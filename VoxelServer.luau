@@ -620,7 +620,7 @@ end
 
 RunService.Heartbeat:Connect(function(dt)
     -- Продвижение внутриигрового времени на сервере: 1 игровые сутки (24ч) = 720 секунд (12 минут реального времени)
-    serverInGameTime = (serverInGameTime + dt * (24 / 720)) % 24
+    serverInGameTime = (serverInGameTime + dt * (24 / 120)) % 24
     if serverInGameTime < lastServerTime then
         -- 1 игровые сутки завершились! Автоматический переход к следующему времени года: Осень -> Зима -> Весна -> Лето -> Осень...
         local nextSeason = "autumn"
@@ -987,6 +987,11 @@ voxelRemote.OnServerEvent:Connect(function(player, action, data)
     elseif action == "SetSeason" then
         if data and data.season and SEASON_CONFIGS[data.season] then
             applySeason(data.season)
+        end
+    elseif action == "SetTime" then
+        if data and data.time then
+            serverInGameTime = (tonumber(data.time) or 12) % 24
+            voxelRemote:FireAllClients("TimeChanged", { time = serverInGameTime })
         end
     end
 end)
