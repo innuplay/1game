@@ -261,6 +261,69 @@ local tailOrigC0 = tailMotor.C0
 local tailTip = createPart("TailTip", Vector3.new(0.26, 0.3, 0.26), COLOR_WHITE, catModel)
 weldParts(tail, tailTip, CFrame.new(0, 0.35, 0))
 
+-- === 3D ПОХОДНЫЙ РЮКЗАК НА СПИНЕ КОТЁНКА С РЕМНЯМИ ВОКРУГ ЖИВОТИКА И ГРУДИ ===
+local COLOR_LEATHER_MAIN = Color3.fromRGB(115, 75, 45)  -- коричневая кожа рюкзака
+local COLOR_LEATHER_DARK = Color3.fromRGB(80, 50, 30)   -- темная кожа для ремней и клапана
+local COLOR_LEATHER_POCK = Color3.fromRGB(102, 65, 38)  -- накладной задний карман
+local COLOR_BEDROLL      = Color3.fromRGB(155, 140, 110) -- скрученный походный спальник
+local COLOR_GOLD_BUCKLE  = Color3.fromRGB(245, 210, 110) -- золотые металлические пряжки
+
+-- 1. Основное отделение рюкзака на спинке котенка
+local backpackMain = createPart("BackpackMain", Vector3.new(0.85, 0.52, 0.60), COLOR_LEATHER_MAIN, catModel)
+weldParts(torso, backpackMain, CFrame.new(0, 0.71, 0.08))
+
+-- 2. Верхний клапан (крышка рюкзака)
+local backpackFlap = createPart("BackpackFlap", Vector3.new(0.88, 0.12, 0.52), COLOR_LEATHER_DARK, catModel)
+weldParts(backpackMain, backpackFlap, CFrame.new(0, 0.26, -0.02) * CFrame.Angles(math.rad(8), 0, 0))
+
+-- 3. Скрученный походный спальник / коврик сверху рюкзака
+local bedroll = createPart("BackpackBedroll", Vector3.new(0.88, 0.22, 0.22), COLOR_BEDROLL, catModel)
+weldParts(backpackMain, bedroll, CFrame.new(0, 0.35, -0.12))
+
+-- Ремешки-стяжки спальника (левый и правый)
+local bedrollStrapL = createPart("BedrollStrapL", Vector3.new(0.06, 0.24, 0.24), COLOR_LEATHER_DARK, catModel)
+weldParts(backpackMain, bedrollStrapL, CFrame.new(-0.28, 0.35, -0.12))
+
+local bedrollStrapR = createPart("BedrollStrapR", Vector3.new(0.06, 0.24, 0.24), COLOR_LEATHER_DARK, catModel)
+weldParts(backpackMain, bedrollStrapR, CFrame.new(0.28, 0.35, -0.12))
+
+-- 4. Задний накладной кармашек (виден игроку со спины)
+local backpackPocket = createPart("BackpackPocket", Vector3.new(0.56, 0.28, 0.16), COLOR_LEATHER_POCK, catModel)
+weldParts(backpackMain, backpackPocket, CFrame.new(0, -0.06, 0.32))
+
+-- Золотые пряжки на клапане и кармане
+local buckleL = createPart("BackpackBuckleL", Vector3.new(0.08, 0.10, 0.04), COLOR_GOLD_BUCKLE, catModel)
+weldParts(backpackMain, buckleL, CFrame.new(-0.24, 0.12, 0.31))
+
+local buckleR = createPart("BackpackBuckleR", Vector3.new(0.08, 0.10, 0.04), COLOR_GOLD_BUCKLE, catModel)
+weldParts(backpackMain, buckleR, CFrame.new(0.24, 0.12, 0.31))
+
+local bucklePocket = createPart("PocketBuckle", Vector3.new(0.09, 0.09, 0.04), COLOR_GOLD_BUCKLE, catModel)
+weldParts(backpackPocket, bucklePocket, CFrame.new(0, 0.02, 0.09))
+
+-- 5. РЕМНИ КРЕПЛЕНИЯ ВОКРУГ ТЕЛА КОТЁНКА:
+-- А) Ремень через животик котика (проходит под пузиком)
+local bellyStrap = createPart("BellyStrap", Vector3.new(1.32, 0.06, 0.18), COLOR_LEATHER_DARK, catModel)
+weldParts(torso, bellyStrap, CFrame.new(0, -0.46, 0.08))
+
+-- Золотая пряжка на ремне животика
+local bellyBuckle = createPart("BellyBuckle", Vector3.new(0.18, 0.08, 0.20), COLOR_GOLD_BUCKLE, catModel)
+weldParts(torso, bellyBuckle, CFrame.new(0, -0.47, 0.08))
+
+-- Б) Боковые ремни (соединяют рюкзак на спине и ремень на животике)
+local sideStrapL = createPart("SideStrapL", Vector3.new(0.06, 0.92, 0.18), COLOR_LEATHER_DARK, catModel)
+weldParts(torso, sideStrapL, CFrame.new(-0.66, 0.0, 0.08))
+
+local sideStrapR = createPart("SideStrapR", Vector3.new(0.06, 0.92, 0.18), COLOR_LEATHER_DARK, catModel)
+weldParts(torso, sideStrapR, CFrame.new(0.66, 0.0, 0.08))
+
+-- В) Плечевые ремни через грудку котенка
+local chestStrapL = createPart("ChestStrapL", Vector3.new(0.14, 0.06, 0.45), COLOR_LEATHER_DARK, catModel)
+weldParts(torso, chestStrapL, CFrame.new(-0.36, 0.46, -0.16))
+
+local chestStrapR = createPart("ChestStrapR", Vector3.new(0.14, 0.06, 0.45), COLOR_LEATHER_DARK, catModel)
+weldParts(torso, chestStrapR, CFrame.new(0.36, 0.46, -0.16))
+
 -- === ОТОБРАЖЕНИЕ ПРЕДМЕТОВ В ЛАПКАХ (РЫБКА) ===
 local HELD_ITEM_BASE_C0 = CFrame.new(0, -0.42, -0.58)
 
