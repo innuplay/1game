@@ -351,7 +351,7 @@ local function getOrCreateInventory(player)
     local userId = player.UserId
     if not playerInventories[userId] then
         playerInventories[userId] = {
-            activeSlot = 1,
+            activeSlot = 0, -- При старте строительный блок не выбран
             slots = {
                 -- Активный хотбар спрайтов (1..4): Дерево, Земля, Камень, Трава
                 [1] = { id = "wood_block",  count = 24, max = 64 },
@@ -406,7 +406,7 @@ local function syncPlayerInventory(player)
 
     local char = player.Character
     if char then
-        local activeItem = inv.slots[inv.activeSlot]
+        local activeItem = inv.activeSlot and inv.slots[inv.activeSlot]
         if activeItem and activeItem.count > 0 then
             char:SetAttribute("HeldItemId", activeItem.id)
             char:SetAttribute("HeldItemCount", activeItem.count)
@@ -948,8 +948,8 @@ voxelRemote.OnServerEvent:Connect(function(player, action, data)
 
     elseif action == "SelectSlot" then
         local slot = tonumber(data.slot)
-        if slot and slot >= 1 and slot <= 9 then
-            inv.activeSlot = slot
+        if slot and slot >= 0 and slot <= 9 then
+            inv.activeSlot = (slot == 0) and nil or slot
             syncPlayerInventory(player)
         end
 

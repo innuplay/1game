@@ -26,7 +26,10 @@ end
 
 -- Локальное состояние инвентаря
 local currentInventorySlots = {}
-local activeHotbarSlot = 1
+local activeHotbarSlot = nil -- По умолчанию строительный объект не выбран
+local settingsModalRef = nil
+local mapModalRef = nil
+local notebookModalRef = nil
 local itemsDefinition = {}
 
 local selectedBackpackSlot = nil
@@ -65,28 +68,86 @@ cursorGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
 local cursorImage = cursorGui:FindFirstChild("CursorImage") or Instance.new("ImageLabel")
 cursorImage.Name = "CursorImage"
-cursorImage.Size = UDim2.new(0, 52, 0, 52)
+cursorImage.Size = UDim2.new(0, 32, 0, 32)
 cursorImage.Position = UDim2.new(0, 0, 0, 0)
 cursorImage.BackgroundTransparency = 1
 cursorImage.Image = CURSORS.paw
 cursorImage.ScaleType = Enum.ScaleType.Fit
 cursorImage.ZIndex = 1000000
-cursorImage.Active = false -- Клики проходят сквозь курсор
+cursorImage.Active = false
 cursorImage.Selectable = false
 cursorImage.Parent = cursorGui
 cursorGui.Parent = playerGui
 
--- Отключаем стандартный курсор Roblox, чтобы он никогда не появлялся над кнопками
 UserInputService.MouseIconEnabled = false
 
-local function getDesiredCursor()
-    local activeItem = currentInventorySlots and currentInventorySlots[activeHotbarSlot]
-    if activeItem and activeItem.count and activeItem.count > 0 then
-        local hand = ITEM_TO_CURSOR[activeItem.id]
-        if hand then
-            return hand
+local function isPointerOverUIOrSystem(mPos)
+    -- 1. РњРѕРґР°Р»СЊРЅС‹Рµ РѕРєРЅР° (СЂСЋРєР·Р°Рє, РЅР°СЃС‚СЂРѕР№РєРё, РєР°СЂС‚Р°, Р±Р»РѕРєРЅРѕС‚)
+    if isBackpackOpen then return true end
+    if settingsModalRef and settingsModalRef.Visible then return true end
+    if mapModalRef and mapModalRef.Visible then return true end
+    if notebookModalRef and notebookModalRef.Visible then return true end
+
+    -- 2. РЎРёСЃС‚РµРјРЅС‹Рµ РѕР±Р»Р°СЃС‚Рё Roblox:
+    -- Р’РµСЂС…РЅСЏСЏ РїРѕР»РѕСЃР° CoreGui (РєРЅРѕРїРєР° РјРµРЅСЋ, С‡Р°С‚, СЌРјРѕС†РёРё, РЅР°СЃС‚СЂРѕР№РєРё): Y <= 52
+    if mPos.X < 0 or mPos.Y < 0 then
+        return false
+    end
+    if mPos.Y <= 52 then return true end
+    -- Р Р°Р·РІРµСЂРЅСѓС‚С‹Р№ С‡Р°С‚ Р РѕР±Р»РѕРєСЃР° (Р»РµРІС‹Р№ РІРµСЂС…РЅРёР№ СѓРіРѕР»): X <= 440 Рё Y <= 280
+    if mPos.X <= 440 and mPos.Y <= 280 then return true end
+
+    -- 3. РќР°РІРµРґРµРЅРёРµ РЅР° Р»РѕРєР°Р»СЊРЅС‹Рµ HUD-СЌР»РµРјРµРЅС‚С‹ РёРіСЂРѕРєР°
+    local cam = Workspace.CurrentCamera
+    local vp = cam and cam.ViewportSize or Vector2.new(1920, 1080)
+
+    -- РџР°РЅРµР»СЊ РїРѕРєР°Р·Р°С‚РµР»РµР№ РєРѕС‚РёРєР° (СЃР»РµРІР° РІРЅРёР·Сѓ)
+    if mPos.X <= 180 and mPos.Y >= (vp.Y - 100) then return true end
+
+    -- РљРЅРѕРїРєР° СЂСЋРєР·Р°РєР° (СЃРїСЂР°РІР° РІРЅРёР·Сѓ)
+    if mPos.X >= (vp.X - 90) and mPos.Y >= (vp.Y - 90) then return true end
+
+    -- Р’РёРґР¶РµС‚ С‡Р°СЃРѕРІ Рё РІСЂРµРјРµРЅРё РіРѕРґР° (СЃРїСЂР°РІР° РІРІРµСЂС…Сѓ)
+    if mPos.X >= (vp.X - 160) and mPos.Y <= 100 then return true end
+
+    -- РҐРѕС‚Р±Р°СЂ (СЃРЅРёР·Сѓ РїРѕ С†РµРЅС‚СЂСѓ)
+    local hotbarLeft = (vp.X / 2) - 145
+    local hotbarRight = (vp.X / 2) + 145
+    if mPos.X >= hotbarLeft and mPos.X <= hotbarRight and mPos.Y >= (vp.Y - 90) then return true end
+
+    -- 4. Р›СЋР±С‹Рµ РёРЅС‚РµСЂР°РєС‚РёРІРЅС‹Рµ СЌР»РµРјРµРЅС‚С‹ РёРЅС‚РµСЂС„РµР№СЃР° РїРѕРґ РєСѓСЂСЃРѕСЂРѕРј
+    local objs = playerGui:GetGuiObjectsAtPosition(mPos.X, mPos.Y)
+    for _, obj in ipairs(objs) do
+        if obj.Name ~= "CursorImage" and obj:IsDescendantOf(screenGui) and (obj:IsA("GuiButton") or obj:IsA("TextBox") or obj:IsA("ScrollingFrame")) then
+            return true
         end
     end
+
+    return false
+end
+
+local function getDesiredCursor(mPos)
+    -- Р•СЃР»Рё РєСѓСЂСЃРѕСЂ РЅР°Рґ UI, РєР°СЂС‚РѕР№, РЅР°СЃС‚СЂРѕР№РєР°РјРё, СЂСЋРєР·Р°РєРѕРј РёР»Рё С‡Р°С‚РѕРј Р РѕР±Р»РѕРєСЃР° -> РєРѕС€Р°С‡СЊСЏ Р»Р°РїРєР°
+    if isPointerOverUIOrSystem(mPos) then
+        return CURSORS.paw
+    end
+
+    -- Р•СЃР»Рё РЅРµ РІС‹Р±СЂР°РЅ СЃС‚СЂРѕРёС‚РµР»СЊРЅС‹Р№ Р±Р»РѕРє -> РєРѕС€Р°С‡СЊСЏ Р»Р°РїРєР° СЃ СѓРєР°Р·Р°С‚РµР»СЊРЅС‹Рј РїР°Р»СЊС†РµРј
+    if not activeHotbarSlot then
+        return CURSORS.paw
+    end
+
+    local activeItem = currentInventorySlots and currentInventorySlots[activeHotbarSlot]
+    if activeItem and activeItem.count and activeItem.count > 0 then
+        local def = itemsDefinition[activeItem.id]
+        if def and def.isBlock then
+            local hand = ITEM_TO_CURSOR[activeItem.id]
+            if hand then
+                return hand
+            end
+        end
+    end
+
     return CURSORS.paw
 end
 
@@ -95,7 +156,7 @@ local function updateCustomCursor()
     local mPos = UserInputService:GetMouseLocation()
     local isPressed = UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1)
 
-    local targetIcon = getDesiredCursor()
+    local targetIcon = getDesiredCursor(mPos)
     if cursorImage.Image ~= targetIcon then
         cursorImage.Image = targetIcon
     end
@@ -103,16 +164,15 @@ local function updateCustomCursor()
         mouse.Icon = targetIcon
     end
 
-    -- Нажатие ЛКМ: легкое тактильное сжатие курсора на кончике клика
+    -- РљРѕРјРїР°РєС‚РЅС‹Р№ Р°РєРєСѓСЂР°С‚РЅС‹Р№ РєСѓСЂСЃРѕСЂ (32x32 РІ РїРѕРєРѕРµ, 28x28 РїСЂРё РЅР°Р¶Р°С‚РёРё)
     if isPressed then
-        cursorImage.Size = UDim2.new(0, 47, 0, 47)
+        cursorImage.Size = UDim2.new(0, 28, 0, 28)
         cursorImage.Position = UDim2.new(0, mPos.X - 1, 0, mPos.Y - 1)
     else
-        cursorImage.Size = UDim2.new(0, 52, 0, 52)
+        cursorImage.Size = UDim2.new(0, 32, 0, 32)
         cursorImage.Position = UDim2.new(0, mPos.X - 2, 0, mPos.Y - 2)
     end
 end
-
 RunService.RenderStepped:Connect(updateCustomCursor)
 
 player.CharacterAdded:Connect(function()
@@ -1411,6 +1471,8 @@ end
 -- 1. ОКНО БЛОКНОТА (Рецепты и Задания)
 local notebookModal = Instance.new("Frame")
 notebookModal.Name = "NotebookModal"
+
+notebookModalRef = notebookModal
 notebookModal.Size = UDim2.new(0.68, 0, 0.76, 0)
 notebookModal.Position = UDim2.new(0.5, 0, 0.5, 0)
 notebookModal.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -1542,6 +1604,7 @@ end)
 -- 2. ОКНО КАРТЫ (Остров котёнка)
 local mapModal = Instance.new("Frame")
 mapModal.Name = "MapModal"
+mapModalRef = mapModal
 mapModal.Size = UDim2.new(0.72, 0, 0.78, 0)
 mapModal.Position = UDim2.new(0.5, 0, 0.5, 0)
 mapModal.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -1650,6 +1713,7 @@ end)
 -- 3. ОКНО НАСТРОЕК И РУКОВОДСТВА ПО УПРАВЛЕНИЮ
 local settingsModal = Instance.new("Frame")
 settingsModal.Name = "SettingsModal"
+settingsModalRef = settingsModal
 settingsModal.Size = UDim2.new(0, 520, 0, 500)
 settingsModal.Position = UDim2.new(0.5, 0, 0.5, 0)
 settingsModal.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -1949,6 +2013,13 @@ UserInputService.InputBegan:Connect(function(input, processed)
 
     if input.KeyCode == Enum.KeyCode.E or input.KeyCode == Enum.KeyCode.B then
         setBackpackOpen(not isBackpackOpen)
+    elseif input.KeyCode == Enum.KeyCode.M then
+        if not isBackpackOpen then
+            setBackpackOpen(true)
+            mapModal.Visible = true
+        else
+            mapModal.Visible = not mapModal.Visible
+        end
     elseif input.KeyCode == Enum.KeyCode.O or input.KeyCode == Enum.KeyCode.F1 then
         settingsModal.Visible = not settingsModal.Visible
     elseif input.KeyCode == Enum.KeyCode.Escape then
@@ -1979,7 +2050,7 @@ voxelRemote.OnClientEvent:Connect(function(action, data)
                 end
             end
         end
-        activeHotbarSlot = data.activeSlot or activeHotbarSlot
+        activeHotbarSlot = (data.activeSlot and data.activeSlot > 0) and data.activeSlot or nil
         if data.itemsDef then
             itemsDefinition = data.itemsDef
         end
