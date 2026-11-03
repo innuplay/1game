@@ -453,48 +453,84 @@ clockIcon.ZIndex = 6
 clockIcon.Parent = seasonWidget
 
 -- Часовая стрелка (вращается по времени суток)
+-- РџРѕРІРѕСЂРѕС‚РЅР°СЏ РѕСЃСЊ С‡Р°СЃРѕРІРѕР№ СЃС‚СЂРµР»РєРё (СЂР°Р·РјРµСЂ 1x1 СЂРѕРґРёС‚РµР»СЏ, РІСЂР°С‰Р°РµС‚СЃСЏ СЃС‚СЂРѕРіРѕ РІРѕРєСЂСѓРі С†РµРЅС‚СЂР° С‡Р°СЃРѕРІ)
+local hourPivot = Instance.new("Frame")
+hourPivot.Name = "HourPivot"
+hourPivot.Size = UDim2.new(1, 0, 1, 0)
+hourPivot.Position = UDim2.new(0.5, 0, 0.5, 0)
+hourPivot.AnchorPoint = Vector2.new(0.5, 0.5)
+hourPivot.BackgroundTransparency = 1
+hourPivot.ZIndex = 7
+hourPivot.Parent = clockIcon
+
 local hourHand = Instance.new("Frame")
 hourHand.Name = "HourHand"
 hourHand.Size = UDim2.new(0, 2, 0, 8)
-hourHand.Position = UDim2.new(0.5, 0, 0.5, 0)
-hourHand.AnchorPoint = Vector2.new(0.5, 1)
-hourHand.BackgroundColor3 = Color3.fromRGB(45, 30, 20)
+hourHand.Position = UDim2.new(0.5, -1, 0.5, -8) -- СЂР°СЃС‚РµС‚ СЃС‚СЂРѕРіРѕ РІРІРµСЂС… РѕС‚ РѕСЃРё
+hourHand.BackgroundColor3 = Color3.fromRGB(45, 25, 15)
 hourHand.BorderSizePixel = 0
 hourHand.ZIndex = 7
-hourHand.Parent = clockIcon
+hourHand.Parent = hourPivot
+
 local hCorner = Instance.new("UICorner")
 hCorner.CornerRadius = UDim.new(1, 0)
 hCorner.Parent = hourHand
 
--- Минутная стрелка (вращается по минутам)
+-- РџРѕРІРѕСЂРѕС‚РЅР°СЏ РѕСЃСЊ РјРёРЅСѓС‚РЅРѕР№ СЃС‚СЂРµР»РєРё
+local minutePivot = Instance.new("Frame")
+minutePivot.Name = "MinutePivot"
+minutePivot.Size = UDim2.new(1, 0, 1, 0)
+minutePivot.Position = UDim2.new(0.5, 0, 0.5, 0)
+minutePivot.AnchorPoint = Vector2.new(0.5, 0.5)
+minutePivot.BackgroundTransparency = 1
+minutePivot.ZIndex = 8
+minutePivot.Parent = clockIcon
+
 local minuteHand = Instance.new("Frame")
 minuteHand.Name = "MinuteHand"
 minuteHand.Size = UDim2.new(0, 1.5, 0, 11)
-minuteHand.Position = UDim2.new(0.5, 0, 0.5, 0)
-minuteHand.AnchorPoint = Vector2.new(0.5, 1)
-minuteHand.BackgroundColor3 = Color3.fromRGB(45, 30, 20)
+minuteHand.Position = UDim2.new(0.5, -0.75, 0.5, -11) -- СЂР°СЃС‚РµС‚ СЃС‚СЂРѕРіРѕ РІРІРµСЂС… РѕС‚ РѕСЃРё
+minuteHand.BackgroundColor3 = Color3.fromRGB(45, 25, 15)
 minuteHand.BorderSizePixel = 0
-minuteHand.ZIndex = 7
-minuteHand.Parent = clockIcon
+minuteHand.ZIndex = 8
+minuteHand.Parent = minutePivot
+
 local mCorner = Instance.new("UICorner")
 mCorner.CornerRadius = UDim.new(1, 0)
 mCorner.Parent = minuteHand
 
--- Центральная ось стрелок
+-- РџРѕРІРѕСЂРѕС‚РЅР°СЏ РѕСЃСЊ СЃРµРєСѓРЅРґРЅРѕР№ СЃС‚СЂРµР»РєРё (Р¶РёРІРѕР№ С…РѕРґ СЃС‚СЂРµР»РѕРє С‡Р°СЃРѕРІ)
+local secondPivot = Instance.new("Frame")
+secondPivot.Name = "SecondPivot"
+secondPivot.Size = UDim2.new(1, 0, 1, 0)
+secondPivot.Position = UDim2.new(0.5, 0, 0.5, 0)
+secondPivot.AnchorPoint = Vector2.new(0.5, 0.5)
+secondPivot.BackgroundTransparency = 1
+secondPivot.ZIndex = 9
+secondPivot.Parent = clockIcon
+
+local secondHand = Instance.new("Frame")
+secondHand.Name = "SecondHand"
+secondHand.Size = UDim2.new(0, 1, 0, 12)
+secondHand.Position = UDim2.new(0.5, -0.5, 0.5, -12)
+secondHand.BackgroundColor3 = Color3.fromRGB(195, 45, 35) -- Р±РѕСЂРґРѕРІРѕ-РєСЂР°СЃРЅР°СЏ СЃРµРєСѓРЅРґРЅР°СЏ СЃС‚СЂРµР»РєР°
+secondHand.BorderSizePixel = 0
+secondHand.ZIndex = 9
+secondHand.Parent = secondPivot
+
+-- Р¦РµРЅС‚СЂР°Р»СЊРЅР°СЏ РјРµС‚Р°Р»Р»РёС‡РµСЃРєР°СЏ Р·Р°РєР»РµРїРєР° РѕСЃРё СЃС‚СЂРµР»РѕРє
 local pin = Instance.new("Frame")
 pin.Name = "ClockPin"
-pin.Size = UDim2.new(0, 3, 0, 3)
+pin.Size = UDim2.new(0, 4, 0, 4)
 pin.Position = UDim2.new(0.5, 0, 0.5, 0)
 pin.AnchorPoint = Vector2.new(0.5, 0.5)
-pin.BackgroundColor3 = Color3.fromRGB(45, 30, 20)
+pin.BackgroundColor3 = Color3.fromRGB(45, 25, 15)
 pin.BorderSizePixel = 0
-pin.ZIndex = 8
+pin.ZIndex = 10
 pin.Parent = clockIcon
 local pCorner = Instance.new("UICorner")
 pCorner.CornerRadius = UDim.new(1, 0)
 pCorner.Parent = pin
-
--- Название сезона ("Осень")
 local seasonLabel = Instance.new("TextLabel")
 seasonLabel.Name = "SeasonLabel"
 seasonLabel.Size = UDim2.new(1, -38, 0, 26)
@@ -570,8 +606,9 @@ local function updateDayNightAndWeather(dt)
     inGameTime = (inGameTime + dt * (24 / 720)) % 24
 
     -- Вращение часовой и минутной стрелок на золотых часах без цифр
-    hourHand.Rotation = ((inGameTime % 12) / 12) * 360
-    minuteHand.Rotation = ((inGameTime * 60) % 60 / 60) * 360
+    hourPivot.Rotation = ((inGameTime % 12) / 12) * 360
+    minutePivot.Rotation = (inGameTime % 1) * 360
+    secondPivot.Rotation = ((tick() * 1.5) % 60 / 60) * 360
 
     local cfg = SEASON_CONFIGS[currentSeasonId] or SEASON_CONFIGS.autumn
 
