@@ -30,6 +30,10 @@ local activeHotbarSlot = nil -- По умолчанию строительный
 local settingsModalRef = nil
 local mapModalRef = nil
 local notebookModalRef = nil
+local seasonWidgetRef = nil
+local vitalityFrameRef = nil
+local hudContainerRef = nil
+local backpackBtnRef = nil
 local itemsDefinition = {}
 
 local selectedBackpackSlot = nil
@@ -81,44 +85,55 @@ cursorGui.Parent = playerGui
 
 UserInputService.MouseIconEnabled = false
 
+local function isInsideGui(gui, mPos)
+    if not (gui and gui.Visible) then return false end
+    local absPos = gui.AbsolutePosition
+    local absSize = gui.AbsoluteSize
+    return (mPos.X >= absPos.X and mPos.X <= absPos.X + absSize.X and
+            mPos.Y >= absPos.Y and mPos.Y <= absPos.Y + absSize.Y)
+end
+
 local function isPointerOverUIOrSystem(mPos)
+    if mPos.X < 0 or mPos.Y < 0 then
+        return false
+    end
+
     -- 1. РњРѕРґР°Р»СЊРЅС‹Рµ РѕРєРЅР° (СЂСЋРєР·Р°Рє, РЅР°СЃС‚СЂРѕР№РєРё, РєР°СЂС‚Р°, Р±Р»РѕРєРЅРѕС‚)
     if isBackpackOpen then return true end
     if settingsModalRef and settingsModalRef.Visible then return true end
     if mapModalRef and mapModalRef.Visible then return true end
     if notebookModalRef and notebookModalRef.Visible then return true end
 
-    -- 2. РЎРёСЃС‚РµРјРЅС‹Рµ РѕР±Р»Р°СЃС‚Рё Roblox:
-    -- Р’РµСЂС…РЅСЏСЏ РїРѕР»РѕСЃР° CoreGui (РєРЅРѕРїРєР° РјРµРЅСЋ, С‡Р°С‚, СЌРјРѕС†РёРё, РЅР°СЃС‚СЂРѕР№РєРё): Y <= 52
-    if mPos.X < 0 or mPos.Y < 0 then
-        return false
-    end
-    if mPos.Y <= 52 then return true end
+    -- 2. РЎРёСЃС‚РµРјРЅС‹Рµ РѕР±Р»Р°СЃС‚Рё Roblox CoreGui:
+    -- Р’РµСЂС…РЅСЏСЏ С‡РµСЂРЅР°СЏ РїР»Р°С€РєР° CoreGui (РєРЅРѕРїРєР° РјРµРЅСЋ Roblox, С‡Р°С‚, СЌРјРѕС†РёРё, РЅР°СѓС€РЅРёРєРё): Y <= 60
+    if mPos.Y <= 60 then return true end
     -- Р Р°Р·РІРµСЂРЅСѓС‚С‹Р№ С‡Р°С‚ Р РѕР±Р»РѕРєСЃР° (Р»РµРІС‹Р№ РІРµСЂС…РЅРёР№ СѓРіРѕР»): X <= 440 Рё Y <= 280
     if mPos.X <= 440 and mPos.Y <= 280 then return true end
 
-    -- 3. РќР°РІРµРґРµРЅРёРµ РЅР° Р»РѕРєР°Р»СЊРЅС‹Рµ HUD-СЌР»РµРјРµРЅС‚С‹ РёРіСЂРѕРєР°
-    local cam = Workspace.CurrentCamera
-    local vp = cam and cam.ViewportSize or Vector2.new(1920, 1080)
+    -- 3. Р’РёРґР¶РµС‚ С‡Р°СЃРѕРІ Рё С‚РµРјРїРµСЂР°С‚СѓСЂС‹ (+12 В°C, С‚РµСЂРјРѕРјРµС‚СЂ, С†РёС„РµСЂР±Р»Р°С‚)
+    if seasonWidgetRef and isInsideGui(seasonWidgetRef, mPos) then
+        return true
+    end
 
-    -- РџР°РЅРµР»СЊ РїРѕРєР°Р·Р°С‚РµР»РµР№ РєРѕС‚РёРєР° (СЃР»РµРІР° РІРЅРёР·Сѓ)
-    if mPos.X <= 180 and mPos.Y >= (vp.Y - 100) then return true end
+    -- 4. РџР°РЅРµР»СЊ РїРѕРєР°Р·Р°С‚РµР»РµР№ РєРѕС‚РµРЅРєР° (РµРґР°, РІРѕРґР°, СЌРЅРµСЂРіРёСЏ)
+    if vitalityFrameRef and isInsideGui(vitalityFrameRef, mPos) then
+        return true
+    end
 
-    -- РљРЅРѕРїРєР° СЂСЋРєР·Р°РєР° (СЃРїСЂР°РІР° РІРЅРёР·Сѓ)
-    if mPos.X >= (vp.X - 90) and mPos.Y >= (vp.Y - 90) then return true end
+    -- 5. РҐРѕС‚Р±Р°СЂ СЃРѕ СЃР»РѕС‚Р°РјРё Р±Р»РѕРєРѕРІ
+    if hudContainerRef and isInsideGui(hudContainerRef, mPos) then
+        return true
+    end
 
-    -- Р’РёРґР¶РµС‚ С‡Р°СЃРѕРІ Рё РІСЂРµРјРµРЅРё РіРѕРґР° (СЃРїСЂР°РІР° РІРІРµСЂС…Сѓ)
-    if mPos.X >= (vp.X - 160) and mPos.Y <= 100 then return true end
+    -- 6. РљРЅРѕРїРєР° РїРѕС…РѕРґРЅРѕРіРѕ СЂСЋРєР·Р°РєР° [E]
+    if backpackBtnRef and isInsideGui(backpackBtnRef, mPos) then
+        return true
+    end
 
-    -- РҐРѕС‚Р±Р°СЂ (СЃРЅРёР·Сѓ РїРѕ С†РµРЅС‚СЂСѓ)
-    local hotbarLeft = (vp.X / 2) - 145
-    local hotbarRight = (vp.X / 2) + 145
-    if mPos.X >= hotbarLeft and mPos.X <= hotbarRight and mPos.Y >= (vp.Y - 90) then return true end
-
-    -- 4. Р›СЋР±С‹Рµ РёРЅС‚РµСЂР°РєС‚РёРІРЅС‹Рµ СЌР»РµРјРµРЅС‚С‹ РёРЅС‚РµСЂС„РµР№СЃР° РїРѕРґ РєСѓСЂСЃРѕСЂРѕРј
+    -- 7. Р›СЋР±С‹Рµ СЌРєСЂР°РЅРЅС‹Рµ СЌР»РµРјРµРЅС‚С‹ РёРЅС‚РµСЂС„РµР№СЃР° screenGui РїРѕРґ РєСѓСЂСЃРѕСЂРѕРј
     local objs = playerGui:GetGuiObjectsAtPosition(mPos.X, mPos.Y)
     for _, obj in ipairs(objs) do
-        if obj.Name ~= "CursorImage" and obj:IsDescendantOf(screenGui) and (obj:IsA("GuiButton") or obj:IsA("TextBox") or obj:IsA("ScrollingFrame")) then
+        if obj.Name ~= "CursorImage" and obj:IsDescendantOf(screenGui) then
             return true
         end
     end
@@ -127,7 +142,7 @@ local function isPointerOverUIOrSystem(mPos)
 end
 
 local function getDesiredCursor(mPos)
-    -- Р•СЃР»Рё РєСѓСЂСЃРѕСЂ РЅР°Рґ UI, РєР°СЂС‚РѕР№, РЅР°СЃС‚СЂРѕР№РєР°РјРё, СЂСЋРєР·Р°РєРѕРј РёР»Рё С‡Р°С‚РѕРј Р РѕР±Р»РѕРєСЃР° -> РєРѕС€Р°С‡СЊСЏ Р»Р°РїРєР°
+    -- Р•СЃР»Рё РєСѓСЂСЃРѕСЂ РЅР°Рґ UI, РєР°СЂС‚РѕР№, РЅР°СЃС‚СЂРѕР№РєР°РјРё, СЂСЋРєР·Р°РєРѕРј, С‡Р°С‚РѕРј РёР»Рё С‚РµСЂРјРѕРјРµС‚СЂРѕРј/С‡Р°СЃР°РјРё -> РєРѕС€Р°С‡СЊСЏ Р»Р°РїРєР°
     if isPointerOverUIOrSystem(mPos) then
         return CURSORS.paw
     end
@@ -152,7 +167,6 @@ local function getDesiredCursor(mPos)
 end
 
 local function updateCustomCursor()
-    UserInputService.MouseIconEnabled = false
     local mPos = UserInputService:GetMouseLocation()
     local isPressed = UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1)
 
@@ -164,13 +178,24 @@ local function updateCustomCursor()
         mouse.Icon = targetIcon
     end
 
-    -- РљРѕРјРїР°РєС‚РЅС‹Р№ Р°РєРєСѓСЂР°С‚РЅС‹Р№ РєСѓСЂСЃРѕСЂ (32x32 РІ РїРѕРєРѕРµ, 28x28 РїСЂРё РЅР°Р¶Р°С‚РёРё)
-    if isPressed then
-        cursorImage.Size = UDim2.new(0, 28, 0, 28)
-        cursorImage.Position = UDim2.new(0, mPos.X - 1, 0, mPos.Y - 1)
+    -- 1. РќР°Рґ СЃРёСЃС‚РµРјРЅРѕР№ Р·РѕРЅРѕР№ Roblox CoreGui (РєРЅРѕРїРєР° РјРµРЅСЋ Roblox, РїР»Р°С€РєР° СЃ С‡Р°С‚РѕРј Рё РјРёРєСЂРѕС„РѕРЅРѕРј):
+    -- РєСѓСЂСЃРѕСЂ РіР°СЂР°РЅС‚РёСЂРѕРІР°РЅРЅРѕ РѕС‚РѕР±СЂР°Р¶Р°РµС‚СЃСЏ РќРђР” С‡РµСЂРЅРѕР№ РїР»Р°С€РєРѕР№ С‡РµСЂРµР· Р°РїРїР°СЂР°С‚РЅС‹Р№ СЃРёСЃС‚РµРјРЅС‹Р№ mouse.Icon!
+    local isOverCoreGuiBar = (mPos.Y <= 60) or (mPos.X <= 440 and mPos.Y <= 280)
+    if isOverCoreGuiBar then
+        UserInputService.MouseIconEnabled = true
+        cursorImage.Visible = false
     else
-        cursorImage.Size = UDim2.new(0, 32, 0, 32)
-        cursorImage.Position = UDim2.new(0, mPos.X - 2, 0, mPos.Y - 2)
+        UserInputService.MouseIconEnabled = false
+        cursorImage.Visible = true
+
+        -- РљРѕРјРїР°РєС‚РЅС‹Р№ Р°РєРєСѓСЂР°С‚РЅС‹Р№ РєСѓСЂСЃРѕСЂ (32x32 РІ РїРѕРєРѕРµ, 28x28 РїСЂРё РЅР°Р¶Р°С‚РёРё)
+        if isPressed then
+            cursorImage.Size = UDim2.new(0, 28, 0, 28)
+            cursorImage.Position = UDim2.new(0, mPos.X - 1, 0, mPos.Y - 1)
+        else
+            cursorImage.Size = UDim2.new(0, 32, 0, 32)
+            cursorImage.Position = UDim2.new(0, mPos.X - 2, 0, mPos.Y - 2)
+        end
     end
 end
 RunService.RenderStepped:Connect(updateCustomCursor)
@@ -195,6 +220,7 @@ local HOTBAR_SLOT_DEFS = {
 
 local hudContainer = Instance.new("Frame")
 hudContainer.Name = "WoodHudContainer"
+hudContainerRef = hudContainer
 hudContainer.Size = UDim2.new(0, TOTAL_HOTBAR_WIDTH, 0, 56)
 hudContainer.Position = UDim2.new(0.5, -TOTAL_HOTBAR_WIDTH / 2, 1, -74)
 hudContainer.BackgroundTransparency = 1
@@ -204,6 +230,7 @@ hudContainer.Parent = screenGui
 -- 2. ФУНКЦИОНАЛЬНЫЙ ПОХОДНЫЙ РЮКЗАК (В САМОМ ПРАВОМ НИЖНЕМ УГЛУ)
 local backpackBtn = Instance.new("ImageButton")
 backpackBtn.Name = "OpenBackpackBtn"
+backpackBtnRef = backpackBtn
 backpackBtn.Size = UDim2.new(0, 58, 0, 58)
 backpackBtn.AnchorPoint = Vector2.new(1, 1)
 backpackBtn.Position = UDim2.new(1, -16, 1, -16) -- Самый правый нижний угол экрана
@@ -266,6 +293,7 @@ local catStats = {
 
 local vitalityFrame = Instance.new("Frame")
 vitalityFrame.Name = "VitalityStatusPanel"
+vitalityFrameRef = vitalityFrame
 vitalityFrame.Size = UDim2.new(0, 146, 0, 72)
 vitalityFrame.Position = UDim2.new(0, 16, 1, -86) -- Левый нижний угол экрана
 vitalityFrame.BackgroundColor3 = Color3.fromRGB(111, 98, 77)
@@ -434,6 +462,7 @@ local seasonButtonsUI = {}
 -- Виджет в верхнем правом углу экрана
 local seasonWidget = Instance.new("Frame")
 seasonWidget.Name = "SeasonTimeWidget"
+seasonWidgetRef = seasonWidget
 seasonWidget.Size = UDim2.new(0, 130, 0, 72)
 seasonWidget.Position = UDim2.new(1, -16, 0, 16)
 seasonWidget.AnchorPoint = Vector2.new(1, 0)
