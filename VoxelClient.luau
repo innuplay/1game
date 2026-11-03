@@ -49,11 +49,11 @@ screenGui.Parent = playerGui
 -- === ДИНАМИЧЕСКИЙ КАСТОМНЫЙ КУРСОР МЫШИ (ЛАПКА И ПРЕДМЕТЫ-РУКИ) ===
 -- Отображается ВЕЗДЕ: в мире, над кнопками, слотами и инвентарем без переключения на системную стрелку
 local CURSORS = {
-    paw   = "rbxassetid://101200170800629",
-    wood  = "rbxassetid://89025202129773",
-    stone = "rbxassetid://71254227847223",
-    grass = "rbxassetid://137250626647209",
-    dirt  = "rbxassetid://92809404994132",
+    paw   = "rbxassetid://81554992150735", -- Р§С‘СЂРЅР°СЏ РєРѕС€Р°С‡СЊСЏ Р»Р°РїРєР° (РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ)
+    wood  = "rbxassetid://78173367572097", -- Р СѓРєР° РёР· РїРѕР»РµРЅР° (РґРµСЂРµРІРѕ)
+    stone = "rbxassetid://125315613353193",-- Р СѓРєР° РёР· РєР°РјРЅСЏ
+    grass = "rbxassetid://78225648528704", -- Р СѓРєР° РёР· С‚СЂР°РІС‹ Рё Р»РёСЃС‚РІС‹
+    dirt  = "rbxassetid://75303885811286", -- Р СѓРєР° РёР· Р·РµРјР»Рё/РіСЂСѓРЅС‚Р°
 }
 
 local ITEM_TO_CURSOR = {
@@ -72,7 +72,7 @@ cursorGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
 local cursorImage = cursorGui:FindFirstChild("CursorImage") or Instance.new("ImageLabel")
 cursorImage.Name = "CursorImage"
-cursorImage.Size = UDim2.new(0, 32, 0, 32)
+cursorImage.Size = UDim2.new(0, 52, 0, 52)
 cursorImage.Position = UDim2.new(0, 0, 0, 0)
 cursorImage.BackgroundTransparency = 1
 cursorImage.Image = CURSORS.paw
@@ -98,7 +98,7 @@ local function isPointerOverUIOrSystem(mPos)
         return false
     end
 
-    -- 1. РњРѕРґР°Р»СЊРЅС‹Рµ РѕРєРЅР° (РµСЃР»Рё РѕС‚РєСЂС‹С‚С‹, РєР»РёРєРё РёРґСѓС‚ РІ РёРЅС‚РµСЂС„РµР№СЃ РѕРєРЅР°):
+    -- 1. РњРѕРґР°Р»СЊРЅС‹Рµ РѕРєРЅР°:
     if isBackpackOpen then return true end
     if settingsModalRef and settingsModalRef.Visible then return true end
     if mapModalRef and mapModalRef.Visible then return true end
@@ -109,22 +109,22 @@ local function isPointerOverUIOrSystem(mPos)
         return true
     end
 
-    -- 3. Р§Р°СЃС‹ Рё РїРѕРіРѕРґР° (РІ РїСЂР°РІРѕРј РІРµСЂС…РЅРµРј СѓРіР»Сѓ):
+    -- 3. Р§Р°СЃС‹ Рё РїРѕРіРѕРґР°:
     if seasonWidgetRef and isInsideGui(seasonWidgetRef, mPos) then
         return true
     end
 
-    -- 4. РРєРѕРЅРєРё РµРґР°, РІРѕРґР°, СЌРЅРµСЂРіРёСЏ (РІ Р»РµРІРѕРј РЅРёР¶РЅРµРј СѓРіР»Сѓ):
+    -- 4. РРєРѕРЅРєРё РІРёС‚Р°Р»СЊРЅРѕСЃС‚Рё (РµРґР°/РІРѕРґР°/СЌРЅРµСЂРіРёСЏ):
     if vitalityFrameRef and isInsideGui(vitalityFrameRef, mPos) then
         return true
     end
 
-    -- 5. РќРёР¶РЅРёРµ РёРєРѕРЅРєРё С…РѕС‚Р±Р°СЂР° СЃ РІС‹Р±РѕСЂРѕРј Р·РµРјР»Рё, РєР°РјРЅСЏ Рё С‚.Рґ. (РїРѕ С†РµРЅС‚СЂСѓ СЃРЅРёР·Сѓ):
+    -- 5. РќРёР¶РЅРёРµ РёРєРѕРЅРєРё С…РѕС‚Р±Р°СЂР°:
     if hudContainerRef and isInsideGui(hudContainerRef, mPos) then
         return true
     end
 
-    -- 6. РљРЅРѕРїРєР° СЂСЋРєР·Р°РєР° [E] (РІ РїСЂР°РІРѕРј РЅРёР¶РЅРµРј СѓРіР»Сѓ):
+    -- 6. РљРЅРѕРїРєР° СЂСЋРєР·Р°РєР°:
     if backpackBtnRef and isInsideGui(backpackBtnRef, mPos) then
         return true
     end
@@ -133,12 +133,12 @@ local function isPointerOverUIOrSystem(mPos)
 end
 
 local function getDesiredCursor(mPos)
-    -- 1. РџСЂРё РЅР°РІРµРґРµРЅРёРё РЅР° РёРєРѕРЅРєРё (РјРµРЅСЋ Р РѕР±Р»РѕРєСЃР°, С‡Р°СЃС‹/РїРѕРіРѕРґР°, РµРґР°/РІРѕРґР°/СЌРЅРµСЂРіРёСЏ, СЂСЋРєР·Р°Рє, РЅРёР¶РЅРёРµ СЃР»РѕС‚С‹) -> Р’РЎР•Р“Р”Рђ С‡РµСЂРЅР°СЏ Р»Р°РїРєР°
+    -- РџСЂРё РЅР°РІРµРґРµРЅРёРё РЅР° РёРЅС‚РµСЂС„РµР№СЃ (CoreGui, С‡Р°СЃС‹, РїРѕРєР°Р·Р°С‚РµР»Рё, СЂСЋРєР·Р°Рє, С…РѕС‚Р±Р°СЂ) -> С‡РµСЂРЅР°СЏ РєРѕС€Р°С‡СЊСЏ Р»Р°РїРєР°:
     if isPointerOverUIOrSystem(mPos) then
         return CURSORS.paw
     end
 
-    -- 2. Р’ РёРіСЂРѕРІРѕРј РїРѕР»Рµ/РѕР±Р»Р°СЃС‚Рё РїРѕСЃС‚СЂРѕР№РєРё: РµСЃР»Рё РІС‹Р±СЂР°РЅ РѕР±СЉРµРєС‚ РїРѕСЃС‚СЂРѕР№РєРё (Р·РµРјР»СЏ, РєР°РјРµРЅСЊ, РґРµСЂРµРІРѕ, С‚СЂР°РІР°) -> Р’РЎР•Р“Р”Рђ РєСѓСЂСЃРѕСЂ СЌС‚РѕРіРѕ РѕР±СЉРµРєС‚Р°!
+    -- Р’ РјРёСЂРµ: РµСЃР»Рё РІС‹Р±СЂР°РЅ СЃР»РѕС‚ СЃС‚СЂРѕРёС‚РµР»СЊСЃС‚РІР° (1..4) -> СЂСѓРєР° СЃРѕРѕС‚РІРµС‚СЃС‚РІСѓСЋС‰РµРіРѕ Р±Р»РѕРєР°:
     if activeHotbarSlot and activeHotbarSlot >= 1 and activeHotbarSlot <= 4 then
         local slotDef = HOTBAR_SLOT_DEFS[activeHotbarSlot]
         local activeItem = currentInventorySlots and currentInventorySlots[activeHotbarSlot]
@@ -151,7 +151,7 @@ local function getDesiredCursor(mPos)
         end
     end
 
-    -- 3. Р•СЃР»Рё СЃС‚СЂРѕРёС‚РµР»СЊРЅС‹Р№ РѕР±СЉРµРєС‚ РЅРµ РІС‹Р±СЂР°РЅ -> С‡РµСЂРЅР°СЏ Р»Р°РїРєР°
+    -- Р•СЃР»Рё СЃС‚СЂРѕРёС‚РµР»СЊРЅС‹Р№ РѕР±СЉРµРєС‚ РЅРµ РІС‹Р±СЂР°РЅ -> С‡РµСЂРЅР°СЏ РєРѕС€Р°С‡СЊСЏ Р»Р°РїРєР°
     return CURSORS.paw
 end
 
@@ -167,9 +167,8 @@ local function updateCustomCursor()
         mouse.Icon = targetIcon
     end
 
-    -- РќР°Рґ СЃРёСЃС‚РµРјРЅС‹Рј Р±Р°СЂРѕРј РјРµРЅСЋ Roblox CoreGui (X <= 220 and Y <= 48) РІРєР»СЋС‡Р°РµРј РЅР°С‚РёРІРЅС‹Р№ mouse.Icon,
-    -- С‚Р°Рє РєР°Рє Roblox Р±Р»РѕРєРёСЂСѓРµС‚ СЂРµРЅРґРµСЂ ScreenGui РїРѕРІРµСЂС… СЃРІРѕРёС… РєРЅРѕРїРѕРє:
-    local isOverCoreGuiBar = (mPos.X <= 220 and mPos.Y <= 48)
+    -- РќР°Рґ СЃРёСЃС‚РµРјРЅС‹Рј Р±Р°СЂРѕРј CoreGui Roblox (X <= 220 and Y <= 50) РІРєР»СЋС‡Р°РµРј РЅР°С‚РёРІРЅС‹Р№ РєСѓСЂСЃРѕСЂ:
+    local isOverCoreGuiBar = (mPos.X <= 220 and mPos.Y <= 50)
     if isOverCoreGuiBar then
         UserInputService.MouseIconEnabled = true
         cursorImage.Visible = false
@@ -178,10 +177,10 @@ local function updateCustomCursor()
         cursorImage.Visible = true
 
         if isPressed then
-            cursorImage.Size = UDim2.new(0, 28, 0, 28)
+            cursorImage.Size = UDim2.new(0, 46, 0, 46)
             cursorImage.Position = UDim2.new(0, mPos.X - 1, 0, mPos.Y - 1)
         else
-            cursorImage.Size = UDim2.new(0, 32, 0, 32)
+            cursorImage.Size = UDim2.new(0, 52, 0, 52)
             cursorImage.Position = UDim2.new(0, mPos.X - 2, 0, mPos.Y - 2)
         end
     end
@@ -1098,7 +1097,6 @@ local function setupGroundWeatherDecor()
     table.clear(groundSpringFlowers)
     table.clear(groundWaterRipples)
 
-    -- РџРѕСЃС‚СЂРѕРµРЅРёРµ РїСЂРѕСЃС‚СЂР°РЅСЃС‚РІРµРЅРЅРѕР№ СЃРµС‚РєРё РІРѕРєСЃРµР»РµР№ РґР»СЏ РїРѕРёСЃРєР° РѕС‚РєСЂС‹С‚РѕР№ РїРѕРІРµСЂС…РЅРѕСЃС‚Рё
     local blockGrid = {}
     for _, block in ipairs(allChildren) do
         if block:IsA("BasePart") then
@@ -1115,7 +1113,6 @@ local function setupGroundWeatherDecor()
             local gx = math.floor((block.Position.X / BLOCK_SIZE) + 0.5)
             local gy = math.floor((block.Position.Y / BLOCK_SIZE) + 0.5)
             local gz = math.floor((block.Position.Z / BLOCK_SIZE) + 0.5)
-            -- РџСЂРѕРІРµСЂСЏРµРј: РїСЂСЏРјРѕ РЅР°Рґ Р±Р»РѕРєРѕРј РЅРµС‚ РґСЂСѓРіРѕРіРѕ Р±Р»РѕРєР° (РѕС‚РєСЂС‹С‚Р°СЏ РїРѕРІРµСЂС…РЅРѕСЃС‚СЊ РїРѕРґ РЅРµР±РѕРј)
             if not blockGrid[gx .. "_" .. (gy + 1) .. "_" .. gz] then
                 table.insert(grassBlocks, block)
             end
@@ -1127,10 +1124,18 @@ local function setupGroundWeatherDecor()
         local isGroundLevel = (block.Position.Y <= 3.0)
         local gx = math.floor((block.Position.X / BLOCK_SIZE) + 0.5)
         local gz = math.floor((block.Position.Z / BLOCK_SIZE) + 0.5)
-        -- Р”РµС‚РµСЂРјРёРЅРёСЂРѕРІР°РЅРЅС‹Р№ С…РµС€ РєРѕРѕСЂРґРёРЅР°С‚ РґР»СЏ СЂР°РІРЅРѕРјРµСЂРЅРѕРіРѕ РїРѕРєСЂС‹С‚РёСЏ 100% РїРѕР»СЏРЅС‹
-        local h = math.abs((gx * 73856093) + (gz * 19349663) + 12345)
 
-        -- 1. РЎРЅРµР¶РЅС‹Р№ РїРѕРєСЂРѕРІ РЅР° Р±Р»РѕРєР°С… (Р·РёРјРѕР№ - 100% РїРѕРєСЂС‹С‚РёСЏ)
+        -- РРЎРљР›Р®Р§Р•РќРР• Р—РћРќР« РџР РЈР”Рђ (X: 9..19, Z: -2..8): РІ РїСЂСѓРґСѓ РІРѕРґР°, С‚Р°Рј РЅРµС‚ С‚СЂР°РІС‹ Рё РЅРµ РґРѕР»Р¶РЅРѕ Р±С‹С‚СЊ РЅР°Р·РµРјРЅС‹С… Р»СѓР¶/Р»РёСЃС‚СЊРµРІ!
+        local pondDist = math.sqrt(((block.Position.X - 14.0) / 6.2)^2 + ((block.Position.Z - 3.0) / 4.8)^2)
+        if pondDist <= 1.08 then
+            continue
+        end
+
+        local h_puddle = math.abs((gx * 73856093) + (gz * 19349663) + 12345)
+        local h_flower = math.abs((gx * 83492791) + (gz * 29496729) + 67891)
+        local h_leaf   = math.abs((gx * 19349663) + (gz * 83492791) + 45678)
+
+        -- 1. РЎРЅРµР¶РЅС‹Р№ РїРѕРєСЂРѕРІ РЅР° Р±Р»РѕРєР°С… (Р·РёРјРѕР№ - 100% РїРѕРєСЂС‹С‚РёСЏ РѕС‚РєСЂС‹С‚РѕР№ С‚СЂР°РІС‹)
         local sH = 0.06
         local snowCap = Instance.new("Part")
         snowCap.Name = "SnowCap"
@@ -1147,41 +1152,44 @@ local function setupGroundWeatherDecor()
         snowCap.Parent = groundDecorFolder
         table.insert(groundSnowCaps, snowCap)
 
-        -- 2. Р’РµСЃРµРЅРЅРёРµ Рё РґРѕР¶РґРµРІС‹Рµ Р»СѓР¶Рё Р РђР—РќРћР“Рћ Р РђР—РњР•Р Рђ (РїРѕРєСЂС‹РІР°СЋС‚ ~35% РїРѕР»СЏРЅС‹ РѕС‚ РєСЂР°СЏ РґРѕ РєСЂР°СЏ)
-        if isGroundLevel and ((h % 3 == 0) or (h % 7 == 0)) then
-            local pSizeCat = (h % 10)
+        local hasPuddleOnBlock = false
+
+        -- 2. Р’РµСЃРµРЅРЅРёРµ Рё РґРѕР¶РґРµРІС‹Рµ Р»СѓР¶Рё Р РђР—РќРћР“Рћ Р РђР—РњР•Р Рђ (~28% СЃРІРѕР±РѕРґРЅРѕР№ С‚СЂР°РІС‹)
+        if isGroundLevel and ((h_puddle % 4 == 0) or (h_puddle % 11 == 0)) then
+            hasPuddleOnBlock = true
+            local pSizeCat = (h_puddle % 10)
             local pRadX, pRadZ, pH
             if pSizeCat < 3 then
-                -- РњР°Р»РµРЅСЊРєРёРµ РєР°РїР»Рё / Р»СѓР¶РёС†С‹ (РґРёР°РјРµС‚СЂ 0.4..0.65 СЃС‚Р°РґСЃР°)
-                local r = 0.22 + ((h % 13) / 13) * 0.10
+                -- РњР°Р»РµРЅСЊРєРёРµ РєР°РїР»Рё (РґРёР°РјРµС‚СЂ 0.38..0.55 СЃС‚Р°РґСЃР°)
+                local r = 0.20 + ((h_puddle % 13) / 13) * 0.08
                 pRadX = r
                 pRadZ = r
                 pH = 0.012
             elseif pSizeCat < 7 then
-                -- РЎСЂРµРґРЅРёРµ Р»СѓР¶Рё (РґРёР°РјРµС‚СЂ 0.9..1.3 СЃС‚Р°РґСЃР°, СЃР»РµРіРєР° РѕРІР°Р»СЊРЅС‹Рµ)
-                local r = 0.44 + ((h % 17) / 17) * 0.18
-                local aspect = 1.15 + ((h % 7) / 7) * 0.25
+                -- РЎСЂРµРґРЅРёРµ Р»СѓР¶Рё (РґРёР°РјРµС‚СЂ 0.85..1.2 СЃС‚Р°РґСЃР°, СЃР»РµРіРєР° РѕРІР°Р»СЊРЅС‹Рµ)
+                local r = 0.42 + ((h_puddle % 17) / 17) * 0.16
+                local aspect = 1.15 + ((h_puddle % 7) / 7) * 0.22
                 pRadX = r
                 pRadZ = r * aspect
-                pH = 0.016
+                pH = 0.015
             else
-                -- Р‘РѕР»СЊС€РёРµ С‚Р°Р»С‹Рµ РІРµСЃРµРЅРЅРёРµ СЂР°Р·Р»РёРІС‹ (РґРёР°РјРµС‚СЂ 1.6..2.3 СЃС‚Р°РґСЃР°, С€РёСЂРѕРєРёРµ РІРѕРґРѕРµРјС‹)
-                local r = 0.82 + ((h % 23) / 23) * 0.32
-                local aspect = 1.25 + ((h % 9) / 9) * 0.45
+                -- Р‘РѕР»СЊС€РёРµ С‚Р°Р»С‹Рµ РІРµСЃРµРЅРЅРёРµ СЂР°Р·Р»РёРІС‹ (РґРёР°РјРµС‚СЂ 1.5..2.1 СЃС‚Р°РґСЃР°)
+                local r = 0.75 + ((h_puddle % 23) / 23) * 0.28
+                local aspect = 1.25 + ((h_puddle % 9) / 9) * 0.40
                 pRadX = r
                 pRadZ = r * aspect
-                pH = 0.020
+                pH = 0.018
             end
 
             local puddle = Instance.new("Part")
             puddle.Name = "Puddle"
             puddle.Size = Vector3.new(pRadX * 2, pH, pRadZ * 2)
             puddle.Position = Vector3.new(
-                block.Position.X + (((h % 7) - 3) * 0.04),
+                block.Position.X + (((h_puddle % 7) - 3) * 0.04),
                 topY + (pH / 2) + 0.002,
-                block.Position.Z + (((h % 5) - 2) * 0.04)
+                block.Position.Z + (((h_puddle % 5) - 2) * 0.04)
             )
-            puddle.Orientation = Vector3.new(0, (h % 360), 0)
+            puddle.Orientation = Vector3.new(0, (h_puddle % 360), 0)
             puddle.Color = Color3.fromRGB(115, 170, 225)
             puddle.Material = Enum.Material.Glass
             puddle.Reflectance = 0.48
@@ -1201,44 +1209,11 @@ local function setupGroundWeatherDecor()
             table.insert(groundPuddles, puddle)
         end
 
-        -- 3. РћРїР°РІС€РёРµ Р»РёСЃС‚СЊСЏ (РѕСЃРµРЅСЊСЋ - СЂР°РІРЅРѕРјРµСЂРЅРѕРµ РїРѕРєСЂС‹С‚РёРµ РїРѕ РІСЃРµР№ РїРѕР»СЏРЅРµ)
-        if isGroundLevel and ((h % 2 == 0) or (h % 5 == 0)) then
-            local lH = 0.012
-            local leafColors = {
-                Color3.fromRGB(225, 125, 20),
-                Color3.fromRGB(195, 65, 15),
-                Color3.fromRGB(240, 165, 25),
-                Color3.fromRGB(165, 45, 10),
-            }
-            local leafPatch = Instance.new("Part")
-            leafPatch.Name = "LeafPatch"
-            local lW = 0.40 + ((h % 11) / 11) * 0.16
-            local lL = 0.32 + ((h % 13) / 13) * 0.14
-            leafPatch.Size = Vector3.new(lW, lH, lL)
-            leafPatch.Position = Vector3.new(
-                block.Position.X + (((h % 9) - 4) * 0.06),
-                topY + (lH / 2) + 0.001,
-                block.Position.Z + (((h % 7) - 3) * 0.06)
-            )
-            leafPatch.Orientation = Vector3.new(0, (h % 360), 0)
-            leafPatch.Color = leafColors[(h % #leafColors) + 1]
-            leafPatch.Material = Enum.Material.SmoothPlastic
-            leafPatch.Anchored = true
-            leafPatch.CanCollide = false
-            leafPatch.CanTouch = false
-            leafPatch.CanQuery = false
-            leafPatch.CastShadow = false
-            leafPatch.Transparency = (currentSeasonId == "autumn") and 0 or 1
-            leafPatch.Parent = groundDecorFolder
-
-            table.insert(groundLeafPatches, leafPatch)
-        end
-
-        -- 4. Р’РµСЃРµРЅРЅРёРµ РїРµСЂРІРѕС†РІРµС‚С‹ (РїРѕРґСЃРЅРµР¶РЅРёРєРё, РєСЂРѕРєСѓСЃС‹, РѕРґСѓРІР°РЅС‡РёРєРё РїРѕ РІСЃРµР№ РїРѕР»СЏРЅРµ)
-        if isGroundLevel and ((h % 3 == 0) or (h % 8 == 0)) then
+        -- 3. Р’РµСЃРµРЅРЅРёРµ РїРµСЂРІРѕС†РІРµС‚С‹: СЃРїР°РІРЅСЏС‚СЃСЏ РўРћР›Р¬РљРћ С‚Р°Рј, РіРґРµ РќР•Рў Р»СѓР¶Рё (С†РІРµС‚С‹ РЅРёРєРѕРіРґР° РЅРµ Р»РµР¶Р°С‚ РІ РІРѕРґРµ!)
+        if isGroundLevel and (not hasPuddleOnBlock) and ((h_flower % 4 == 0) or (h_flower % 7 == 0)) then
             local flower = Instance.new("Part")
             flower.Name = "SpringFlower"
-            local fType = (h % 3)
+            local fType = (h_flower % 3)
             local fColor
             if fType == 0 then
                 fColor = Color3.fromRGB(255, 225, 45) -- Р—РѕР»РѕС‚РёСЃС‚С‹Р№ РѕРґСѓРІР°РЅС‡РёРє
@@ -1249,12 +1224,12 @@ local function setupGroundWeatherDecor()
             end
 
             local fH = 0.08
-            local fSize = 0.25 + ((h % 11) / 11) * 0.08
+            local fSize = 0.25 + ((h_flower % 11) / 11) * 0.08
             flower.Size = Vector3.new(fSize, fH, fSize)
             flower.Position = Vector3.new(
-                block.Position.X + (((h % 13) - 6) * 0.05),
+                block.Position.X + (((h_flower % 13) - 6) * 0.05),
                 topY + (fH / 2) + 0.002,
-                block.Position.Z + (((h % 11) - 5) * 0.05)
+                block.Position.Z + (((h_flower % 11) - 5) * 0.05)
             )
             flower.Color = fColor
             flower.Material = Enum.Material.SmoothPlastic
@@ -1281,6 +1256,39 @@ local function setupGroundWeatherDecor()
             stem.Parent = flower
 
             table.insert(groundSpringFlowers, flower)
+        end
+
+        -- 4. РћРїР°РІС€РёРµ Р»РёСЃС‚СЊСЏ (РѕСЃРµРЅСЊСЋ - РЅР° РѕС‚РєСЂС‹С‚РѕР№ С‚СЂР°РІРµ)
+        if isGroundLevel and (not hasPuddleOnBlock) and ((h_leaf % 3 == 0) or (h_leaf % 7 == 0)) then
+            local lH = 0.012
+            local leafColors = {
+                Color3.fromRGB(225, 125, 20),
+                Color3.fromRGB(195, 65, 15),
+                Color3.fromRGB(240, 165, 25),
+                Color3.fromRGB(165, 45, 10),
+            }
+            local leafPatch = Instance.new("Part")
+            leafPatch.Name = "LeafPatch"
+            local lW = 0.40 + ((h_leaf % 11) / 11) * 0.16
+            local lL = 0.32 + ((h_leaf % 13) / 13) * 0.14
+            leafPatch.Size = Vector3.new(lW, lH, lL)
+            leafPatch.Position = Vector3.new(
+                block.Position.X + (((h_leaf % 9) - 4) * 0.06),
+                topY + (lH / 2) + 0.001,
+                block.Position.Z + (((h_leaf % 7) - 3) * 0.06)
+            )
+            leafPatch.Orientation = Vector3.new(0, (h_leaf % 360), 0)
+            leafPatch.Color = leafColors[(h_leaf % #leafColors) + 1]
+            leafPatch.Material = Enum.Material.SmoothPlastic
+            leafPatch.Anchored = true
+            leafPatch.CanCollide = false
+            leafPatch.CanTouch = false
+            leafPatch.CanQuery = false
+            leafPatch.CastShadow = false
+            leafPatch.Transparency = (currentSeasonId == "autumn") and 0 or 1
+            leafPatch.Parent = groundDecorFolder
+
+            table.insert(groundLeafPatches, leafPatch)
         end
     end
 end
