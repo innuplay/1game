@@ -412,6 +412,8 @@ end
 local SEASON_CONFIGS = {
     autumn = {
         name = "Осень",
+        icon = "🍂",
+        accentColor = Color3.fromRGB(255, 195, 90),
         tempBase = 8,
         tempNight = 3,
         tempDay = 12,
@@ -420,9 +422,13 @@ local SEASON_CONFIGS = {
         colorShiftTop = Color3.fromRGB(255, 230, 190),
         brightnessDay = 1.5,
         brightnessNight = 0.35,
+        fogColor = Color3.fromRGB(175, 155, 130),
+        fogEnd = 320,
     },
     winter = {
         name = "Зима",
+        icon = "❄️",
+        accentColor = Color3.fromRGB(195, 230, 255),
         tempBase = -8,
         tempNight = -16,
         tempDay = -4,
@@ -431,9 +437,13 @@ local SEASON_CONFIGS = {
         colorShiftTop = Color3.fromRGB(210, 230, 255),
         brightnessDay = 1.3,
         brightnessNight = 0.35,
+        fogColor = Color3.fromRGB(190, 210, 235),
+        fogEnd = 250,
     },
     spring = {
         name = "Весна",
+        icon = "🌸",
+        accentColor = Color3.fromRGB(180, 255, 190),
         tempBase = 14,
         tempNight = 6,
         tempDay = 18,
@@ -442,9 +452,13 @@ local SEASON_CONFIGS = {
         colorShiftTop = Color3.fromRGB(245, 250, 220),
         brightnessDay = 1.6,
         brightnessNight = 0.35,
+        fogColor = Color3.fromRGB(180, 215, 195),
+        fogEnd = 380,
     },
     summer = {
         name = "Лето",
+        icon = "☀️",
+        accentColor = Color3.fromRGB(255, 240, 120),
         tempBase = 24,
         tempNight = 16,
         tempDay = 28,
@@ -453,9 +467,12 @@ local SEASON_CONFIGS = {
         colorShiftTop = Color3.fromRGB(255, 245, 215),
         brightnessDay = 1.7,
         brightnessNight = 0.35,
+        fogColor = Color3.fromRGB(200, 220, 240),
+        fogEnd = 500,
     }
 }
 local currentSeasonId = "autumn"
+local SEASON_ORDER = { "autumn", "winter", "spring", "summer" }
 local inGameTime = 14.0 -- Стартуем в 14:00 (ясный день)
 local seasonButtonsUI = {}
 
@@ -606,13 +623,340 @@ tStroke.Color = Color3.fromRGB(30, 20, 15)
 tStroke.Thickness = 1.2
 tStroke.Parent = tempLabel
 
+local notifContainer = Instance.new("Frame")
+notifContainer.Name = "NotifContainer"
+notifContainer.Size = UDim2.new(0, 260, 0, 100)
+notifContainer.Position = UDim2.new(0.5, -130, 1, -220)
+notifContainer.BackgroundTransparency = 1
+notifContainer.Parent = screenGui
+
+local function showPickupNotification(itemName, count)
+    local pill = Instance.new("TextLabel")
+    pill.Size = UDim2.new(0, 220, 0, 28)
+    pill.Position = UDim2.new(0.5, -110, 1, 0)
+    pill.BackgroundColor3 = Color3.fromRGB(20, 25, 20)
+    pill.BackgroundTransparency = 0.2
+    pill.TextColor3 = Color3.fromRGB(130, 255, 120)
+    pill.Font = Enum.Font.FredokaOne
+    pill.TextSize = 14
+    pill.Text = (count and count > 0) and string.format("+%d %s", count, itemName) or tostring(itemName)
+    pill.Parent = notifContainer
+
+    local pillCorner = Instance.new("UICorner")
+    pillCorner.CornerRadius = UDim.new(0, 8)
+    pillCorner.Parent = pill
+
+    local tweenUp = TweenService:Create(pill, TweenInfo.new(1.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        Position = UDim2.new(0.5, -110, 0, -20),
+        TextTransparency = 1,
+        BackgroundTransparency = 1
+    })
+    tweenUp:Play()
+    tweenUp.Completed:Connect(function()
+        pill:Destroy()
+    end)
+end
+
+-- ============================================================
+-- === ПОГОДНАЯ СИСТЕМА (ДОЖДЬ, СНЕГ, ВЕТЕР, ЛИСТЬЯ, ГРАД, ЛЕПЕСТКИ, СВЕТЛЯЧКИ) ===
+-- ============================================================
+local weatherAnchor = Instance.new("Part")
+weatherAnchor.Name = "WeatherAnchor"
+weatherAnchor.Size = Vector3.new(60, 2, 60)
+weatherAnchor.Transparency = 1
+weatherAnchor.Anchored = true
+weatherAnchor.CanCollide = false
+weatherAnchor.CanTouch = false
+weatherAnchor.CanQuery = false
+weatherAnchor.CastShadow = false
+weatherAnchor.Parent = Workspace
+
+-- 1. Осенние летящие листья (золотые, оранжевые, багряные листья)
+local leavesEmitter = Instance.new("ParticleEmitter")
+leavesEmitter.Name = "LeavesEmitter"
+leavesEmitter.Rate = 22
+leavesEmitter.Lifetime = NumberRange.new(3.5, 5.0)
+leavesEmitter.Speed = NumberRange.new(9, 15)
+leavesEmitter.SpreadAngle = Vector2.new(20, 20)
+leavesEmitter.EmissionDirection = Enum.NormalId.Bottom
+leavesEmitter.Acceleration = Vector3.new(12, -8, 6)
+leavesEmitter.RotSpeed = NumberRange.new(-180, 180)
+leavesEmitter.Rotation = NumberRange.new(0, 360)
+leavesEmitter.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(235, 140, 25)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(205, 75, 20)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(155, 45, 15))
+})
+leavesEmitter.Size = NumberSequence.new({
+    NumberSequenceKeypoint.new(0, 0.38),
+    NumberSequenceKeypoint.new(0.5, 0.44),
+    NumberSequenceKeypoint.new(1, 0.32)
+})
+leavesEmitter.Transparency = NumberSequence.new({
+    NumberSequenceKeypoint.new(0, 0.05),
+    NumberSequenceKeypoint.new(0.85, 0.15),
+    NumberSequenceKeypoint.new(1, 1)
+})
+leavesEmitter.Enabled = false
+leavesEmitter.Parent = weatherAnchor
+
+-- 2. Порывистый ветер (серебристо-белые полосы завихрения воздуха)
+local windEmitter = Instance.new("ParticleEmitter")
+windEmitter.Name = "WindEmitter"
+windEmitter.Rate = 12
+windEmitter.Lifetime = NumberRange.new(1.2, 1.8)
+windEmitter.Speed = NumberRange.new(30, 45)
+windEmitter.SpreadAngle = Vector2.new(10, 10)
+windEmitter.EmissionDirection = Enum.NormalId.Right
+windEmitter.Acceleration = Vector3.new(25, -2, 10)
+windEmitter.Color = ColorSequence.new(Color3.fromRGB(240, 245, 255))
+windEmitter.Size = NumberSequence.new({
+    NumberSequenceKeypoint.new(0, 0.12),
+    NumberSequenceKeypoint.new(0.5, 0.3),
+    NumberSequenceKeypoint.new(1, 0.04)
+})
+windEmitter.Transparency = NumberSequence.new({
+    NumberSequenceKeypoint.new(0, 1),
+    NumberSequenceKeypoint.new(0.2, 0.65),
+    NumberSequenceKeypoint.new(0.7, 0.65),
+    NumberSequenceKeypoint.new(1, 1)
+})
+windEmitter.Enabled = false
+windEmitter.Parent = weatherAnchor
+
+-- 3. Дождь (падающие наклонные струи воды)
+local rainEmitter = Instance.new("ParticleEmitter")
+rainEmitter.Name = "RainEmitter"
+rainEmitter.Rate = 150
+rainEmitter.Lifetime = NumberRange.new(0.45, 0.65)
+rainEmitter.Speed = NumberRange.new(50, 70)
+rainEmitter.SpreadAngle = Vector2.new(4, 4)
+rainEmitter.EmissionDirection = Enum.NormalId.Bottom
+rainEmitter.Orientation = Enum.ParticleOrientation.VelocityParallel
+rainEmitter.Acceleration = Vector3.new(5, -85, 3)
+rainEmitter.Color = ColorSequence.new(Color3.fromRGB(190, 215, 250))
+rainEmitter.Size = NumberSequence.new(0.08)
+rainEmitter.Transparency = NumberSequence.new({
+    NumberSequenceKeypoint.new(0, 0.4),
+    NumberSequenceKeypoint.new(1, 0.6)
+})
+rainEmitter.Enabled = false
+rainEmitter.Parent = weatherAnchor
+
+-- 4. Пушистый снег (мягко кружащиеся белые хлопья снега)
+local snowEmitter = Instance.new("ParticleEmitter")
+snowEmitter.Name = "SnowEmitter"
+snowEmitter.Rate = 90
+snowEmitter.Lifetime = NumberRange.new(3.5, 5.0)
+snowEmitter.Speed = NumberRange.new(5, 9)
+snowEmitter.SpreadAngle = Vector2.new(15, 15)
+snowEmitter.EmissionDirection = Enum.NormalId.Bottom
+snowEmitter.Acceleration = Vector3.new(4, -5, 2)
+snowEmitter.RotSpeed = NumberRange.new(-50, 50)
+snowEmitter.Color = ColorSequence.new(Color3.fromRGB(248, 252, 255))
+snowEmitter.Size = NumberSequence.new({
+    NumberSequenceKeypoint.new(0, 0.22),
+    NumberSequenceKeypoint.new(0.5, 0.32),
+    NumberSequenceKeypoint.new(1, 0.2)
+})
+snowEmitter.Transparency = NumberSequence.new({
+    NumberSequenceKeypoint.new(0, 0.15),
+    NumberSequenceKeypoint.new(0.85, 0.2),
+    NumberSequenceKeypoint.new(1, 1)
+})
+snowEmitter.Enabled = false
+snowEmitter.Parent = weatherAnchor
+
+-- 5. Ледяной град (быстрые плотные ледяные крупинки)
+local hailEmitter = Instance.new("ParticleEmitter")
+hailEmitter.Name = "HailEmitter"
+hailEmitter.Rate = 55
+hailEmitter.Lifetime = NumberRange.new(0.35, 0.55)
+hailEmitter.Speed = NumberRange.new(65, 85)
+hailEmitter.SpreadAngle = Vector2.new(6, 6)
+hailEmitter.EmissionDirection = Enum.NormalId.Bottom
+hailEmitter.Orientation = Enum.ParticleOrientation.VelocityParallel
+hailEmitter.Acceleration = Vector3.new(8, -100, 4)
+hailEmitter.Color = ColorSequence.new(Color3.fromRGB(230, 245, 255))
+hailEmitter.Size = NumberSequence.new(0.16)
+hailEmitter.Transparency = NumberSequence.new(0.1)
+hailEmitter.Enabled = false
+hailEmitter.Parent = weatherAnchor
+
+-- 6. Весенние цветочные лепестки (розовые и белые лепестки сакуры)
+local petalsEmitter = Instance.new("ParticleEmitter")
+petalsEmitter.Name = "PetalsEmitter"
+petalsEmitter.Rate = 22
+petalsEmitter.Lifetime = NumberRange.new(3.2, 4.8)
+petalsEmitter.Speed = NumberRange.new(6, 11)
+petalsEmitter.SpreadAngle = Vector2.new(20, 20)
+petalsEmitter.EmissionDirection = Enum.NormalId.Bottom
+petalsEmitter.Acceleration = Vector3.new(7, -6, 5)
+petalsEmitter.RotSpeed = NumberRange.new(-120, 120)
+petalsEmitter.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 200, 220)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 175, 205)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 215, 235))
+})
+petalsEmitter.Size = NumberSequence.new({
+    NumberSequenceKeypoint.new(0, 0.26),
+    NumberSequenceKeypoint.new(0.5, 0.32),
+    NumberSequenceKeypoint.new(1, 0.2)
+})
+petalsEmitter.Transparency = NumberSequence.new({
+    NumberSequenceKeypoint.new(0, 0.1),
+    NumberSequenceKeypoint.new(0.85, 0.15),
+    NumberSequenceKeypoint.new(1, 1)
+})
+petalsEmitter.Enabled = false
+petalsEmitter.Parent = weatherAnchor
+
+-- 7. Ночные светлячки (теплое мерцание в летнюю ночь)
+local firefliesEmitter = Instance.new("ParticleEmitter")
+firefliesEmitter.Name = "FirefliesEmitter"
+firefliesEmitter.Rate = 12
+firefliesEmitter.Lifetime = NumberRange.new(3.5, 5.5)
+firefliesEmitter.Speed = NumberRange.new(1.5, 3.5)
+firefliesEmitter.SpreadAngle = Vector2.new(45, 45)
+firefliesEmitter.EmissionDirection = Enum.NormalId.Top
+firefliesEmitter.Acceleration = Vector3.new(0.5, 0.3, -0.5)
+firefliesEmitter.Color = ColorSequence.new(Color3.fromRGB(225, 255, 110))
+firefliesEmitter.Size = NumberSequence.new({
+    NumberSequenceKeypoint.new(0, 0.1),
+    NumberSequenceKeypoint.new(0.5, 0.22),
+    NumberSequenceKeypoint.new(1, 0.1)
+})
+firefliesEmitter.Transparency = NumberSequence.new({
+    NumberSequenceKeypoint.new(0, 1),
+    NumberSequenceKeypoint.new(0.2, 0.1),
+    NumberSequenceKeypoint.new(0.5, 0.75),
+    NumberSequenceKeypoint.new(0.8, 0.1),
+    NumberSequenceKeypoint.new(1, 1)
+})
+firefliesEmitter.Enabled = false
+firefliesEmitter.Parent = weatherAnchor
+
+-- 8. Система молний и раскатов грома
+local nextLightningTime = 0
+local isFlashingLightning = false
+local function triggerLightningStrike()
+    if isFlashingLightning then return end
+    isFlashingLightning = true
+
+    task.spawn(function()
+        local cam = Workspace.CurrentCamera
+        local camPos = cam and cam.CFrame.Position or Vector3.new(0, 20, 0)
+
+        -- Позиция удара молнии в небе
+        local offsetX = math.random(-110, 110)
+        local offsetZ = math.random(-110, 110)
+        local topPos = camPos + Vector3.new(offsetX, 95, offsetZ)
+        local groundY = 12
+        local bottomPos = camPos + Vector3.new(offsetX + math.random(-15, 15), groundY, offsetZ + math.random(-15, 15))
+
+        -- Зигзаг молнии из неоновых сегментов
+        local boltModel = Instance.new("Model")
+        boltModel.Name = "LightningBoltVisual"
+
+        local numSegments = 6
+        local currentPos = topPos
+        for i = 1, numSegments do
+            local frac = i / numSegments
+            local nextPos = topPos:Lerp(bottomPos, frac)
+            if i < numSegments then
+                nextPos = nextPos + Vector3.new(math.random(-5, 5), math.random(-2, 2), math.random(-5, 5))
+            end
+
+            local segDist = (nextPos - currentPos).Magnitude
+            local segPart = Instance.new("Part")
+            segPart.Name = "BoltSegment"
+            segPart.Material = Enum.Material.Neon
+            segPart.Color = Color3.fromRGB(240, 250, 255)
+            segPart.Transparency = 0.05
+            segPart.Anchored = true
+            segPart.CanCollide = false
+            segPart.CanTouch = false
+            segPart.CanQuery = false
+            segPart.CastShadow = false
+            segPart.Size = Vector3.new(0.5, 0.5, segDist)
+            segPart.CFrame = CFrame.new((currentPos + nextPos) / 2, nextPos)
+            segPart.Parent = boltModel
+
+            currentPos = nextPos
+        end
+        boltModel.Parent = Workspace
+
+        -- Раскат грома
+        local thunderSound = Instance.new("Sound")
+        thunderSound.SoundId = "rbxassetid://9114223171"
+        thunderSound.Volume = 0.75
+        thunderSound.Pitch = math.random(90, 110) / 100
+        thunderSound.Parent = Workspace
+        thunderSound:Play()
+        game:GetService("Debris"):AddItem(thunderSound, 5)
+
+        -- Ослепительная небесная вспышка
+        local origBrightness = Lighting.Brightness
+        local origColorShift = Lighting.ColorShift_Top
+        local origAmbient = Lighting.Ambient
+
+        Lighting.Brightness = 4.6
+        Lighting.ColorShift_Top = Color3.fromRGB(255, 255, 255)
+        Lighting.Ambient = Color3.fromRGB(190, 205, 235)
+        task.wait(0.06)
+
+        Lighting.Brightness = 2.2
+        task.wait(0.04)
+
+        Lighting.Brightness = 3.8
+        task.wait(0.05)
+
+        boltModel:Destroy()
+
+        local tw = TweenService:Create(Lighting, TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            Brightness = origBrightness,
+            ColorShift_Top = origColorShift,
+            Ambient = origAmbient
+        })
+        tw:Play()
+        tw.Completed:Connect(function()
+            isFlashingLightning = false
+        end)
+    end)
+end
+
 local function setSeason(seasonKey, notifyServer)
     local cfg = SEASON_CONFIGS[seasonKey]
     if not cfg then return end
     currentSeasonId = seasonKey
-    seasonLabel.Text = cfg.name
 
-    -- Подсветка кнопок в окне настроек
+    -- 1. Синхронное обновление надписи времени года с плавной анимацией
+    seasonLabel.Text = cfg.name
+    seasonLabel.TextColor3 = cfg.accentColor or Color3.fromRGB(255, 220, 150)
+    local popTween = TweenService:Create(seasonLabel, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+        TextSize = 17,
+        TextColor3 = Color3.fromRGB(255, 255, 255)
+    })
+    popTween:Play()
+    popTween.Completed:Connect(function()
+        TweenService:Create(seasonLabel, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            TextSize = 15,
+            TextColor3 = Color3.fromRGB(240, 235, 220)
+        }):Play()
+    end)
+
+    -- 2. Всплывающее уведомление о смене времени года
+    showPickupNotification(string.format("%s Время года: %s", cfg.icon or "🌿", cfg.name), 0)
+
+    -- 3. Атмосферное освещение и туман
+    if cfg.fogColor then
+        Lighting.FogColor = cfg.fogColor
+    end
+    if cfg.fogEnd then
+        Lighting.FogEnd = cfg.fogEnd
+    end
+
+    -- 4. Подсветка кнопок в окне настроек
     for sKey, btnData in pairs(seasonButtonsUI) do
         if sKey == currentSeasonId then
             btnData.stroke.Color = Color3.fromRGB(255, 215, 100)
@@ -625,6 +969,8 @@ local function setSeason(seasonKey, notifyServer)
         end
     end
 
+    nextLightningTime = tick() + math.random(5, 12)
+
     if notifyServer then
         voxelRemote:FireServer("SetSeason", { season = seasonKey })
     end
@@ -632,7 +978,20 @@ end
 
 local function updateDayNightAndWeather(dt)
     -- Продвижение внутриигрового времени: 1 игровые сутки (24ч) = 720 секунд (12 минут реального времени)
+    local oldTime = inGameTime
     inGameTime = (inGameTime + dt * (24 / 720)) % 24
+
+    -- Каждые 1 внутриигровые сутки: переход к следующему времени года строго Осень -> Зима -> Весна -> Лето -> Осень...
+    if inGameTime < oldTime then
+        local nextSeason = "autumn"
+        for i, s in ipairs(SEASON_ORDER) do
+            if s == currentSeasonId then
+                nextSeason = SEASON_ORDER[(i % #SEASON_ORDER) + 1]
+                break
+            end
+        end
+        setSeason(nextSeason, true)
+    end
 
     -- Вращение часовой и минутной стрелок на золотых часах без цифр
     hourPivot.Rotation = ((inGameTime % 12) / 12) * 360
@@ -676,41 +1035,54 @@ local function updateDayNightAndWeather(dt)
         Lighting.Ambient = Color3.fromRGB(90, 95, 105):Lerp(Color3.fromRGB(25, 25, 38), a)
         Lighting.ColorShift_Top = cfg.colorShiftTop:Lerp(Color3.fromRGB(255, 130, 90), math.sin(a * math.pi)):Lerp(Color3.fromRGB(130, 160, 215), a)
     end
+
+    -- Позиционирование эмиттера погоды над камерой игрока
+    local cam = Workspace.CurrentCamera
+    if cam and weatherAnchor then
+        weatherAnchor.CFrame = CFrame.new(cam.CFrame.Position + Vector3.new(0, 18, 0))
+    end
+
+    -- Актуализация погодных явлений под текущее время года и время суток
+    local isAutumn = (currentSeasonId == "autumn")
+    local isWinter = (currentSeasonId == "winter")
+    local isSpring = (currentSeasonId == "spring")
+    local isSummer = (currentSeasonId == "summer")
+
+    -- 1. Летящие листья: осенью
+    leavesEmitter.Enabled = isAutumn
+
+    -- 2. Ветер: осенью постоянно, зимой в бурю (12-18), весной днем (10-18), летом при грозе (14-17)
+    windEmitter.Enabled = isAutumn
+        or (isWinter and inGameTime >= 12 and inGameTime < 18)
+        or (isSpring and inGameTime >= 10 and inGameTime < 18)
+        or (isSummer and inGameTime >= 14 and inGameTime < 17)
+
+    -- 3. Дождь: осенью днем/вечером (13-19), весной днем (12-17), летом при грозе (14-17)
+    rainEmitter.Enabled = (isAutumn and inGameTime >= 13 and inGameTime < 19)
+        or (isSpring and inGameTime >= 12 and inGameTime < 17)
+        or (isSummer and inGameTime >= 14 and inGameTime < 17)
+
+    -- 4. Пушистый снег: зимой
+    snowEmitter.Enabled = isWinter
+
+    -- 5. Ледяной град: зимой в пик бури (13-17)
+    hailEmitter.Enabled = (isWinter and inGameTime >= 13 and inGameTime < 17)
+
+    -- 6. Лепестки цветов: весной
+    petalsEmitter.Enabled = isSpring
+
+    -- 7. Ночные светлячки: теплой летней ночью (22:00 - 05:00)
+    firefliesEmitter.Enabled = (isSummer and (inGameTime >= 22 or inGameTime < 5))
+
+    -- 8. Гроза с молниями: весной (13-16) и летом (14-17)
+    local isStorming = (isSpring and inGameTime >= 13 and inGameTime < 16)
+        or (isSummer and inGameTime >= 14 and inGameTime < 17)
+    if isStorming and tick() >= nextLightningTime then
+        nextLightningTime = tick() + math.random(11, 20)
+        triggerLightningStrike()
+    end
 end
 
-local notifContainer = Instance.new("Frame")
-notifContainer.Name = "NotifContainer"
-notifContainer.Size = UDim2.new(0, 260, 0, 100)
-notifContainer.Position = UDim2.new(0.5, -130, 1, -220)
-notifContainer.BackgroundTransparency = 1
-notifContainer.Parent = screenGui
-
-local function showPickupNotification(itemName, count)
-    local pill = Instance.new("TextLabel")
-    pill.Size = UDim2.new(0, 220, 0, 28)
-    pill.Position = UDim2.new(0.5, -110, 1, 0)
-    pill.BackgroundColor3 = Color3.fromRGB(20, 25, 20)
-    pill.BackgroundTransparency = 0.2
-    pill.TextColor3 = Color3.fromRGB(130, 255, 120)
-    pill.Font = Enum.Font.FredokaOne
-    pill.TextSize = 14
-    pill.Text = string.format("+%d %s", count or 1, itemName)
-    pill.Parent = notifContainer
-
-    local pillCorner = Instance.new("UICorner")
-    pillCorner.CornerRadius = UDim.new(0, 8)
-    pillCorner.Parent = pill
-
-    local tweenUp = TweenService:Create(pill, TweenInfo.new(1.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-        Position = UDim2.new(0.5, -110, 0, -20),
-        TextTransparency = 1,
-        BackgroundTransparency = 1
-    })
-    tweenUp:Play()
-    tweenUp.Completed:Connect(function()
-        pill:Destroy()
-    end)
-end
 
 -- 2. МОДАЛЬНОЕ ОКНО РЮКЗАКА (Интерактивная лесная поляна)
 -- Активный таб: "backpack" (Ресурсы), "basket" (Еда и сбор), "toolbag" (Инструменты)

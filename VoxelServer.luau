@@ -233,6 +233,9 @@ local SEASON_CONFIGS = {
     }
 }
 local currentSeason = "autumn"
+local SEASON_ORDER = { "autumn", "winter", "spring", "summer" }
+local serverInGameTime = 14.0
+local lastServerTime = 14.0
 
 -- === НАСТРОЙКА ОСВЕЩЕНИЯ (МЯГКИЙ КОНТРАСТ, БЕЗ СЛЕПЯЩИХ БЛИКОВ) ===
 local Lighting = game:GetService("Lighting")
@@ -296,7 +299,8 @@ local function applySeason(seasonId)
     -- Оповещаем всех клиентов о смене сезона
     voxelRemote:FireAllClients("SeasonChanged", {
         season = currentSeason,
-        seasonName = sCfg.name
+        seasonName = sCfg.name,
+        time = serverInGameTime
     })
 end
 
@@ -615,6 +619,21 @@ local function spawnLootDrop(itemId, position, targetPlayer)
 end
 
 RunService.Heartbeat:Connect(function(dt)
+    -- Продвижение внутриигрового времени на сервере: 1 игровые сутки (24ч) = 720 секунд (12 минут реального времени)
+    serverInGameTime = (serverInGameTime + dt * (24 / 720)) % 24
+    if serverInGameTime < lastServerTime then
+        -- 1 игровые сутки завершились! Автоматический переход к следующему времени года: Осень -> Зима -> Весна -> Лето -> Осень...
+        local nextSeason = "autumn"
+        for i, s in ipairs(SEASON_ORDER) do
+            if s == currentSeason then
+                nextSeason = SEASON_ORDER[(i % #SEASON_ORDER) + 1]
+                break
+            end
+        end
+        applySeason(nextSeason)
+    end
+    lastServerTime = serverInGameTime
+
     local now = tick()
     local drops = lootFolder:GetChildren()
     local players = Players:GetPlayers()
@@ -835,14 +854,16 @@ Players.PlayerAdded:Connect(function(player)
         syncPlayerInventory(player)
         voxelRemote:FireClient(player, "SeasonChanged", {
             season = currentSeason,
-            seasonName = SEASON_CONFIGS[currentSeason].name
+            seasonName = SEASON_CONFIGS[currentSeason].name,
+            time = serverInGameTime
         })
     end)
     task.wait(0.4)
     syncPlayerInventory(player)
     voxelRemote:FireClient(player, "SeasonChanged", {
         season = currentSeason,
-        seasonName = SEASON_CONFIGS[currentSeason].name
+        seasonName = SEASON_CONFIGS[currentSeason].name,
+        time = serverInGameTime
     })
 end)
 
