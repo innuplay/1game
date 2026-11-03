@@ -98,71 +98,61 @@ local function isPointerOverUIOrSystem(mPos)
         return false
     end
 
-    -- 1. РњРѕРґР°Р»СЊРЅС‹Рµ РѕРєРЅР° (СЂСЋРєР·Р°Рє, РЅР°СЃС‚СЂРѕР№РєРё, РєР°СЂС‚Р°, Р±Р»РѕРєРЅРѕС‚)
+    -- 1. РњРѕРґР°Р»СЊРЅС‹Рµ РѕРєРЅР° (РµСЃР»Рё РѕС‚РєСЂС‹С‚С‹, РєР»РёРєРё РёРґСѓС‚ РІ РёРЅС‚РµСЂС„РµР№СЃ РѕРєРЅР°):
     if isBackpackOpen then return true end
     if settingsModalRef and settingsModalRef.Visible then return true end
     if mapModalRef and mapModalRef.Visible then return true end
     if notebookModalRef and notebookModalRef.Visible then return true end
 
-    -- 2. РЎРёСЃС‚РµРјРЅС‹Рµ РѕР±Р»Р°СЃС‚Рё Roblox CoreGui:
-    -- Р’РµСЂС…РЅСЏСЏ С‡РµСЂРЅР°СЏ РїР»Р°С€РєР° CoreGui (РєРЅРѕРїРєР° РјРµРЅСЋ Roblox, С‡Р°С‚, СЌРјРѕС†РёРё, РЅР°СѓС€РЅРёРєРё): Y <= 60
-    if mPos.Y <= 60 then return true end
-    -- Р Р°Р·РІРµСЂРЅСѓС‚С‹Р№ С‡Р°С‚ Р РѕР±Р»РѕРєСЃР° (Р»РµРІС‹Р№ РІРµСЂС…РЅРёР№ СѓРіРѕР»): X <= 440 Рё Y <= 280
-    if mPos.X <= 440 and mPos.Y <= 280 then return true end
+    -- 2. РњРµРЅСЋ Р РѕР±Р»РѕРєСЃР° (С‚РѕР»СЊРєРѕ РєРѕРјРїР°РєС‚РЅР°СЏ С‡РµСЂРЅР°СЏ РїР»Р°С€РєР° РІ Р»РµРІРѕРј РІРµСЂС…РЅРµРј СѓРіР»Сѓ):
+    if mPos.X <= 220 and mPos.Y <= 48 then
+        return true
+    end
 
-    -- 3. Р’РёРґР¶РµС‚ С‡Р°СЃРѕРІ Рё С‚РµРјРїРµСЂР°С‚СѓСЂС‹ (+12 В°C, С‚РµСЂРјРѕРјРµС‚СЂ, С†РёС„РµСЂР±Р»Р°С‚)
+    -- 3. Р§Р°СЃС‹ Рё РїРѕРіРѕРґР° (РІ РїСЂР°РІРѕРј РІРµСЂС…РЅРµРј СѓРіР»Сѓ):
     if seasonWidgetRef and isInsideGui(seasonWidgetRef, mPos) then
         return true
     end
 
-    -- 4. РџР°РЅРµР»СЊ РїРѕРєР°Р·Р°С‚РµР»РµР№ РєРѕС‚РµРЅРєР° (РµРґР°, РІРѕРґР°, СЌРЅРµСЂРіРёСЏ)
+    -- 4. РРєРѕРЅРєРё РµРґР°, РІРѕРґР°, СЌРЅРµСЂРіРёСЏ (РІ Р»РµРІРѕРј РЅРёР¶РЅРµРј СѓРіР»Сѓ):
     if vitalityFrameRef and isInsideGui(vitalityFrameRef, mPos) then
         return true
     end
 
-    -- 5. РҐРѕС‚Р±Р°СЂ СЃРѕ СЃР»РѕС‚Р°РјРё Р±Р»РѕРєРѕРІ
+    -- 5. РќРёР¶РЅРёРµ РёРєРѕРЅРєРё С…РѕС‚Р±Р°СЂР° СЃ РІС‹Р±РѕСЂРѕРј Р·РµРјР»Рё, РєР°РјРЅСЏ Рё С‚.Рґ. (РїРѕ С†РµРЅС‚СЂСѓ СЃРЅРёР·Сѓ):
     if hudContainerRef and isInsideGui(hudContainerRef, mPos) then
         return true
     end
 
-    -- 6. РљРЅРѕРїРєР° РїРѕС…РѕРґРЅРѕРіРѕ СЂСЋРєР·Р°РєР° [E]
+    -- 6. РљРЅРѕРїРєР° СЂСЋРєР·Р°РєР° [E] (РІ РїСЂР°РІРѕРј РЅРёР¶РЅРµРј СѓРіР»Сѓ):
     if backpackBtnRef and isInsideGui(backpackBtnRef, mPos) then
         return true
-    end
-
-    -- 7. Р›СЋР±С‹Рµ СЌРєСЂР°РЅРЅС‹Рµ СЌР»РµРјРµРЅС‚С‹ РёРЅС‚РµСЂС„РµР№СЃР° screenGui РїРѕРґ РєСѓСЂСЃРѕСЂРѕРј
-    local objs = playerGui:GetGuiObjectsAtPosition(mPos.X, mPos.Y)
-    for _, obj in ipairs(objs) do
-        if obj.Name ~= "CursorImage" and obj:IsDescendantOf(screenGui) then
-            return true
-        end
     end
 
     return false
 end
 
 local function getDesiredCursor(mPos)
-    -- Р•СЃР»Рё РєСѓСЂСЃРѕСЂ РЅР°Рґ UI, РєР°СЂС‚РѕР№, РЅР°СЃС‚СЂРѕР№РєР°РјРё, СЂСЋРєР·Р°РєРѕРј, С‡Р°С‚РѕРј РёР»Рё С‚РµСЂРјРѕРјРµС‚СЂРѕРј/С‡Р°СЃР°РјРё -> РєРѕС€Р°С‡СЊСЏ Р»Р°РїРєР°
+    -- РџСЂРё РЅР°РІРµРґРµРЅРёРё РЅР° РёРєРѕРЅРєРё (РјРµРЅСЋ Р РѕР±Р»РѕРєСЃР°, С‡Р°СЃС‹/РїРѕРіРѕРґР°, РµРґР°/РІРѕРґР°/СЌРЅРµСЂРіРёСЏ, СЂСЋРєР·Р°Рє, РЅРёР¶РЅРёРµ СЃР»РѕС‚С‹) -> Р’РЎР•Р“Р”Рђ С‡РµСЂРЅР°СЏ Р»Р°РїРєР°
     if isPointerOverUIOrSystem(mPos) then
         return CURSORS.paw
     end
 
-    -- Р•СЃР»Рё РЅРµ РІС‹Р±СЂР°РЅ СЃС‚СЂРѕРёС‚РµР»СЊРЅС‹Р№ Р±Р»РѕРє -> РєРѕС€Р°С‡СЊСЏ Р»Р°РїРєР° СЃ СѓРєР°Р·Р°С‚РµР»СЊРЅС‹Рј РїР°Р»СЊС†РµРј
-    if not activeHotbarSlot then
-        return CURSORS.paw
-    end
-
-    local activeItem = currentInventorySlots and currentInventorySlots[activeHotbarSlot]
-    if activeItem and activeItem.count and activeItem.count > 0 then
-        local def = itemsDefinition[activeItem.id]
-        if def and def.isBlock then
-            local hand = ITEM_TO_CURSOR[activeItem.id]
-            if hand then
-                return hand
+    -- Р’ РёРіСЂРѕРІРѕРј РїРѕР»Рµ/РѕР±Р»Р°СЃС‚Рё РїРѕСЃС‚СЂРѕР№РєРё: РµСЃР»Рё РІС‹Р±СЂР°РЅ РѕР±СЉРµРєС‚ РїРѕСЃС‚СЂРѕР№РєРё (Р·РµРјР»СЏ, РєР°РјРµРЅСЊ, РґРµСЂРµРІРѕ, С‚СЂР°РІР°) -> РєСѓСЂСЃРѕСЂ СЌС‚РѕРіРѕ РѕР±СЉРµРєС‚Р°!
+    if activeHotbarSlot then
+        local activeItem = currentInventorySlots and currentInventorySlots[activeHotbarSlot]
+        if activeItem and activeItem.count and activeItem.count > 0 then
+            local def = itemsDefinition[activeItem.id]
+            if def and def.isBlock then
+                local hand = ITEM_TO_CURSOR[activeItem.id]
+                if hand then
+                    return hand
+                end
             end
         end
     end
 
+    -- Р•СЃР»Рё СЃС‚СЂРѕРёС‚РµР»СЊРЅС‹Р№ РѕР±СЉРµРєС‚ РЅРµ РІС‹Р±СЂР°РЅ -> С‡РµСЂРЅР°СЏ Р»Р°РїРєР°
     return CURSORS.paw
 end
 
@@ -178,9 +168,9 @@ local function updateCustomCursor()
         mouse.Icon = targetIcon
     end
 
-    -- 1. РќР°Рґ СЃРёСЃС‚РµРјРЅРѕР№ Р·РѕРЅРѕР№ Roblox CoreGui (РєРЅРѕРїРєР° РјРµРЅСЋ Roblox, РїР»Р°С€РєР° СЃ С‡Р°С‚РѕРј Рё РјРёРєСЂРѕС„РѕРЅРѕРј):
-    -- РєСѓСЂСЃРѕСЂ РіР°СЂР°РЅС‚РёСЂРѕРІР°РЅРЅРѕ РѕС‚РѕР±СЂР°Р¶Р°РµС‚СЃСЏ РќРђР” С‡РµСЂРЅРѕР№ РїР»Р°С€РєРѕР№ С‡РµСЂРµР· Р°РїРїР°СЂР°С‚РЅС‹Р№ СЃРёСЃС‚РµРјРЅС‹Р№ mouse.Icon!
-    local isOverCoreGuiBar = (mPos.Y <= 60) or (mPos.X <= 440 and mPos.Y <= 280)
+    -- РќР°Рґ СЃРёСЃС‚РµРјРЅС‹Рј Р±Р°СЂРѕРј РјРµРЅСЋ Roblox CoreGui (X <= 220 and Y <= 48) РІРєР»СЋС‡Р°РµРј РЅР°С‚РёРІРЅС‹Р№ mouse.Icon,
+    -- С‚Р°Рє РєР°Рє Roblox Р±Р»РѕРєРёСЂСѓРµС‚ СЂРµРЅРґРµСЂ ScreenGui РїРѕРІРµСЂС… СЃРІРѕРёС… РєРЅРѕРїРѕРє:
+    local isOverCoreGuiBar = (mPos.X <= 220 and mPos.Y <= 48)
     if isOverCoreGuiBar then
         UserInputService.MouseIconEnabled = true
         cursorImage.Visible = false
@@ -188,7 +178,6 @@ local function updateCustomCursor()
         UserInputService.MouseIconEnabled = false
         cursorImage.Visible = true
 
-        -- РљРѕРјРїР°РєС‚РЅС‹Р№ Р°РєРєСѓСЂР°С‚РЅС‹Р№ РєСѓСЂСЃРѕСЂ (32x32 РІ РїРѕРєРѕРµ, 28x28 РїСЂРё РЅР°Р¶Р°С‚РёРё)
         if isPressed then
             cursorImage.Size = UDim2.new(0, 28, 0, 28)
             cursorImage.Position = UDim2.new(0, mPos.X - 1, 0, mPos.Y - 1)
