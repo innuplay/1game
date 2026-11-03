@@ -918,7 +918,35 @@ voxelRemote.OnServerEvent:Connect(function(player, action, data)
 
     local inv = getOrCreateInventory(player)
 
-    if action == "Hit" then
+    if action == "FishPond" then
+        -- Р’РµСЃРµРЅРЅСЏСЏ СЂС‹Р±Р°Р»РєР°: РїРѕРІС‹С€РµРЅРЅС‹Р№ С€Р°РЅСЃ СѓР»РѕРІР° РІРµСЃРЅРѕР№ (75%), РІ РґСЂСѓРіРёРµ СЃРµР·РѕРЅС‹ 40%
+        local successChance = (currentSeason == "spring") and 75 or 40
+        local roll = math.random(1, 100)
+        local pondPos = rootPart.Position + (rootPart.CFrame.LookVector * 2.5)
+
+        if roll <= successChance then
+            -- РЈСЃРїРµС€РЅС‹Р№ СѓР»РѕРІ!
+            addItemToInventory(player, "fish", 1)
+            character:SetAttribute("HeldItemId", "fish")
+            character:SetAttribute("HeldItemCount", 1)
+
+            -- Р—РІРѕРЅРєРёР№ РІСЃРїР»РµСЃРє РІРѕРґС‹
+            spawnBreakParticles(pondPos, Color3.fromRGB(180, 235, 255), false)
+
+            voxelRemote:FireClient(player, "ItemPickedUp", {
+                name = (currentSeason == "spring") and "Р’РµСЃРµРЅРЅСЏСЏ СЂС‹Р±РєР° рџђџвњЁ" or "Р С‹Р±РєР° рџђџ",
+                count = 1
+            })
+        else
+            -- Р С‹Р±РєР° СЃРѕСЂРІР°Р»Р°СЃСЊ СЃ РєСЂСЋС‡РєР° СЃ Р»РµРіРєРёРј РІСЃРїР»РµСЃРєРѕРј
+            spawnBreakParticles(pondPos, Color3.fromRGB(150, 215, 255), false)
+            voxelRemote:FireClient(player, "ItemPickedUp", {
+                name = "Р С‹Р±РєР° РІРёР»СЊРЅСѓР»Р° С…РІРѕСЃС‚РѕРј Рё СѓРїР»С‹Р»Р°... рџ’¦",
+                count = 0
+            })
+        end
+
+    elseif action == "Hit" then
         local block = data.Block
         if not (block and block:IsDescendantOf(worldFolder)) then return end
 

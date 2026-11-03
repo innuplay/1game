@@ -105,7 +105,7 @@ local function isPointerOverUIOrSystem(mPos)
     if notebookModalRef and notebookModalRef.Visible then return true end
 
     -- 2. РњРµРЅСЋ Р РѕР±Р»РѕРєСЃР° (С‚РѕР»СЊРєРѕ РєРѕРјРїР°РєС‚РЅР°СЏ С‡РµСЂРЅР°СЏ РїР»Р°С€РєР° РІ Р»РµРІРѕРј РІРµСЂС…РЅРµРј СѓРіР»Сѓ):
-    if mPos.X <= 220 and mPos.Y <= 48 then
+    if mPos.X <= 220 and mPos.Y <= 50 then
         return true
     end
 
@@ -133,26 +133,25 @@ local function isPointerOverUIOrSystem(mPos)
 end
 
 local function getDesiredCursor(mPos)
-    -- РџСЂРё РЅР°РІРµРґРµРЅРёРё РЅР° РёРєРѕРЅРєРё (РјРµРЅСЋ Р РѕР±Р»РѕРєСЃР°, С‡Р°СЃС‹/РїРѕРіРѕРґР°, РµРґР°/РІРѕРґР°/СЌРЅРµСЂРіРёСЏ, СЂСЋРєР·Р°Рє, РЅРёР¶РЅРёРµ СЃР»РѕС‚С‹) -> Р’РЎР•Р“Р”Рђ С‡РµСЂРЅР°СЏ Р»Р°РїРєР°
+    -- 1. РџСЂРё РЅР°РІРµРґРµРЅРёРё РЅР° РёРєРѕРЅРєРё (РјРµРЅСЋ Р РѕР±Р»РѕРєСЃР°, С‡Р°СЃС‹/РїРѕРіРѕРґР°, РµРґР°/РІРѕРґР°/СЌРЅРµСЂРіРёСЏ, СЂСЋРєР·Р°Рє, РЅРёР¶РЅРёРµ СЃР»РѕС‚С‹) -> Р’РЎР•Р“Р”Рђ С‡РµСЂРЅР°СЏ Р»Р°РїРєР°
     if isPointerOverUIOrSystem(mPos) then
         return CURSORS.paw
     end
 
-    -- Р’ РёРіСЂРѕРІРѕРј РїРѕР»Рµ/РѕР±Р»Р°СЃС‚Рё РїРѕСЃС‚СЂРѕР№РєРё: РµСЃР»Рё РІС‹Р±СЂР°РЅ РѕР±СЉРµРєС‚ РїРѕСЃС‚СЂРѕР№РєРё (Р·РµРјР»СЏ, РєР°РјРµРЅСЊ, РґРµСЂРµРІРѕ, С‚СЂР°РІР°) -> РєСѓСЂСЃРѕСЂ СЌС‚РѕРіРѕ РѕР±СЉРµРєС‚Р°!
-    if activeHotbarSlot then
+    -- 2. Р’ РёРіСЂРѕРІРѕРј РїРѕР»Рµ/РѕР±Р»Р°СЃС‚Рё РїРѕСЃС‚СЂРѕР№РєРё: РµСЃР»Рё РІС‹Р±СЂР°РЅ РѕР±СЉРµРєС‚ РїРѕСЃС‚СЂРѕР№РєРё (Р·РµРјР»СЏ, РєР°РјРµРЅСЊ, РґРµСЂРµРІРѕ, С‚СЂР°РІР°) -> Р’РЎР•Р“Р”Рђ РєСѓСЂСЃРѕСЂ СЌС‚РѕРіРѕ РѕР±СЉРµРєС‚Р°!
+    if activeHotbarSlot and activeHotbarSlot >= 1 and activeHotbarSlot <= 4 then
+        local slotDef = HOTBAR_SLOT_DEFS[activeHotbarSlot]
         local activeItem = currentInventorySlots and currentInventorySlots[activeHotbarSlot]
-        if activeItem and activeItem.count and activeItem.count > 0 then
-            local def = itemsDefinition[activeItem.id]
-            if def and def.isBlock then
-                local hand = ITEM_TO_CURSOR[activeItem.id]
-                if hand then
-                    return hand
-                end
+        local itemId = (activeItem and activeItem.id) or (slotDef and slotDef.id)
+        if itemId then
+            local blockCursor = ITEM_TO_CURSOR[itemId]
+            if blockCursor then
+                return blockCursor
             end
         end
     end
 
-    -- Р•СЃР»Рё СЃС‚СЂРѕРёС‚РµР»СЊРЅС‹Р№ РѕР±СЉРµРєС‚ РЅРµ РІС‹Р±СЂР°РЅ -> С‡РµСЂРЅР°СЏ Р»Р°РїРєР°
+    -- 3. Р•СЃР»Рё СЃС‚СЂРѕРёС‚РµР»СЊРЅС‹Р№ РѕР±СЉРµРєС‚ РЅРµ РІС‹Р±СЂР°РЅ -> С‡РµСЂРЅР°СЏ Р»Р°РїРєР°
     return CURSORS.paw
 end
 
@@ -841,10 +840,73 @@ groundFogEmitter.Transparency = NumberSequence.new({
 groundFogEmitter.Enabled = false
 groundFogEmitter.Parent = firefliesAnchor
 
--- 8. Система молний и раскатов грома
--- ============================================================
--- === RAINBOW VISUAL (SEMI-TRANSPARENT ARC ACROSS THE SKY) ===
--- ============================================================
+-- 9. Р’РµСЃРµРЅРЅРёРµ СЂР°Р·РЅРѕС†РІРµС‚РЅС‹Рµ Р±Р°Р±РѕС‡РєРё (РїРѕСЂС…Р°СЋС‚ РЅР°Рґ С†РІРµС‚СѓС‰РµР№ РїРѕР»СЏРЅРѕР№ СЃ 11:00 РґРѕ 17:00)
+local butterfliesEmitter = Instance.new("ParticleEmitter")
+butterfliesEmitter.Name = "ButterfliesEmitter"
+butterfliesEmitter.Rate = 20
+butterfliesEmitter.Lifetime = NumberRange.new(5.0, 8.0)
+butterfliesEmitter.Speed = NumberRange.new(1.2, 2.8)
+butterfliesEmitter.SpreadAngle = Vector2.new(45, 45)
+butterfliesEmitter.EmissionDirection = Enum.NormalId.Top
+butterfliesEmitter.Acceleration = Vector3.new(0.8, 0.25, -0.6)
+butterfliesEmitter.RotSpeed = NumberRange.new(-75, 75)
+butterfliesEmitter.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0.0, Color3.fromRGB(255, 235, 75)),  -- Р›РёРјРѕРЅРЅРѕ-Р¶РµР»С‚Р°СЏ
+    ColorSequenceKeypoint.new(0.35, Color3.fromRGB(110, 215, 255)), -- РќРµР¶РЅРѕ-РіРѕР»СѓР±Р°СЏ
+    ColorSequenceKeypoint.new(0.70, Color3.fromRGB(255, 145, 185)), -- Р РѕР·РѕРІР°СЏ
+    ColorSequenceKeypoint.new(1.0, Color3.fromRGB(248, 252, 255))   -- Р‘РµР»СЏРЅРєР°
+})
+butterfliesEmitter.Size = NumberSequence.new({
+    NumberSequenceKeypoint.new(0.0, 0.16),
+    NumberSequenceKeypoint.new(0.5, 0.32),
+    NumberSequenceKeypoint.new(1.0, 0.18)
+})
+butterfliesEmitter.Transparency = NumberSequence.new({
+    NumberSequenceKeypoint.new(0.0, 1.0),
+    NumberSequenceKeypoint.new(0.15, 0.05),
+    NumberSequenceKeypoint.new(0.85, 0.1),
+    NumberSequenceKeypoint.new(1.0, 1.0)
+})
+butterfliesEmitter.Enabled = false
+butterfliesEmitter.Parent = firefliesAnchor
+
+-- 10. РџСѓС€РёСЃС‚С‹Рµ РїРѕР»РѕСЃР°С‚С‹Рµ РІРµСЃРµРЅРЅРёРµ С€РјРµР»Рё
+local bumblebeesEmitter = Instance.new("ParticleEmitter")
+bumblebeesEmitter.Name = "BumblebeesEmitter"
+bumblebeesEmitter.Rate = 10
+bumblebeesEmitter.Lifetime = NumberRange.new(4.0, 6.5)
+bumblebeesEmitter.Speed = NumberRange.new(1.8, 3.2)
+bumblebeesEmitter.SpreadAngle = Vector2.new(35, 35)
+bumblebeesEmitter.EmissionDirection = Enum.NormalId.Top
+bumblebeesEmitter.Acceleration = Vector3.new(0.4, 0.1, 0.4)
+bumblebeesEmitter.RotSpeed = NumberRange.new(-40, 40)
+bumblebeesEmitter.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0.0, Color3.fromRGB(245, 190, 40)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(45, 35, 25)),
+    ColorSequenceKeypoint.new(1.0, Color3.fromRGB(245, 190, 40))
+})
+bumblebeesEmitter.Size = NumberSequence.new({
+    NumberSequenceKeypoint.new(0.0, 0.14),
+    NumberSequenceKeypoint.new(0.5, 0.24),
+    NumberSequenceKeypoint.new(1.0, 0.14)
+})
+bumblebeesEmitter.Transparency = NumberSequence.new({
+    NumberSequenceKeypoint.new(0.0, 1.0),
+    NumberSequenceKeypoint.new(0.15, 0.0),
+    NumberSequenceKeypoint.new(0.85, 0.05),
+    NumberSequenceKeypoint.new(1.0, 1.0)
+})
+bumblebeesEmitter.Enabled = false
+bumblebeesEmitter.Parent = firefliesAnchor
+
+-- 11. Р¤РѕРЅРѕРІРѕРµ РїРµРЅРёРµ РїС‚РёС† (Р°РєС‚РёРІРёСЂСѓРµС‚СЃСЏ РЅР° СЂР°СЃСЃРІРµС‚Рµ СЃ 05:00, РїРѕРµС‚ РґРЅРµРј Рё Р·Р°С‚РёС…Р°РµС‚ Рє 21:00)
+local birdsAmbientSound = Instance.new("Sound")
+birdsAmbientSound.Name = "BirdsAmbientSound"
+birdsAmbientSound.SoundId = "rbxassetid://1843404009"
+birdsAmbientSound.Looped = true
+birdsAmbientSound.Volume = 0
+birdsAmbientSound.Parent = Workspace
+pcall(function() birdsAmbientSound:Play() end)
 local rainbowFolder = Instance.new("Folder")
 rainbowFolder.Name = "RainbowVisual"
 rainbowFolder.Parent = Workspace
@@ -1011,11 +1073,16 @@ local groundPuddles = {}
 local groundSnowCaps = {}
 local groundLeafPatches = {}
 local groundSpringFlowers = {}
+local groundWaterRipples = {}
 
 local puddleWetness = 0
 local snowCoverage = (currentSeasonId == "winter") and 1 or 0
 local leavesCoverage = (currentSeasonId == "autumn") and 1 or 0
 local flowersCoverage = (currentSeasonId == "spring") and 1 or 0
+
+local lastProcessedDecorBlockCount = 0
+local lastDecorRegenTick = 0
+local lastRippleSpawnTick = 0
 
 local function setupGroundWeatherDecor()
     local worldFolder = Workspace:FindFirstChild("VoxelWorld")
@@ -1029,6 +1096,7 @@ local function setupGroundWeatherDecor()
     table.clear(groundSnowCaps)
     table.clear(groundLeafPatches)
     table.clear(groundSpringFlowers)
+    table.clear(groundWaterRipples)
 
     -- РџРѕСЃС‚СЂРѕРµРЅРёРµ РїСЂРѕСЃС‚СЂР°РЅСЃС‚РІРµРЅРЅРѕР№ СЃРµС‚РєРё РІРѕРєСЃРµР»РµР№ РґР»СЏ РїРѕРёСЃРєР° РѕС‚РєСЂС‹С‚РѕР№ РїРѕРІРµСЂС…РЅРѕСЃС‚Рё
     local blockGrid = {}
@@ -1054,13 +1122,15 @@ local function setupGroundWeatherDecor()
         end
     end
 
-    local rng = Random.new(777)
-    for i, block in ipairs(grassBlocks) do
-        -- РўРѕС‡РЅС‹Р№ РІРµСЂС… Р±Р»РѕРєР°: Position.Y + Size.Y / 2
+    for _, block in ipairs(grassBlocks) do
         local topY = block.Position.Y + (block.Size.Y / 2)
-        local isGroundLevel = (block.Position.Y <= 3.0) -- РЅР°Р·РµРјРЅР°СЏ С‚СЂР°РІР° Рё С…РѕР»РјС‹
+        local isGroundLevel = (block.Position.Y <= 3.0)
+        local gx = math.floor((block.Position.X / BLOCK_SIZE) + 0.5)
+        local gz = math.floor((block.Position.Z / BLOCK_SIZE) + 0.5)
+        -- Р”РµС‚РµСЂРјРёРЅРёСЂРѕРІР°РЅРЅС‹Р№ С…РµС€ РєРѕРѕСЂРґРёРЅР°С‚ РґР»СЏ СЂР°РІРЅРѕРјРµСЂРЅРѕРіРѕ РїРѕРєСЂС‹С‚РёСЏ 100% РїРѕР»СЏРЅС‹
+        local h = math.abs((gx * 73856093) + (gz * 19349663) + 12345)
 
-        -- 1. РЎРЅРµР¶РЅС‹Р№ РїРѕРєСЂРѕРІ РЅР° Р±Р»РѕРєР°С… (Р·РёРјРѕР№)
+        -- 1. РЎРЅРµР¶РЅС‹Р№ РїРѕРєСЂРѕРІ РЅР° Р±Р»РѕРєР°С… (Р·РёРјРѕР№ - 100% РїРѕРєСЂС‹С‚РёСЏ)
         local sH = 0.06
         local snowCap = Instance.new("Part")
         snowCap.Name = "SnowCap"
@@ -1077,21 +1147,44 @@ local function setupGroundWeatherDecor()
         snowCap.Parent = groundDecorFolder
         table.insert(groundSnowCaps, snowCap)
 
-        -- 2. Р›СѓР¶Рё (РЅР°РїРѕР»РЅСЏСЋС‚СЃСЏ РІ РґРѕР¶РґСЊ РёР»Рё РІРµСЃРЅРѕР№ РѕС‚ С‚Р°СЏРЅРёСЏ СЃРЅРµРіР°)
-        if isGroundLevel and ((i % 4 == 0) or (i % 7 == 0)) then
-            local pH = 0.015
-            local pRadius = 0.45 + rng:NextNumber(-0.05, 0.1)
+        -- 2. Р’РµСЃРµРЅРЅРёРµ Рё РґРѕР¶РґРµРІС‹Рµ Р»СѓР¶Рё Р РђР—РќРћР“Рћ Р РђР—РњР•Р Рђ (РїРѕРєСЂС‹РІР°СЋС‚ ~35% РїРѕР»СЏРЅС‹ РѕС‚ РєСЂР°СЏ РґРѕ РєСЂР°СЏ)
+        if isGroundLevel and ((h % 3 == 0) or (h % 7 == 0)) then
+            local pSizeCat = (h % 10)
+            local pRadX, pRadZ, pH
+            if pSizeCat < 3 then
+                -- РњР°Р»РµРЅСЊРєРёРµ РєР°РїР»Рё / Р»СѓР¶РёС†С‹ (РґРёР°РјРµС‚СЂ 0.4..0.65 СЃС‚Р°РґСЃР°)
+                local r = 0.22 + ((h % 13) / 13) * 0.10
+                pRadX = r
+                pRadZ = r
+                pH = 0.012
+            elseif pSizeCat < 7 then
+                -- РЎСЂРµРґРЅРёРµ Р»СѓР¶Рё (РґРёР°РјРµС‚СЂ 0.9..1.3 СЃС‚Р°РґСЃР°, СЃР»РµРіРєР° РѕРІР°Р»СЊРЅС‹Рµ)
+                local r = 0.44 + ((h % 17) / 17) * 0.18
+                local aspect = 1.15 + ((h % 7) / 7) * 0.25
+                pRadX = r
+                pRadZ = r * aspect
+                pH = 0.016
+            else
+                -- Р‘РѕР»СЊС€РёРµ С‚Р°Р»С‹Рµ РІРµСЃРµРЅРЅРёРµ СЂР°Р·Р»РёРІС‹ (РґРёР°РјРµС‚СЂ 1.6..2.3 СЃС‚Р°РґСЃР°, С€РёСЂРѕРєРёРµ РІРѕРґРѕРµРјС‹)
+                local r = 0.82 + ((h % 23) / 23) * 0.32
+                local aspect = 1.25 + ((h % 9) / 9) * 0.45
+                pRadX = r
+                pRadZ = r * aspect
+                pH = 0.020
+            end
+
             local puddle = Instance.new("Part")
             puddle.Name = "Puddle"
-            puddle.Size = Vector3.new(pRadius * 2, pH, pRadius * 2)
+            puddle.Size = Vector3.new(pRadX * 2, pH, pRadZ * 2)
             puddle.Position = Vector3.new(
-                block.Position.X + rng:NextNumber(-0.15, 0.15),
+                block.Position.X + (((h % 7) - 3) * 0.04),
                 topY + (pH / 2) + 0.002,
-                block.Position.Z + rng:NextNumber(-0.15, 0.15)
+                block.Position.Z + (((h % 5) - 2) * 0.04)
             )
-            puddle.Color = Color3.fromRGB(115, 165, 215)
+            puddle.Orientation = Vector3.new(0, (h % 360), 0)
+            puddle.Color = Color3.fromRGB(115, 170, 225)
             puddle.Material = Enum.Material.Glass
-            puddle.Reflectance = 0.45
+            puddle.Reflectance = 0.48
             puddle.Anchored = true
             puddle.CanCollide = false
             puddle.CanTouch = false
@@ -1102,14 +1195,14 @@ local function setupGroundWeatherDecor()
 
             local mesh = Instance.new("SpecialMesh")
             mesh.MeshType = Enum.MeshType.Sphere
-            mesh.Scale = Vector3.new(1, pH / (pRadius * 2), 1)
+            mesh.Scale = Vector3.new(1, pH / math.max(pRadX * 2, pRadZ * 2), 1)
             mesh.Parent = puddle
 
             table.insert(groundPuddles, puddle)
         end
 
-        -- 3. РћРїР°РІС€РёРµ Р»РёСЃС‚СЊСЏ (РѕСЃРµРЅСЊСЋ)
-        if isGroundLevel and (i % 2 == 0) then
+        -- 3. РћРїР°РІС€РёРµ Р»РёСЃС‚СЊСЏ (РѕСЃРµРЅСЊСЋ - СЂР°РІРЅРѕРјРµСЂРЅРѕРµ РїРѕРєСЂС‹С‚РёРµ РїРѕ РІСЃРµР№ РїРѕР»СЏРЅРµ)
+        if isGroundLevel and ((h % 2 == 0) or (h % 5 == 0)) then
             local lH = 0.012
             local leafColors = {
                 Color3.fromRGB(225, 125, 20),
@@ -1119,15 +1212,16 @@ local function setupGroundWeatherDecor()
             }
             local leafPatch = Instance.new("Part")
             leafPatch.Name = "LeafPatch"
-            local lW = 0.45 + rng:NextNumber(-0.08, 0.08)
-            local lL = 0.38 + rng:NextNumber(-0.06, 0.06)
+            local lW = 0.40 + ((h % 11) / 11) * 0.16
+            local lL = 0.32 + ((h % 13) / 13) * 0.14
             leafPatch.Size = Vector3.new(lW, lH, lL)
             leafPatch.Position = Vector3.new(
-                block.Position.X + rng:NextNumber(-0.35, 0.35),
+                block.Position.X + (((h % 9) - 4) * 0.06),
                 topY + (lH / 2) + 0.001,
-                block.Position.Z + rng:NextNumber(-0.35, 0.35)
+                block.Position.Z + (((h % 7) - 3) * 0.06)
             )
-            leafPatch.Color = leafColors[rng:NextInteger(1, #leafColors)]
+            leafPatch.Orientation = Vector3.new(0, (h % 360), 0)
+            leafPatch.Color = leafColors[(h % #leafColors) + 1]
             leafPatch.Material = Enum.Material.SmoothPlastic
             leafPatch.Anchored = true
             leafPatch.CanCollide = false
@@ -1140,11 +1234,11 @@ local function setupGroundWeatherDecor()
             table.insert(groundLeafPatches, leafPatch)
         end
 
-        -- 4. Р’РµСЃРµРЅРЅРёРµ РїРµСЂРІРѕС†РІРµС‚С‹ (РїРѕРґСЃРЅРµР¶РЅРёРєРё, РєСЂРѕРєСѓСЃС‹, РѕРґСѓРІР°РЅС‡РёРєРё)
-        if isGroundLevel and ((i % 3 == 0) or (i % 5 == 0)) then
+        -- 4. Р’РµСЃРµРЅРЅРёРµ РїРµСЂРІРѕС†РІРµС‚С‹ (РїРѕРґСЃРЅРµР¶РЅРёРєРё, РєСЂРѕРєСѓСЃС‹, РѕРґСѓРІР°РЅС‡РёРєРё РїРѕ РІСЃРµР№ РїРѕР»СЏРЅРµ)
+        if isGroundLevel and ((h % 3 == 0) or (h % 8 == 0)) then
             local flower = Instance.new("Part")
             flower.Name = "SpringFlower"
-            local fType = (i % 3)
+            local fType = (h % 3)
             local fColor
             if fType == 0 then
                 fColor = Color3.fromRGB(255, 225, 45) -- Р—РѕР»РѕС‚РёСЃС‚С‹Р№ РѕРґСѓРІР°РЅС‡РёРє
@@ -1155,12 +1249,12 @@ local function setupGroundWeatherDecor()
             end
 
             local fH = 0.08
-            local fSize = 0.28 + rng:NextNumber(-0.04, 0.04)
+            local fSize = 0.25 + ((h % 11) / 11) * 0.08
             flower.Size = Vector3.new(fSize, fH, fSize)
             flower.Position = Vector3.new(
-                block.Position.X + rng:NextNumber(-0.35, 0.35),
+                block.Position.X + (((h % 13) - 6) * 0.05),
                 topY + (fH / 2) + 0.002,
-                block.Position.Z + rng:NextNumber(-0.35, 0.35)
+                block.Position.Z + (((h % 11) - 5) * 0.05)
             )
             flower.Color = fColor
             flower.Material = Enum.Material.SmoothPlastic
@@ -1192,15 +1286,18 @@ local function setupGroundWeatherDecor()
 end
 
 local function updateGroundDecor(dt, isRaining)
-    if #groundSnowCaps == 0 then
-        local wf = Workspace:FindFirstChild("VoxelWorld")
-        if wf and #wf:GetChildren() >= 30 then
+    local wf = Workspace:FindFirstChild("VoxelWorld")
+    local currentBlockCount = wf and #wf:GetChildren() or 0
+    if currentBlockCount > 0 and (currentBlockCount ~= lastProcessedDecorBlockCount or #groundSnowCaps == 0) then
+        if tick() - lastDecorRegenTick >= 1.0 or #groundSnowCaps == 0 then
+            lastDecorRegenTick = tick()
+            lastProcessedDecorBlockCount = currentBlockCount
             setupGroundWeatherDecor()
         end
     end
 
     -- 1. Р›СѓР¶Рё: РІРѕ РІСЂРµРјСЏ РґРѕР¶РґСЏ РёР»Рё РІРµСЃРЅРѕР№ РїСЂРё С‚Р°СЏРЅРёРё СЃРЅРµРіР° (РІРµСЃРЅРѕР№ РІСЃРµРіРґР° РµСЃС‚СЊ С‚Р°Р»Р°СЏ РІР»Р°РіР°!)
-    local minWetness = (currentSeasonId == "spring") and 0.32 or 0.0
+    local minWetness = (currentSeasonId == "spring") and 0.35 or 0.0
     if isRaining then
         puddleWetness = math.clamp(puddleWetness + dt / 6, 0, 1)
     else
@@ -1258,6 +1355,60 @@ local function updateGroundDecor(dt, isRaining)
             fl.Transparency = flTrans
             local stem = fl:FindFirstChild("Stem")
             if stem then stem.Transparency = flTrans end
+        end
+    end
+
+    -- 5. РђРЅРёРјР°С†РёСЏ РєСЂСѓРіРѕРІ РЅР° РІРѕРґРµ РІ РїСЂСѓРґСѓ (WaterRipples)
+    for i = #groundWaterRipples, 1, -1 do
+        local rip = groundWaterRipples[i]
+        if rip and rip.part and rip.part.Parent then
+            local age = tick() - rip.startTime
+            if age >= rip.duration then
+                rip.part:Destroy()
+                table.remove(groundWaterRipples, i)
+            else
+                local progress = age / rip.duration
+                local currentR = rip.startRadius + (rip.endRadius - rip.startRadius) * progress
+                rip.part.Size = Vector3.new(currentR * 2, 0.01, currentR * 2)
+                rip.part.Transparency = 0.35 + (progress * 0.65)
+            end
+        else
+            table.remove(groundWaterRipples, i)
+        end
+    end
+
+    -- РџРµСЂРёРѕРґРёС‡РµСЃРєРёР№ СЃРїР°РІРЅ РєСЂСѓРіРѕРІ РѕС‚ РїР»Р°РІР°СЋС‰РёС… СЂС‹Р±РѕРє РЅР° РІРѕРґРµ
+    if tick() - lastRippleSpawnTick >= 1.6 then
+        lastRippleSpawnTick = tick()
+        local pondWater = Workspace:FindFirstChild("SpringFishingPond")
+        if pondWater then
+            local pSize = pondWater.Size
+            local pPos = pondWater.Position
+            local rx = (math.random() - 0.5) * (pSize.X * 0.75)
+            local rz = (math.random() - 0.5) * (pSize.Z * 0.75)
+            local ripPart = Instance.new("Part")
+            ripPart.Name = "WaterRipple"
+            ripPart.Shape = Enum.PartType.Cylinder
+            ripPart.Orientation = Vector3.new(0, 0, 90)
+            ripPart.Size = Vector3.new(0.01, 0.4, 0.4)
+            ripPart.Position = Vector3.new(pPos.X + rx, pPos.Y + (pSize.Y / 2) + 0.005, pPos.Z + rz)
+            ripPart.Color = Color3.fromRGB(215, 240, 255)
+            ripPart.Material = Enum.Material.Glass
+            ripPart.Anchored = true
+            ripPart.CanCollide = false
+            ripPart.CanTouch = false
+            ripPart.CanQuery = false
+            ripPart.CastShadow = false
+            ripPart.Transparency = 0.35
+            ripPart.Parent = groundDecorFolder
+
+            table.insert(groundWaterRipples, {
+                part = ripPart,
+                startTime = tick(),
+                duration = 2.4,
+                startRadius = 0.25,
+                endRadius = 1.35
+            })
         end
     end
 end
@@ -1448,6 +1599,24 @@ local function updateDayNightAndWeather(dt)
 
     -- 7. Ночные светлячки: теплой летней ночью (22:00 - 05:00)
     firefliesEmitter.Enabled = (isSummer and (inGameTime >= 22 or inGameTime < 5))
+
+    -- Р‘Р°Р±РѕС‡РєРё Рё С€РјРµР»Рё: РІРµСЃРЅРѕР№ РІ СЃРѕР»РЅРµС‡РЅС‹Рµ РґРЅРµРІРЅС‹Рµ С‡Р°СЃС‹ (11:00 - 17:00) РїСЂРё СЏСЃРЅРѕР№ РїРѕРіРѕРґРµ
+    local isSpringButterflyHours = isSpring and (inGameTime >= 11.0 and inGameTime <= 17.0) and (not isRaining)
+    butterfliesEmitter.Enabled = isSpringButterflyHours
+    bumblebeesEmitter.Enabled = isSpringButterflyHours
+
+    -- Р¤РѕРЅРѕРІРѕРµ РїРµРЅРёРµ Р»РµСЃРЅС‹С… РїС‚РёС†: РїСЂРѕСЃС‹РїР°СЋС‚СЃСЏ РЅР° СЂР°СЃСЃРІРµС‚Рµ (СЃ 05:00), Р°РєС‚РёРІРЅС‹ РґРЅРµРј, Р·Р°С‚РёС…Р°СЋС‚ Рє 21:00
+    local targetBirdVolume = 0
+    if (isSpring or isSummer) and (not isRaining) then
+        if inGameTime >= 5.0 and inGameTime < 7.0 then
+            targetBirdVolume = ((inGameTime - 5.0) / 2.0) * 0.35 -- Р Р°СЃСЃРІРµС‚РЅРѕРµ РїСЂРѕР±СѓР¶РґРµРЅРёРµ
+        elseif inGameTime >= 7.0 and inGameTime < 18.0 then
+            targetBirdVolume = 0.35 -- Р—РІРѕРЅРєРѕРµ РґРЅРµРІРЅРѕРµ РїРµРЅРёРµ
+        elseif inGameTime >= 18.0 and inGameTime < 21.0 then
+            targetBirdVolume = (1.0 - ((inGameTime - 18.0) / 3.0)) * 0.35 -- Р’РµС‡РµСЂРЅРµРµ Р·Р°С‚РёС…Р°РЅРёРµ
+        end
+    end
+    birdsAmbientSound.Volume = birdsAmbientSound.Volume + (targetBirdVolume - birdsAmbientSound.Volume) * math.clamp(dt * 2.0, 0, 1)
 
     -- 8. Гроза с молниями: весной (13-16) и летом (14-17)
     -- 8. Thunderstorm with lightning: spring (13:00 - 16:30) and summer (14:00 - 17:00)
@@ -3319,6 +3488,28 @@ UserInputService.InputBegan:Connect(function(input, processed)
     -- ЛКМ: копать лапками
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
         if not processed then
+            -- РџСЂРѕРІРµСЂСЏРµРј: РєР»РёРє РїРѕ РїСЂСѓРґСѓ РґР»СЏ РІРµСЃРµРЅРЅРµР№ СЂС‹Р±Р°Р»РєРё
+            local mPos = UserInputService:GetMouseLocation()
+            local cam = Workspace.CurrentCamera
+            if cam then
+                local unitRay = cam:ViewportPointToRay(mPos.X, mPos.Y)
+                local pondParams = RaycastParams.new()
+                local pondInst = Workspace:FindFirstChild("SpringFishingPond")
+                if pondInst then
+                    pondParams.FilterDescendantsInstances = { pondInst }
+                    pondParams.FilterType = Enum.RaycastFilterType.Include
+                    local pondHit = Workspace:Raycast(unitRay.Origin, unitRay.Direction * 300, pondParams)
+                    if pondHit then
+                        local char = player.Character
+                        local root = char and char:FindFirstChild("HumanoidRootPart")
+                        if root and (pondHit.Position - root.Position).Magnitude <= 14 then
+                            voxelRemote:FireServer("FishPond", {})
+                            return
+                        end
+                    end
+                end
+            end
+
             isDiggingKeyHeld = true
             doDigStep()
         end
