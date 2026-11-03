@@ -434,7 +434,7 @@ local SEASON_CONFIGS = {
         icon = "🌸",
         accentColor = Color3.fromRGB(180, 255, 190),
         tempBase = 14,
-        tempNight = 6,
+        tempNight = 3,
         tempDay = 18,
         ambientDay = Color3.fromRGB(135, 148, 130),
         ambientNight = Color3.fromRGB(36, 42, 58),
@@ -817,7 +817,98 @@ firefliesEmitter.Transparency = NumberSequence.new({
 firefliesEmitter.Enabled = false
 firefliesEmitter.Parent = firefliesAnchor
 
+-- 8. РЎС‚РµР»СЋС‰РёР№СЃСЏ СѓС‚СЂРµРЅРЅРёР№ РІРµСЃРµРЅРЅРёР№ С‚СѓРјР°РЅ Сѓ Р·РµРјР»Рё
+local groundFogEmitter = Instance.new("ParticleEmitter")
+groundFogEmitter.Name = "GroundFogEmitter"
+groundFogEmitter.Rate = 26
+groundFogEmitter.Lifetime = NumberRange.new(4.5, 6.5)
+groundFogEmitter.Speed = NumberRange.new(1.0, 2.0)
+groundFogEmitter.SpreadAngle = Vector2.new(180, 0)
+groundFogEmitter.EmissionDirection = Enum.NormalId.Top
+groundFogEmitter.Acceleration = Vector3.new(0.6, 0.08, 0.4)
+groundFogEmitter.Color = ColorSequence.new(Color3.fromRGB(220, 235, 248))
+groundFogEmitter.Size = NumberSequence.new({
+    NumberSequenceKeypoint.new(0, 3.5),
+    NumberSequenceKeypoint.new(0.5, 7.0),
+    NumberSequenceKeypoint.new(1, 4.0)
+})
+groundFogEmitter.Transparency = NumberSequence.new({
+    NumberSequenceKeypoint.new(0, 1),
+    NumberSequenceKeypoint.new(0.2, 0.82),
+    NumberSequenceKeypoint.new(0.8, 0.85),
+    NumberSequenceKeypoint.new(1, 1)
+})
+groundFogEmitter.Enabled = false
+groundFogEmitter.Parent = firefliesAnchor
+
 -- 8. Система молний и раскатов грома
+-- ============================================================
+-- === RAINBOW VISUAL (SEMI-TRANSPARENT ARC ACROSS THE SKY) ===
+-- ============================================================
+local rainbowFolder = Instance.new("Folder")
+rainbowFolder.Name = "RainbowVisual"
+rainbowFolder.Parent = Workspace
+
+local rPart0 = Instance.new("Part")
+rPart0.Name = "RainbowNode0"
+rPart0.Size = Vector3.new(1, 1, 1)
+rPart0.Position = Vector3.new(-85, 4, -85)
+rPart0.Anchored = true
+rPart0.CanCollide = false
+rPart0.CanTouch = false
+rPart0.CanQuery = false
+rPart0.CastShadow = false
+rPart0.Transparency = 1
+rPart0.Parent = rainbowFolder
+
+local rPart1 = Instance.new("Part")
+rPart1.Name = "RainbowNode1"
+rPart1.Size = Vector3.new(1, 1, 1)
+rPart1.Position = Vector3.new(85, 4, -85)
+rPart1.Anchored = true
+rPart1.CanCollide = false
+rPart1.CanTouch = false
+rPart1.CanQuery = false
+rPart1.CastShadow = false
+rPart1.Transparency = 1
+rPart1.Parent = rainbowFolder
+
+local rAtt0 = Instance.new("Attachment")
+rAtt0.Name = "Att0"
+rAtt0.Parent = rPart0
+
+local rAtt1 = Instance.new("Attachment")
+rAtt1.Name = "Att1"
+rAtt1.Parent = rPart1
+
+local rainbowBeam = Instance.new("Beam")
+rainbowBeam.Name = "RainbowArcBeam"
+rainbowBeam.Attachment0 = rAtt0
+rainbowBeam.Attachment1 = rAtt1
+rainbowBeam.Width0 = 14
+rainbowBeam.Width1 = 14
+rainbowBeam.CurveSize0 = 80
+rainbowBeam.CurveSize1 = -80
+rainbowBeam.FaceCamera = true
+rainbowBeam.LightEmission = 0.65
+rainbowBeam.LightInfluence = 0.05
+rainbowBeam.Segments = 32
+
+-- 7 spectral colors of rainbow (Red, Orange, Yellow, Green, Cyan, Blue, Violet)
+rainbowBeam.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0.00, Color3.fromRGB(255, 60, 60)),
+    ColorSequenceKeypoint.new(0.18, Color3.fromRGB(255, 150, 40)),
+    ColorSequenceKeypoint.new(0.35, Color3.fromRGB(255, 235, 40)),
+    ColorSequenceKeypoint.new(0.50, Color3.fromRGB(60, 220, 80)),
+    ColorSequenceKeypoint.new(0.68, Color3.fromRGB(60, 200, 255)),
+    ColorSequenceKeypoint.new(0.85, Color3.fromRGB(60, 100, 255)),
+    ColorSequenceKeypoint.new(1.00, Color3.fromRGB(180, 70, 240))
+})
+rainbowBeam.Enabled = false
+rainbowBeam.Parent = rainbowFolder
+
+local currentRainbowAlpha = 0
+local springFogAlpha = 0
 local nextLightningTime = 0
 local isFlashingLightning = false
 local function triggerLightningStrike()
@@ -865,28 +956,32 @@ local function triggerLightningStrike()
         end
         boltModel.Parent = Workspace
 
-        local thunderSound = Instance.new("Sound")
-        thunderSound.SoundId = "rbxassetid://9114223171"
-        thunderSound.Volume = 0.75
-        thunderSound.Pitch = math.random(90, 110) / 100
-        thunderSound.Parent = Workspace
-        thunderSound:Play()
-        game:GetService("Debris"):AddItem(thunderSound, 5)
+        pcall(function()
+            local thunderSound = Instance.new("Sound")
+            thunderSound.SoundId = "rbxassetid://130833677"
+            -- Р’РµСЃРЅРѕР№ СЂР°СЃРєР°С‚С‹ РіСЂРѕРјР° РјСЏРіРєРёРµ Рё РґР°Р»РµРєРёРµ (Volume = 0.42), Р»РµС‚РѕРј Р±РѕР»РµРµ Р·РІРѕРЅРєРёРµ (0.75)
+            thunderSound.Volume = (currentSeasonId == "spring") and 0.42 or 0.75
+            thunderSound.Pitch = (currentSeasonId == "spring") and (math.random(80, 95) / 100) or (math.random(90, 110) / 100)
+            thunderSound.Parent = Workspace
+            thunderSound:Play()
+            game:GetService("Debris"):AddItem(thunderSound, 6)
+        end)
 
         local origBrightness = Lighting.Brightness
         local origColorShift = Lighting.ColorShift_Top
         local origAmbient = Lighting.Ambient
 
-        Lighting.Brightness = 4.6
-        Lighting.ColorShift_Top = Color3.fromRGB(255, 255, 255)
-        Lighting.Ambient = Color3.fromRGB(190, 205, 235)
-        task.wait(0.06)
+        local isSpringStrike = (currentSeasonId == "spring")
+        Lighting.Brightness = isSpringStrike and 2.7 or 4.6
+        Lighting.ColorShift_Top = isSpringStrike and Color3.fromRGB(225, 238, 255) or Color3.fromRGB(255, 255, 255)
+        Lighting.Ambient = isSpringStrike and Color3.fromRGB(150, 175, 210) or Color3.fromRGB(190, 205, 235)
+        task.wait(0.08)
 
-        Lighting.Brightness = 2.2
-        task.wait(0.04)
-
-        Lighting.Brightness = 3.8
+        Lighting.Brightness = isSpringStrike and 1.8 or 2.2
         task.wait(0.05)
+
+        Lighting.Brightness = isSpringStrike and 2.3 or 3.8
+        task.wait(0.06)
 
         boltModel:Destroy()
 
@@ -1224,7 +1319,7 @@ local function updateDayNightAndWeather(dt)
     inGameTime = (inGameTime + dt * (24 / DAY_CYCLE_SECONDS)) % 24
 
     -- Каждые 1 внутриигровые сутки: переход к следующему времени года строго Осень -> Зима -> Весна -> Лето -> Осень...
-    if inGameTime < oldTime then
+    if inGameTime < oldTime and oldTime >= 23.0 and inGameTime < 2.0 then
         local nextSeason = "autumn"
         for i, s in ipairs(SEASON_ORDER) do
             if s == currentSeasonId then
@@ -1244,7 +1339,12 @@ local function updateDayNightAndWeather(dt)
     -- Реалистичная температура: пик холода рано утром (04:30), пик тепла днем (14:30)
     local tAngle = (inGameTime - 4.5) / 24 * (math.pi * 2)
     local heatFactor = (1 - math.cos(tAngle)) / 2
-    local curTemp = math.floor(cfg.tempNight + (cfg.tempDay - cfg.tempNight) * heatFactor + 0.5)
+    local curTemp
+    if currentSeasonId == "spring" and inGameTime >= 5.0 and inGameTime < 7.0 then
+        curTemp = 4
+    else
+        curTemp = math.floor(cfg.tempNight + (cfg.tempDay - cfg.tempNight) * heatFactor + 0.5)
+    end
     tempLabel.Text = (curTemp > 0 and ("+" .. curTemp) or tostring(curTemp)) .. " °C"
 
     -- Плавное освещение:
@@ -1350,14 +1450,86 @@ local function updateDayNightAndWeather(dt)
     firefliesEmitter.Enabled = (isSummer and (inGameTime >= 22 or inGameTime < 5))
 
     -- 8. Гроза с молниями: весной (13-16) и летом (14-17)
-    local isStorming = (isSpring and inGameTime >= 13 and inGameTime < 16)
-        or (isSummer and inGameTime >= 14 and inGameTime < 17)
+    -- 8. Thunderstorm with lightning: spring (13:00 - 16:30) and summer (14:00 - 17:00)
+    local isSpringStorming = isSpring and (inGameTime >= 13 and inGameTime < 16.5)
+    local isSummerStorming = isSummer and (inGameTime >= 14 and inGameTime < 17)
+    local isStorming = isSpringStorming or isSummerStorming
+
     if isStorming and tick() >= nextLightningTime then
-        nextLightningTime = tick() + math.random(11, 20)
+        -- Spring thunder rumbles are rare and distant (22-38s interval)
+        nextLightningTime = tick() + (isSpring and math.random(22, 38) or math.random(11, 20))
         triggerLightningStrike()
     end
 
-    -- 9. Обновление следов погоды на земле (лужи, сугробы, листья)
+    -- 9. Spring rainbow in sky after rain stops (17:00 - 19:00):
+    local isSpringRainbowTime = isSpring and (inGameTime >= 17.0 and inGameTime < 19.0)
+    local targetRainbowAlpha = 0
+    if isSpringRainbowTime then
+        if inGameTime < 17.4 then
+            targetRainbowAlpha = (inGameTime - 17.0) / 0.4
+        elseif inGameTime <= 18.5 then
+            targetRainbowAlpha = 1.0
+        else
+            targetRainbowAlpha = (19.0 - inGameTime) / 0.5
+        end
+    end
+
+    currentRainbowAlpha = currentRainbowAlpha + (targetRainbowAlpha - currentRainbowAlpha) * math.clamp(dt * 2.5, 0, 1)
+
+    if currentRainbowAlpha > 0.01 then
+        rainbowBeam.Enabled = true
+        local midTrans = 0.42 + (1 - currentRainbowAlpha) * 0.58
+        rainbowBeam.Transparency = NumberSequence.new({
+            NumberSequenceKeypoint.new(0.0, 1.0),
+            NumberSequenceKeypoint.new(0.12, midTrans),
+            NumberSequenceKeypoint.new(0.88, midTrans),
+            NumberSequenceKeypoint.new(1.0, 1.0)
+        })
+    else
+        rainbowBeam.Enabled = false
+    end
+
+    -- 10. Morning spring fog at dawn (05:00 - 07:00) (+4 В°C):
+    local isSpringMorning = isSpring and (inGameTime >= 4.8 and inGameTime < 7.2)
+    local targetFogAlpha = 0
+    if isSpringMorning then
+        if inGameTime < 5.3 then
+            targetFogAlpha = (inGameTime - 4.8) / 0.5
+        elseif inGameTime <= 6.5 then
+            targetFogAlpha = 1.0
+        else
+            targetFogAlpha = (7.2 - inGameTime) / 0.7
+        end
+    end
+
+    springFogAlpha = springFogAlpha + (targetFogAlpha - springFogAlpha) * math.clamp(dt * 2.5, 0, 1)
+
+    if springFogAlpha > 0.01 then
+        Lighting.FogStart = math.clamp(120 - (105 * springFogAlpha), 15, 120)
+        Lighting.FogEnd = math.clamp(380 - (295 * springFogAlpha), 85, 380)
+        Lighting.FogColor = cfg.fogColor:Lerp(Color3.fromRGB(205, 224, 238), springFogAlpha)
+        if groundFogEmitter then groundFogEmitter.Enabled = (springFogAlpha > 0.15) end
+    else
+        Lighting.FogStart = 0
+        Lighting.FogEnd = cfg.fogEnd
+        Lighting.FogColor = cfg.fogColor
+        if groundFogEmitter then groundFogEmitter.Enabled = false end
+    end
+
+    local atmo = Lighting:FindFirstChildOfClass("Atmosphere")
+    if atmo then
+        if springFogAlpha > 0.01 then
+            atmo.Density = 0.30 + (0.16 * springFogAlpha)
+            atmo.Haze = 2.6 * springFogAlpha
+            atmo.Color = Color3.fromRGB(200, 200, 200):Lerp(Color3.fromRGB(210, 228, 245), springFogAlpha)
+        else
+            atmo.Density = 0.30
+            atmo.Haze = 0.0
+            atmo.Color = Color3.fromRGB(200, 200, 200)
+        end
+    end
+
+    -- 11. Ground decor update
     updateGroundDecor(dt, isRaining)
 end
 
