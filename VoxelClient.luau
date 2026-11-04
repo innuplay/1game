@@ -58,6 +58,7 @@ local CURSORS = {
     dirt      = "rbxassetid://92809404994132",
     water     = "rbxassetid://75387381858777",
     sand      = "rbxassetid://123242950554748",
+    ice       = "rbxassetid://106490815427101",
 }
 
 local ITEM_TO_CURSOR = {
@@ -65,6 +66,8 @@ local ITEM_TO_CURSOR = {
     stone_block = CURSORS.stone,
     grass_block = CURSORS.grass,
     dirt_block  = CURSORS.dirt,
+    ice_block   = CURSORS.ice,
+    ice         = CURSORS.ice,
     water_block = CURSORS.water,
     sand_block  = CURSORS.sand,
     wood        = CURSORS.wood,
@@ -482,7 +485,7 @@ seasonWidget.Size = UDim2.new(0, 102, 0, 104)
 seasonWidget.Position = UDim2.new(1, -10, 0, 10)
 seasonWidget.AnchorPoint = Vector2.new(1, 0)
 seasonWidget.BackgroundTransparency = 1
-seasonWidget.Image = "rbxassetid://106532762968675"
+seasonWidget.Image = "rbxassetid://114163195633097"
 seasonWidget.ScaleType = Enum.ScaleType.Fit
 seasonWidget.ZIndex = 5
 seasonWidget.Parent = screenGui
@@ -601,7 +604,7 @@ tStroke.Parent = tempLabel
 local seasonLabel = Instance.new("TextLabel")
 seasonLabel.Name = "SeasonLabel"
 seasonLabel.Size = UDim2.new(0, 50, 0, 18)
-seasonLabel.Position = UDim2.new(0.68, 0, 0.18, 0)
+seasonLabel.Position = UDim2.new(0.68, 0, 0.21, 0)
 seasonLabel.AnchorPoint = Vector2.new(0.5, 0.5)
 seasonLabel.BackgroundTransparency = 1
 seasonLabel.Text = "\u{0412}\u{0435}\u{0441}\u{043d}\u{0430}"
@@ -1429,14 +1432,14 @@ local function updateGroundDecor(dt, isRaining)
     end
 
     -- 1. Р›СѓР¶Рё: РІРѕ РІСЂРµРјСЏ РґРѕР¶РґСЏ РёР»Рё РІРµСЃРЅРѕР№ РїСЂРё С‚Р°СЏРЅРёРё СЃРЅРµРіР° (РІРµСЃРЅРѕР№ РІСЃРµРіРґР° РµСЃС‚СЊ С‚Р°Р»Р°СЏ РІР»Р°РіР°!)
-    local minWetness = (currentSeasonId == "spring") and 0.35 or 0.0
+    local minWetness = 0.0
     if isRaining then
         puddleWetness = math.clamp(puddleWetness + dt / 6, 0, 1)
     else
         puddleWetness = math.clamp(puddleWetness - dt / 18, minWetness, 1)
     end
 
-    local pTrans = 1 - (puddleWetness * 0.65)
+    local pTrans = (puddleWetness <= 0.01) and 1.0 or math.clamp(1.0 - (puddleWetness * 0.65), 0.35, 1.0)
     for _, puddle in ipairs(groundPuddles) do
         if puddle.Parent then
             puddle.Transparency = pTrans
@@ -1528,6 +1531,44 @@ local function setSeason(seasonKey, notifyServer)
     end
     if cfg.fogEnd then
         Lighting.FogEnd = cfg.fogEnd
+    end
+
+    local isWinter = (seasonKey == "winter")
+    if isWinter then
+        HOTBAR_SLOT_DEFS[3] = {
+            id = "ice_block",
+            sprite = "rbxassetid://72778677331909",
+            name = "\u{041b}\u{0451}\u{0434}",
+            icon = "\u{1F9CA}"
+        }
+    else
+        HOTBAR_SLOT_DEFS[3] = {
+            id = "water_block",
+            sprite = "rbxassetid://94567183251152",
+            name = "\u{0412}\u{043e}\u{0434}\u{0430}",
+            icon = "\u{1F4A7}"
+        }
+    end
+
+    local worldFolder = Workspace:FindFirstChild("VoxelWorld") or Workspace
+    for _, obj in ipairs(worldFolder:GetDescendants()) do
+        if obj:IsA("BasePart") and obj.Name:find("Water") ~= nil then
+            if isWinter then
+                obj.Material = Enum.Material.Ice
+                obj.Color = Color3.fromRGB(185, 225, 255)
+                obj.Transparency = 0.22
+                obj.CanCollide = true
+            else
+                obj.Material = Enum.Material.Glass
+                obj.Color = Color3.fromRGB(80, 150, 225)
+                obj.Transparency = 0.45
+                obj.CanCollide = false
+            end
+        end
+    end
+
+    if refreshAllInventoryUI then
+        refreshAllInventoryUI()
     end
 
     -- 4. Подсветка кнопок в окне настроек
@@ -1806,6 +1847,44 @@ local function updateDayNightAndWeather(dt)
     else
         Lighting.FogStart = 0
         Lighting.FogEnd = cfg.fogEnd
+    end
+
+    local isWinter = (seasonKey == "winter")
+    if isWinter then
+        HOTBAR_SLOT_DEFS[3] = {
+            id = "ice_block",
+            sprite = "rbxassetid://72778677331909",
+            name = "\u{041b}\u{0451}\u{0434}",
+            icon = "\u{1F9CA}"
+        }
+    else
+        HOTBAR_SLOT_DEFS[3] = {
+            id = "water_block",
+            sprite = "rbxassetid://94567183251152",
+            name = "\u{0412}\u{043e}\u{0434}\u{0430}",
+            icon = "\u{1F4A7}"
+        }
+    end
+
+    local worldFolder = Workspace:FindFirstChild("VoxelWorld") or Workspace
+    for _, obj in ipairs(worldFolder:GetDescendants()) do
+        if obj:IsA("BasePart") and obj.Name:find("Water") ~= nil then
+            if isWinter then
+                obj.Material = Enum.Material.Ice
+                obj.Color = Color3.fromRGB(185, 225, 255)
+                obj.Transparency = 0.22
+                obj.CanCollide = true
+            else
+                obj.Material = Enum.Material.Glass
+                obj.Color = Color3.fromRGB(80, 150, 225)
+                obj.Transparency = 0.45
+                obj.CanCollide = false
+            end
+        end
+    end
+
+    if refreshAllInventoryUI then
+        refreshAllInventoryUI()
         Lighting.FogColor = cfg.fogColor
         if groundFogEmitter then groundFogEmitter.Enabled = false end
     end

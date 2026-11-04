@@ -56,6 +56,17 @@ local ITEMS = {
         color = Color3.fromRGB(100, 70, 45),
         material = Enum.Material.Ground
     },
+    ice_block = {
+        name = "\u{041b}\u{0451}\u{0434}",
+        max = 64,
+        isBlock = true,
+        blockType = "Ice",
+        category = "resources",
+        sprite = "rbxassetid://72778677331909",
+        icon = "\u{1F9CA}",
+        color = Color3.fromRGB(185, 225, 255),
+        material = Enum.Material.Ice
+    },
     water_block = {
         name = "\u{0412}\u{043e}\u{0434}\u{0430}",
         max = 64,
@@ -235,6 +246,7 @@ local BLOCK_CONFIG = {
     Stone = { Color = Color3.fromRGB(122, 128, 138), Material = Enum.Material.Slate,      HP = 5, DropId = "stone_block" },
     Dirt  = { Color = Color3.fromRGB(98, 64, 38),    Material = Enum.Material.Ground,     HP = 3, DropId = "dirt_block" },
     Sand  = { Color = Color3.fromRGB(225, 200, 120), Material = Enum.Material.Sand,       HP = 2, DropId = "sand_block" },
+    Ice   = { Color = Color3.fromRGB(185, 225, 255), Material = Enum.Material.Ice,        HP = 2, DropId = "ice_block", Transparency = 0.22, Reflectance = 0.4, CastShadow = false, CanCollide = true },
     Water = { Color = Color3.fromRGB(75, 160, 235),  Material = Enum.Material.Glass,      HP = 1, DropId = "water_block", Transparency = 0.35, Reflectance = 0.3, CastShadow = false, CanCollide = false }
 }
 

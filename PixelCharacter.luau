@@ -465,62 +465,43 @@ local lastSplashTime = 0
 local isInWater = false
 local currentWaterSurfaceY = nil
 
-local function spawnWaterRipple(pos, waterY, radiusScale)
-    local ripple = Instance.new("Part")
-    ripple.Name = "WaterRipple"
-    ripple.Shape = Enum.PartType.Cylinder
-    ripple.Size = Vector3.new(0.002, 0.35, 0.35)
-    ripple.Color = Color3.fromRGB(225, 245, 255)
-    ripple.Material = Enum.Material.Glass
-    ripple.Transparency = 0.42
-    ripple.CanCollide = false
-    ripple.CanQuery = false
-    ripple.CanTouch = false
-    ripple.CastShadow = false
-    ripple.Anchored = true
-    ripple.CFrame = CFrame.new(pos.X, waterY + 0.006, pos.Z) * CFrame.Angles(0, 0, math.rad(90))
-    ripple.Parent = effectsFolder
-
-    local targetDiam = (1.35 * (radiusScale or 1.0))
-    local tw = TweenService:Create(ripple, TweenInfo.new(0.85, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-        Size = Vector3.new(0.002, targetDiam, targetDiam),
-        Transparency = 1
-    })
-    tw:Play()
-    tw.Completed:Connect(function()
-        ripple:Destroy()
-    end)
-end
-
-local function spawnWaterSplash(pos, velDir)
-    local numDrops = math.random(2, 4)
-    for _ = 1, numDrops do
-        local drop = Instance.new("Part")
-        drop.Name = "WaterDrop"
-        drop.Shape = Enum.PartType.Ball
-        local dropSize = math.random(7, 12) * 0.01
-        drop.Size = Vector3.new(dropSize, dropSize, dropSize)
-        drop.Color = Color3.fromRGB(215, 238, 255)
-        drop.Material = Enum.Material.Glass
-        drop.Transparency = 0.35
-        drop.CanCollide = false
-        drop.CanQuery = false
-        drop.CanTouch = false
-        drop.CastShadow = false
-        drop.Anchored = false
-        drop.Position = pos + Vector3.new(
-            math.random(-2, 2) * 0.06,
-            0.02,
-            math.random(-2, 2) * 0.06
+local function spawnWaterBubbles(pos, velDir, isIdle)
+    local numCubes = isIdle and math.random(1, 2) or math.random(3, 5)
+    for _ = 1, numCubes do
+        local bubble = Instance.new("Part")
+        bubble.Name = "WaterBubble"
+        bubble.Shape = Enum.PartType.Block -- РњР°Р»РµРЅСЊРєРёРµ РїРёРєСЃРµР»СЊРЅС‹Рµ РєСѓР±РёРєРё-РїСѓР·С‹СЂСЊРєРё!
+        local s = math.random(5, 8) * 0.01
+        bubble.Size = Vector3.new(s, s, s)
+        bubble.Color = Color3.fromRGB(195, 235, 255)
+        bubble.Material = Enum.Material.Glass
+        bubble.Transparency = 0.25
+        bubble.CanCollide = false
+        bubble.CanQuery = false
+        bubble.CanTouch = false
+        bubble.CastShadow = false
+        bubble.Anchored = false
+        bubble.Position = pos + Vector3.new(
+            (math.random() - 0.5) * 0.45,
+            -0.06 + (math.random() - 0.5) * 0.08,
+            (math.random() - 0.5) * 0.45
         )
-        local spread = Vector3.new(
-            (math.random() - 0.5) * 3.5,
-            math.random(35, 55) * 0.1,
-            (math.random() - 0.5) * 3.5
+        local upwardSpeed = math.random(22, 36) * 0.1
+        local drift = Vector3.new(
+            (math.random() - 0.5) * 1.5 + (velDir and velDir.X * 1.1 or 0),
+            upwardSpeed,
+            (math.random() - 0.5) * 1.5 + (velDir and velDir.Z * 1.1 or 0)
         )
-        drop.Velocity = (velDir * 2.2) + spread
-        drop.Parent = effectsFolder
-        Debris:AddItem(drop, 0.38)
+        bubble.Velocity = drift
+        bubble.Parent = effectsFolder
+
+        local lifeTime = math.random(35, 55) * 0.01
+        local tw = TweenService:Create(bubble, TweenInfo.new(lifeTime, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+            Size = Vector3.new(0.01, 0.01, 0.01),
+            Transparency = 0.95
+        })
+        tw:Play()
+        Debris:AddItem(bubble, lifeTime + 0.05)
     end
 end
 
@@ -658,19 +639,15 @@ RunService.RenderStepped:Connect(function(dt)
 
     if isInWater and currentWaterSurfaceY then
         if isActuallyWalking then
-            if now - lastSplashTime >= 0.18 then
+            if now - lastSplashTime >= 0.14 then
                 lastSplashTime = now
                 local forwardDir = rootPart.CFrame.LookVector
-                spawnWaterSplash(rootPart.Position + Vector3.new(0, -0.4, 0) + forwardDir * 0.4, forwardDir)
-            end
-            if now - lastRippleTime >= 0.28 then
-                lastRippleTime = now
-                spawnWaterRipple(rootPart.Position, currentWaterSurfaceY, 1.1)
+                spawnWaterBubbles(rootPart.Position + Vector3.new(0, -0.3, 0) + forwardDir * 0.25, forwardDir, false)
             end
         else
-            if now - lastRippleTime >= 1.4 then
-                lastRippleTime = now
-                spawnWaterRipple(rootPart.Position, currentWaterSurfaceY, 0.75)
+            if now - lastSplashTime >= 1.2 then
+                lastSplashTime = now
+                spawnWaterBubbles(rootPart.Position + Vector3.new(0, -0.35, 0), Vector3.zero, true)
             end
         end
     end
