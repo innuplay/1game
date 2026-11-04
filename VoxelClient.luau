@@ -283,13 +283,8 @@ end)
 
 
 
--- === ПАНЕЛЬ ЖИЗНЕННЫХ ПОКАЗАТЕЛЕЙ (В ЛЕВОМ НИЖНЕМ УГЛУ) ===
--- Иконки: Еда (зеленая вилка и нож), Вода (голубая капля), Энергия (желтая молния)
-local VITALITY_ICONS = {
-    hunger = "rbxassetid://85498299233584",
-    thirst = "rbxassetid://138664811721806",
-    energy = "rbxassetid://129785022833362",
-}
+-- === РќРћР’РђРЇ Р•Р”РРќРђРЇ РџРРљРЎР•Р›Р¬-РђР Рў РџРђРќР•Р›Р¬ Р’РРљРўРђР›Р¬РќРћРЎРўР (Р“РћР›РћР”, Р–РђР–Р”Рђ, Р­РќР•Р Р“РРЇ) ===
+local VITALITY_PLATE_ASSET = "rbxassetid://86235829828322"
 
 local catStats = {
     hunger = 100,
@@ -297,122 +292,129 @@ local catStats = {
     energy = 100,
 }
 
-local vitalityFrame = Instance.new("Frame")
+local vitalityFrame = Instance.new("ImageButton")
 vitalityFrame.Name = "VitalityStatusPanel"
 vitalityFrameRef = vitalityFrame
-vitalityFrame.Size = UDim2.new(0, 50, 0, 142)
-vitalityFrame.Position = UDim2.new(1, -8, 0, 82) -- Р’ РїСЂР°РІРѕРј РІРµСЂС…РЅРµРј СѓРіР»Сѓ РїРѕРґ С‡Р°СЃР°РјРё Рё РїРѕРіРѕРґРѕР№
+vitalityFrame.Size = UDim2.new(0, 52, 0, 144)
+vitalityFrame.Position = UDim2.new(1, -10, 0, 122) -- РЎС‚СЂРѕРіРѕ РїРѕРґ РІРёРґР¶РµС‚РѕРј С‡Р°СЃРѕРІ СЃ РѕС‚СЃС‚СѓРїРѕРј 8px
 vitalityFrame.AnchorPoint = Vector2.new(1, 0)
-vitalityFrame.BackgroundColor3 = Color3.fromRGB(111, 98, 77)
-vitalityFrame.BorderSizePixel = 0
+vitalityFrame.BackgroundTransparency = 1
+vitalityFrame.Image = VITALITY_PLATE_ASSET
+vitalityFrame.ScaleType = Enum.ScaleType.Fit
 vitalityFrame.ZIndex = 5
 vitalityFrame.Parent = screenGui
 
-local vitCorner = Instance.new("UICorner")
-vitCorner.CornerRadius = UDim.new(0, 10)
-vitCorner.Parent = vitalityFrame
-
-local vitStroke = Instance.new("UIStroke")
-vitStroke.Color = Color3.fromRGB(80, 70, 55)
-vitStroke.Thickness = 1.5
-vitStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-vitStroke.Parent = vitalityFrame
-
 local vitalityUIElements = {}
 
-local function createVitalityColumn(name, iconId, colIndex, defaultPercent)
-    local rowH = 142 / 3
-    local colFrame = Instance.new("Frame")
-    colFrame.Name = "Col_" .. name
-    colFrame.Size = UDim2.new(1, 0, 0, math.floor(rowH))
-    colFrame.Position = UDim2.new(0, 0, 0, math.floor((colIndex - 1) * rowH))
-    colFrame.BackgroundTransparency = 1
-    colFrame.ZIndex = 6
-    colFrame.Parent = vitalityFrame
+local SECTION_CONFIGS = {
+    hunger = { textY = 0.301, barY = 0.352 },
+    thirst = { textY = 0.608, barY = 0.658 },
+    energy = { textY = 0.893, barY = 0.938 },
+}
 
-    -- Пиксельная иконка
-    local icon = Instance.new("ImageLabel")
-    icon.Name = "Icon"
-    icon.Size = UDim2.new(0, 22, 0, 24)
-    icon.Position = UDim2.new(0.5, -11, 0, 4)
-    icon.BackgroundTransparency = 1
-    icon.Image = iconId
-    icon.ResampleMode = Enum.ResamplerMode.Pixelated
-    icon.ScaleType = Enum.ScaleType.Fit
-    icon.ZIndex = 7
-    icon.Parent = colFrame
-
-    -- Текст процентов под иконкой
+local function createVitalitySection(name, conf, defaultVal)
     local pctLabel = Instance.new("TextLabel")
-    pctLabel.Name = "PercentText"
-    pctLabel.Size = UDim2.new(1, 0, 0, 14)
-    pctLabel.Position = UDim2.new(0, 0, 0, 27)
+    pctLabel.Name = "Pct_" .. name
+    pctLabel.Size = UDim2.new(0.80, 0, 0, 12)
+    pctLabel.Position = UDim2.new(0.5, 0, conf.textY, 0)
+    pctLabel.AnchorPoint = Vector2.new(0.5, 0.5)
     pctLabel.BackgroundTransparency = 1
-    pctLabel.Text = math.floor(defaultPercent) .. "%"
-    pctLabel.TextColor3 = Color3.fromRGB(235, 230, 210)
+    pctLabel.Text = math.floor(defaultVal) .. "%"
+    pctLabel.TextColor3 = Color3.fromRGB(242, 231, 211)
     pctLabel.Font = Enum.Font.FredokaOne
     pctLabel.TextSize = 10
+    pctLabel.TextXAlignment = Enum.TextXAlignment.Center
     pctLabel.ZIndex = 7
-    pctLabel.Parent = colFrame
+    pctLabel.Parent = vitalityFrame
 
-    local txtStroke = Instance.new("UIStroke")
-    txtStroke.Color = Color3.fromRGB(40, 35, 25)
-    txtStroke.Thickness = 1
-    txtStroke.Parent = pctLabel
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(25, 20, 22)
+    stroke.Thickness = 1.0
+    stroke.Parent = pctLabel
 
-    -- Темная подложка горизонтальной полоски
-    local barBg = Instance.new("Frame")
-    barBg.Name = "BarBg"
-    barBg.Size = UDim2.new(0, 30, 0, 3)
-    barBg.Position = UDim2.new(0.5, -15, 0, 41)
-    barBg.BackgroundColor3 = Color3.fromRGB(65, 75, 60)
-    barBg.BorderSizePixel = 0
-    barBg.ZIndex = 7
-    barBg.Parent = colFrame
+    local barContainer = Instance.new("Frame")
+    barContainer.Name = "Bar_" .. name
+    barContainer.Size = UDim2.new(0.66, 0, 0, 5)
+    barContainer.Position = UDim2.new(0.5, 0, conf.barY, 0)
+    barContainer.AnchorPoint = Vector2.new(0.5, 0.5)
+    barContainer.BackgroundColor3 = Color3.fromRGB(24, 18, 22)
+    barContainer.BorderSizePixel = 0
+    barContainer.ZIndex = 6
+    barContainer.Parent = vitalityFrame
 
-    local barBgCorner = Instance.new("UICorner")
-    barBgCorner.CornerRadius = UDim.new(0, 1.5)
-    barBgCorner.Parent = barBg
+    local bCorner = Instance.new("UICorner")
+    bCorner.CornerRadius = UDim.new(0, 1)
+    bCorner.Parent = barContainer
 
-    -- Заполненная часть полоски (активная)
-    local barFill = Instance.new("Frame")
-    barFill.Name = "BarFill"
-    barFill.Size = UDim2.new(math.clamp(defaultPercent / 100, 0, 1), 0, 1, 0)
-    barFill.Position = UDim2.new(0, 0, 0, 0)
-    barFill.BackgroundColor3 = (defaultPercent > 10) and Color3.fromRGB(132, 204, 118) or Color3.fromRGB(75, 85, 70)
-    barFill.BorderSizePixel = 0
-    barFill.ZIndex = 8
-    barFill.Parent = barBg
+    local segments = {}
+    for i = 1, 6 do
+        local seg = Instance.new("Frame")
+        seg.Name = "Seg_" .. i
+        seg.Size = UDim2.new(1 / 6, -1, 1, 0)
+        seg.Position = UDim2.new((i - 1) / 6, 0, 0, 0)
+        seg.BorderSizePixel = 0
+        seg.BackgroundColor3 = Color3.fromRGB(90, 195, 75)
+        seg.ZIndex = 7
+        seg.Parent = barContainer
 
-    local barFillCorner = Instance.new("UICorner")
-    barFillCorner.CornerRadius = UDim.new(0, 1.5)
-    barFillCorner.Parent = barFill
+        local sCorner = Instance.new("UICorner")
+        sCorner.CornerRadius = UDim.new(0, 1)
+        sCorner.Parent = seg
+
+        table.insert(segments, seg)
+    end
 
     vitalityUIElements[name] = {
         label = pctLabel,
-        bar = barFill,
+        segments = segments,
+        barContainer = barContainer,
     }
 end
 
-createVitalityColumn("hunger", VITALITY_ICONS.hunger, 1, catStats.hunger)
-createVitalityColumn("thirst", VITALITY_ICONS.thirst, 2, catStats.thirst)
-createVitalityColumn("energy", VITALITY_ICONS.energy, 3, catStats.energy)
+createVitalitySection("hunger", SECTION_CONFIGS.hunger, catStats.hunger)
+createVitalitySection("thirst", SECTION_CONFIGS.thirst, catStats.thirst)
+createVitalitySection("energy", SECTION_CONFIGS.energy, catStats.energy)
 
 local function updateVitalityDisplay()
     for statName, val in pairs(catStats) do
         local el = vitalityUIElements[statName]
         if el then
-            el.label.Text = math.floor(val) .. "%"
-            local frac = math.clamp(val / 100, 0, 1)
-            el.bar.Size = UDim2.new(frac, 0, 1, 0)
-            if frac > 0.1 then
-                el.bar.BackgroundColor3 = Color3.fromRGB(132, 204, 118)
-            else
-                el.bar.BackgroundColor3 = Color3.fromRGB(75, 85, 70)
+            local floored = math.clamp(math.floor(val), 0, 100)
+            el.label.Text = floored .. "%"
+            
+            local numLit = math.clamp(math.round((val / 100) * 6), 0, 6)
+            for i, seg in ipairs(el.segments) do
+                if i <= numLit then
+                    seg.BackgroundTransparency = 0
+                    if val <= 18 then
+                        seg.BackgroundColor3 = Color3.fromRGB(235, 60, 45)
+                    elseif val <= 40 then
+                        seg.BackgroundColor3 = Color3.fromRGB(240, 175, 45)
+                    else
+                        seg.BackgroundColor3 = Color3.fromRGB(85, 195, 75)
+                    end
+                else
+                    seg.BackgroundTransparency = 0.65
+                    seg.BackgroundColor3 = Color3.fromRGB(35, 25, 28)
+                end
             end
         end
     end
 end
+
+vitalityFrame.MouseButton1Click:Connect(function()
+    local msg = "\u{1F43E} \u{041a}\u{043e}\u{0442}\u{0438}\u{043a} \u{0431}\u{043e}\u{0434}\u{0440} \u{0438} \u{043f}\u{043e}\u{043b}\u{043e}\u{043d} \u{0441}\u{0438}\u{043b}!"
+    if catStats.energy < 30 then
+        msg = "\u{26A1} \u{041a}\u{043e}\u{0442}\u{0438}\u{043a} \u{0443}\u{0441}\u{0442}\u{0430}\u{043b}! \u{041f}\u{043e}\u{0441}\u{0438}\u{0434}\u{0438}\u{0442}\u{0435} \u{0438} \u{043e}\u{0442}\u{0434}\u{043e}\u{0445}\u{043d}\u{0438}\u{0442}\u{0435}."
+    elseif catStats.thirst < 40 then
+        msg = "\u{1F4A7} \u{041a}\u{043e}\u{0442}\u{0438}\u{043a} \u{0445}\u{043e}\u{0447}\u{0435}\u{0442} \u{043f}\u{0438}\u{0442}\u{044c}!"
+    elseif catStats.hunger < 40 then
+        msg = "\u{1F37D} \u{041a}\u{043e}\u{0442}\u{0438}\u{043a} \u{043f}\u{0440}\u{043e}\u{0433}\u{043e}\u{043b}\u{043e}\u{0434}\u{0430}\u{043b}\u{0441}\u{044f}!"
+    end
+    if showPickupNotification then
+        showPickupNotification(msg, 0)
+    end
+end)
 
 -- Всплывающее уведомление о сборе лута
 -- === ВРЕМЕНА ГОДА И ДЕНЬ / НОЧЬ (НОЧЬ С 23:00 ДО 05:00, ЗОЛОТЫЕ ЧАСЫ БЕЗ ЦИФР) ===
@@ -476,11 +478,11 @@ local seasonButtonsUI = {}
 local seasonWidget = Instance.new("ImageButton")
 seasonWidget.Name = "SeasonTimeWidget"
 seasonWidgetRef = seasonWidget
-seasonWidget.Size = UDim2.new(0, 96, 0, 100)
+seasonWidget.Size = UDim2.new(0, 102, 0, 104)
 seasonWidget.Position = UDim2.new(1, -10, 0, 10)
 seasonWidget.AnchorPoint = Vector2.new(1, 0)
 seasonWidget.BackgroundTransparency = 1
-seasonWidget.Image = "rbxassetid://93841513073199"
+seasonWidget.Image = "rbxassetid://106532762968675"
 seasonWidget.ScaleType = Enum.ScaleType.Fit
 seasonWidget.ZIndex = 5
 seasonWidget.Parent = screenGui
@@ -496,7 +498,7 @@ end)
 local clockCenter = Instance.new("Frame")
 clockCenter.Name = "ClockCenter"
 clockCenter.Size = UDim2.new(0, 1, 0, 1)
-clockCenter.Position = UDim2.new(0.387, 0, 0.426, 0)
+clockCenter.Position = UDim2.new(0.354, 0, 0.446, 0)
 clockCenter.AnchorPoint = Vector2.new(0.5, 0.5)
 clockCenter.BackgroundTransparency = 1
 clockCenter.ZIndex = 6
@@ -555,9 +557,9 @@ pCorner.Parent = pin
 -- Dynamic mercury column of thermometer
 local thermoTrack = Instance.new("Frame")
 thermoTrack.Name = "ThermoTrack"
-thermoTrack.Size = UDim2.new(0, 2.5, 0, 17)
-thermoTrack.Position = UDim2.new(0.790, -1, 0.777, 0)
-thermoTrack.AnchorPoint = Vector2.new(0, 1)
+thermoTrack.Size = UDim2.new(0, 3, 0, 19)
+thermoTrack.Position = UDim2.new(0.776, 0, 0.690, 0)
+thermoTrack.AnchorPoint = Vector2.new(0.5, 0.5)
 thermoTrack.BackgroundTransparency = 1
 thermoTrack.ClipsDescendants = false
 thermoTrack.ZIndex = 6
@@ -579,14 +581,14 @@ mCorner.Parent = mercuryBar
 -- Temperature Text ("+11 В°C")
 local tempLabel = Instance.new("TextLabel")
 tempLabel.Name = "TempLabel"
-tempLabel.Size = UDim2.new(0, 48, 0, 14)
-tempLabel.Position = UDim2.new(0.42, 0, 0.68, 0)
+tempLabel.Size = UDim2.new(0, 56, 0, 18)
+tempLabel.Position = UDim2.new(0.36, 0, 0.76, 0)
 tempLabel.AnchorPoint = Vector2.new(0.5, 0.5)
 tempLabel.BackgroundTransparency = 1
 tempLabel.Text = "+11 \u{00b0}C"
 tempLabel.TextColor3 = Color3.fromRGB(240, 235, 220)
 tempLabel.Font = Enum.Font.FredokaOne
-tempLabel.TextSize = 11
+tempLabel.TextSize = 13
 tempLabel.TextXAlignment = Enum.TextXAlignment.Center
 tempLabel.ZIndex = 7
 tempLabel.Parent = seasonWidget
@@ -598,14 +600,14 @@ tStroke.Parent = tempLabel
 -- Season Name
 local seasonLabel = Instance.new("TextLabel")
 seasonLabel.Name = "SeasonLabel"
-seasonLabel.Size = UDim2.new(0, 48, 0, 14)
-seasonLabel.Position = UDim2.new(0.42, 0, 0.83, 0)
+seasonLabel.Size = UDim2.new(0, 50, 0, 18)
+seasonLabel.Position = UDim2.new(0.68, 0, 0.18, 0)
 seasonLabel.AnchorPoint = Vector2.new(0.5, 0.5)
 seasonLabel.BackgroundTransparency = 1
 seasonLabel.Text = "\u{0412}\u{0435}\u{0441}\u{043d}\u{0430}"
 seasonLabel.TextColor3 = Color3.fromRGB(240, 235, 220)
 seasonLabel.Font = Enum.Font.FredokaOne
-seasonLabel.TextSize = 11
+seasonLabel.TextSize = 13
 seasonLabel.TextXAlignment = Enum.TextXAlignment.Center
 seasonLabel.ZIndex = 7
 seasonLabel.Parent = seasonWidget
@@ -1506,13 +1508,13 @@ local function setSeason(seasonKey, notifyServer)
     seasonLabel.Text = cfg.name
     seasonLabel.TextColor3 = cfg.accentColor or Color3.fromRGB(255, 220, 150)
     local popTween = TweenService:Create(seasonLabel, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-        TextSize = 17,
+            TextSize = 13,
         TextColor3 = Color3.fromRGB(255, 255, 255)
     })
     popTween:Play()
     popTween.Completed:Connect(function()
         TweenService:Create(seasonLabel, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-            TextSize = 15,
+            TextSize = 13,
             TextColor3 = Color3.fromRGB(240, 235, 220)
         }):Play()
     end)
@@ -1593,11 +1595,11 @@ local function updateDayNightAndWeather(dt)
     tempLabel.Text = tempStr .. " \u{00b0}C"
     if mercuryBar then
         local minT, maxT = -15, 30
-        local tFrac = math.clamp((displayTemp - minT) / (maxT - minT), 0.15, 1.0)
+        local tFrac = math.clamp((curTemp - minT) / (maxT - minT), 0.15, 1.0)
         mercuryBar.Size = UDim2.new(1, 0, tFrac, 0)
-        if displayTemp < 0 then
+        if curTemp < 0 then
             mercuryBar.BackgroundColor3 = Color3.fromRGB(110, 180, 240)
-        elseif displayTemp >= 22 then
+        elseif curTemp >= 22 then
             mercuryBar.BackgroundColor3 = Color3.fromRGB(235, 60, 45)
         else
             mercuryBar.BackgroundColor3 = Color3.fromRGB(210, 85, 65)
