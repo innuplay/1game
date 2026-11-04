@@ -862,6 +862,35 @@ petalsEmitter.Transparency = NumberSequence.new({
 petalsEmitter.Enabled = false
 petalsEmitter.Parent = weatherAnchor
 
+-- 6b. Dandelions fluff (floating gentle dandelion parachutes)
+local dandelionsEmitter = Instance.new("ParticleEmitter")
+dandelionsEmitter.Name = "DandelionsEmitter"
+dandelionsEmitter.Rate = 22
+dandelionsEmitter.Lifetime = NumberRange.new(5.5, 8.5)
+dandelionsEmitter.Speed = NumberRange.new(2.5, 5.0)
+dandelionsEmitter.SpreadAngle = Vector2.new(35, 35)
+dandelionsEmitter.EmissionDirection = Enum.NormalId.Bottom
+dandelionsEmitter.Acceleration = Vector3.new(3.5, -1.5, 2.5)
+dandelionsEmitter.RotSpeed = NumberRange.new(-40, 40)
+dandelionsEmitter.Rotation = NumberRange.new(0, 360)
+dandelionsEmitter.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 252)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(248, 250, 242)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(238, 242, 230))
+})
+dandelionsEmitter.Size = NumberSequence.new({
+    NumberSequenceKeypoint.new(0, 0.16),
+    NumberSequenceKeypoint.new(0.5, 0.26),
+    NumberSequenceKeypoint.new(1, 0.14)
+})
+dandelionsEmitter.Transparency = NumberSequence.new({
+    NumberSequenceKeypoint.new(0, 0.05),
+    NumberSequenceKeypoint.new(0.85, 0.15),
+    NumberSequenceKeypoint.new(1, 1)
+})
+dandelionsEmitter.Enabled = false
+dandelionsEmitter.Parent = weatherAnchor
+
 -- 7. Ночные светлячки (теплое мерцание в летнюю ночь)
 local firefliesEmitter = Instance.new("ParticleEmitter")
 firefliesEmitter.Name = "FirefliesEmitter"
@@ -1437,8 +1466,15 @@ local function updateGroundDecor(dt, isRaining)
     end
 end
 
+local currentWeatherState = "clear" -- clear (default), seasonal_fall (snow/leaves/petals/dandelions), rain, breeze
+local nextWeatherChangeTick = tick() + 35
+
 local function setSeason(seasonKey, notifyServer)
     local cfg = SEASON_CONFIGS[seasonKey]
+    if cfg then
+        currentWeatherState = "seasonal_fall"
+        nextWeatherChangeTick = tick() + 18
+    end
     if not cfg then return end
     currentSeasonId = seasonKey
 
@@ -1613,52 +1649,71 @@ local function updateDayNightAndWeather(dt)
     end
 
     -- Актуализация погодных явлений под текущее время года и время суток
+    -- PERIODIC WEATHER SYSTEM: Nothing constantly falls from the sky!
+    -- Most of the time (~60%) sky is clear and calm.
+    -- Periodically, seasonal weather events occur (snow, rain, petals, leaves, dandelions).
+    if tick() >= nextWeatherChangeTick then
+        if currentWeatherState ~= "clear" then
+            currentWeatherState = "clear"
+            nextWeatherChangeTick = tick() + math.random(45, 75)
+        else
+            local roll = math.random(1, 100)
+            if roll <= 58 then
+                currentWeatherState = "seasonal_fall"
+                nextWeatherChangeTick = tick() + math.random(25, 42)
+            elseif roll <= 84 then
+                currentWeatherState = "rain"
+                nextWeatherChangeTick = tick() + math.random(22, 36)
+            else
+                currentWeatherState = "breeze"
+                nextWeatherChangeTick = tick() + math.random(20, 32)
+            end
+        end
+    end
+
     local isAutumn = (currentSeasonId == "autumn")
     local isWinter = (currentSeasonId == "winter")
     local isSpring = (currentSeasonId == "spring")
     local isSummer = (currentSeasonId == "summer")
 
-    -- 1. Летящие листья: осенью
-    leavesEmitter.Enabled = isAutumn
+    -- 1. Autumn falling leaves: only during seasonal fall episodes
+    leavesEmitter.Enabled = isAutumn and (currentWeatherState == "seasonal_fall")
 
-    -- 2. Ветер: осенью постоянно, зимой в бурю (12-18), весной днем (10-18), летом при грозе (14-17)
-    windEmitter.Enabled = isAutumn
-        or (isWinter and inGameTime >= 12 and inGameTime < 18)
-        or (isSpring and inGameTime >= 10 and inGameTime < 18)
-        or (isSummer and inGameTime >= 14 and inGameTime < 17)
+    -- 2. Wind: during breeze, blizzard, or leaf-fall
+    windEmitter.Enabled = (currentWeatherState == "breeze")
+        or (isAutumn and currentWeatherState == "seasonal_fall")
+        or (isWinter and currentWeatherState == "rain")
+        or (currentWeatherState == "rain" and math.random() < 0.3)
 
-    -- 3. Дождь: осенью днем/вечером (13-19), весной днем (12-17), летом при грозе (14-17)
-    local isRaining = (isAutumn and inGameTime >= 13 and inGameTime < 19)
-        or (isSpring and inGameTime >= 12 and inGameTime < 17)
-        or (isSummer and inGameTime >= 14 and inGameTime < 17)
+    -- 3. Rain: periodically during rain episodes (autumn, spring, summer)
+    local isRaining = (isAutumn or isSpring or isSummer) and (currentWeatherState == "rain")
     rainEmitter.Enabled = isRaining
 
-    -- 4. Пушистый снег: зимой
-    snowEmitter.Enabled = isWinter
+    -- 4. Snow: winter periodic snowfall or blizzard (otherwise clear frosty sky)
+    local isSnowing = isWinter and (currentWeatherState == "seasonal_fall" or currentWeatherState == "rain")
+    snowEmitter.Enabled = isSnowing
 
-    -- 5. Ледяной град: зимой в пик бури (13-17)
-    hailEmitter.Enabled = (isWinter and inGameTime >= 13 and inGameTime < 17)
+    -- 5. Hail: winter only during blizzard
+    hailEmitter.Enabled = isWinter and (currentWeatherState == "rain")
 
-    -- 6. Лепестки цветов: весной
-    petalsEmitter.Enabled = isSpring
+    -- 6. Flower petals: spring only during seasonal fall episodes
+    petalsEmitter.Enabled = isSpring and (currentWeatherState == "seasonal_fall")
 
-    -- 7. Ночные светлячки: теплой летней ночью (22:00 - 05:00)
-    firefliesEmitter.Enabled = (isSummer and (inGameTime >= 22 or inGameTime < 5))
+    -- 6b. Dandelion fluff: spring and summer during breeze or seasonal fall
+    dandelionsEmitter.Enabled = (isSpring or isSummer) and (currentWeatherState == "seasonal_fall" or currentWeatherState == "breeze")
 
-    -- Р‘Р°Р±РѕС‡РєРё Рё С€РјРµР»Рё: РІРµСЃРЅРѕР№ РІ СЃРѕР»РЅРµС‡РЅС‹Рµ РґРЅРµРІРЅС‹Рµ С‡Р°СЃС‹ (11:00 - 17:00) РїСЂРё СЏСЃРЅРѕР№ РїРѕРіРѕРґРµ
-    local isSpringButterflyHours = isSpring and (inGameTime >= 11.0 and inGameTime <= 17.0) and (not isRaining)
-    butterfliesEmitter.Enabled = isSpringButterflyHours
-    bumblebeesEmitter.Enabled = isSpringButterflyHours
+    -- 7. Fireflies: warm summer nights in clear weather
+    firefliesEmitter.Enabled = isSummer and (inGameTime >= 22 or inGameTime < 5) and (currentWeatherState ~= "rain")
 
-    -- 8. Гроза с молниями: весной (13-16) и летом (14-17)
-    -- 8. Thunderstorm with lightning: spring (13:00 - 16:30) and summer (14:00 - 17:00)
-    local isSpringStorming = isSpring and (inGameTime >= 13 and inGameTime < 16.5)
-    local isSummerStorming = isSummer and (inGameTime >= 14 and inGameTime < 17)
-    local isStorming = isSpringStorming or isSummerStorming
+    -- Butterflies and bees: spring and summer daytime (11:00 - 17:00) when dry
+    local isDaytimeInsects = (isSpring or isSummer) and (inGameTime >= 11.0 and inGameTime <= 17.0) and (not isRaining)
+    butterfliesEmitter.Enabled = isDaytimeInsects
+    bumblebeesEmitter.Enabled = isDaytimeInsects
 
+    -- 8. Lightning: rare flashes during spring/summer thunderstorms
+    local isStorming = (isSpring or isSummer) and isRaining and (inGameTime >= 13 and inGameTime < 18)
     if isStorming and tick() >= nextLightningTime then
-        -- Spring thunder rumbles are rare and distant (22-38s interval)
-        nextLightningTime = tick() + (isSpring and math.random(22, 38) or math.random(11, 20))
+        nextLightningTime = tick() + (isSpring and math.random(22, 38) or math.random(12, 22))
         triggerLightningStrike()
     end
 
