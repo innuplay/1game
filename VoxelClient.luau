@@ -146,7 +146,7 @@ local function isPointerOverUIOrSystem(mPos)
     end
 
     -- 5. РҐРѕС‚Р±Р°СЂ (РїРѕ С†РµРЅС‚СЂСѓ РІРЅРёР·Сѓ):
-    if hudContainerRef and isInsideGui(hudContainerRef, mPos) then
+    if not activeHotbarSlot and hudContainerRef and isInsideGui(hudContainerRef, mPos) then
         return true
     end
 
@@ -159,12 +159,15 @@ local function isPointerOverUIOrSystem(mPos)
 end
 
 local function getDesiredCursor(mPos)
-    -- РџСЂРё РЅР°РІРµРґРµРЅРёРё РЅР° СЌР»РµРјРµРЅС‚С‹ РёРЅС‚РµСЂС„РµР№СЃР° -> Р°РєРєСѓСЂР°С‚РЅР°СЏ С‡РµСЂРЅР°СЏ Р»Р°РїРєР°:
-    if isPointerOverUIOrSystem(mPos) then
-        return CURSORS.paw
-    end
+    -- 1. РњРѕРґР°Р»СЊРЅС‹Рµ РѕРєРЅР° Рё СЃРёСЃС‚РµРјРЅРѕРµ РјРµРЅСЋ CoreGui -> Р°РєРєСѓСЂР°С‚РЅР°СЏ С‡РµСЂРЅР°СЏ Р»Р°РїРєР°:
+    if isBackpackOpen then return CURSORS.paw end
+    if settingsModalRef and settingsModalRef.Visible then return CURSORS.paw end
+    if mapModalRef and mapModalRef.Visible then return CURSORS.paw end
+    if notebookModalRef and notebookModalRef.Visible then return CURSORS.paw end
+    if mPos.X <= 220 and mPos.Y <= 50 then return CURSORS.paw end
 
-    -- Р’ РёРіСЂРѕРІРѕРј РјРёСЂРµ: РµСЃР»Рё РІС‹Р±СЂР°РЅ СЃР»РѕС‚ С…РѕС‚Р±Р°СЂР° 1..4 -> РєСЂР°СЃРёРІС‹Р№ РєСѓСЂСЃРѕСЂ РІС‹Р±СЂР°РЅРЅРѕРіРѕ Р±Р»РѕРєР°!
+    -- 2. Р•СЃР»Рё РІС‹Р±СЂР°РЅ СЃР»РѕС‚ С…РѕС‚Р±Р°СЂР° (1..6) -> РЎР РђР—РЈ РїРѕРєР°Р·С‹РІР°РµРј РєСѓСЂСЃРѕСЂ РІС‹Р±СЂР°РЅРЅРѕРіРѕ Р±Р»РѕРєР°!
+    -- РљСѓСЂСЃРѕСЂ РјРіРЅРѕРІРµРЅРЅРѕ РјРµРЅСЏРµС‚СЃСЏ РЅР° РІС‹Р±СЂР°РЅРЅС‹Р№ РјР°С‚РµСЂРёР°Р» РїСЂСЏРјРѕ РЅР°Рґ РёРєРѕРЅРєРѕР№ С…РѕС‚Р±Р°СЂР° Р±РµР· Р·Р°РґРµСЂР¶РµРє Рё РѕС‚РІРѕРґР° РјС‹С€Рё!
     if activeHotbarSlot and activeHotbarSlot >= 1 and activeHotbarSlot <= 6 then
         local slotDef = HOTBAR_SLOT_DEFS and HOTBAR_SLOT_DEFS[activeHotbarSlot]
         local activeItem = currentInventorySlots and currentInventorySlots[activeHotbarSlot]
@@ -172,12 +175,18 @@ local function getDesiredCursor(mPos)
         if itemId then
             local blockCursor = ITEM_TO_CURSOR[itemId]
             if blockCursor then
+                -- Р•СЃР»Рё РєСѓСЂСЃРѕСЂ РЅР°РІРµРґРµРЅ РЅР° СЃС‚РѕСЂРѕРЅРЅРёРµ РІРёРґР¶РµС‚С‹ (С‡Р°СЃС‹, РІРёС‚Р°Р»РёС‚Рё, СЂСЋРєР·Р°Рє [E]) -> Р»Р°РїРєР°:
+                if (seasonWidgetRef and isInsideGui(seasonWidgetRef, mPos)) or
+                   (vitalityFrameRef and isInsideGui(vitalityFrameRef, mPos)) or
+                   (backpackBtnRef and isInsideGui(backpackBtnRef, mPos)) then
+                    return CURSORS.paw
+                end
                 return blockCursor
             end
         end
     end
 
-    -- РџРѕ СѓРјРѕР»С‡Р°РЅРёСЋ -> Р°РєРєСѓСЂР°С‚РЅР°СЏ С‡РµСЂРЅР°СЏ Р»Р°РїРєР°:
+    -- 3. Р•СЃР»Рё СЃР»РѕС‚ РЅРµ РІС‹Р±СЂР°РЅ -> Р°РєРєСѓСЂР°С‚РЅР°СЏ С‡РµСЂРЅР°СЏ Р»Р°РїРєР°:
     return CURSORS.paw
 end
 
