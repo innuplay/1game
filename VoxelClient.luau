@@ -1477,6 +1477,7 @@ local function setSeason(seasonKey, notifyServer)
     end
     if not cfg then return end
     currentSeasonId = seasonKey
+    Workspace:SetAttribute("Season", seasonKey)
 
     -- 1. Синхронное обновление надписи времени года с плавной анимацией
     seasonLabel.Text = cfg.name
@@ -3610,6 +3611,204 @@ local function checkAndWarnFarClick()
     end
 end
 
+-- РќРµРЅР°РІСЏР·С‡РёРІС‹Рµ РјРёРєСЂРѕ-С‡Р°СЃС‚РёС†С‹ РІР·Р°РёРјРѕРґРµР№СЃС‚РІРёСЏ СЃ РјР°С‚РµСЂРёР°Р»Р°РјРё Р±Р»РѕРєРѕРІ
+local function spawnHitImpactParticles(block, normal)
+    if not block or not block.Parent then return end
+    local bName = block.Name
+    local bPos = block.Position
+    local n = normal or Vector3.new(0, 1, 0)
+    local impactPos = bPos + (n * (BLOCK_SIZE * 0.48)) + Vector3.new(
+        (math.random() - 0.5) * 0.35,
+        (math.random() - 0.5) * 0.35,
+        (math.random() - 0.5) * 0.35
+    )
+
+    if bName:find("Water") ~= nil then
+        local numDrops = math.random(3, 5)
+        for _ = 1, numDrops do
+            local drop = Instance.new("Part")
+            drop.Shape = Enum.PartType.Ball
+            local s = math.random(7, 11) * 0.01
+            drop.Size = Vector3.new(s, s, s)
+            drop.Color = Color3.fromRGB(215, 238, 255)
+            drop.Material = Enum.Material.Glass
+            drop.Transparency = 0.35
+            drop.CanCollide = false
+            drop.CanQuery = false
+            drop.CanTouch = false
+            drop.CastShadow = false
+            drop.Anchored = false
+            drop.Position = impactPos
+            drop.Velocity = (n * math.random(4, 7)) + Vector3.new(
+                (math.random() - 0.5) * 4,
+                math.random(3, 6),
+                (math.random() - 0.5) * 4
+            )
+            drop.Parent = Workspace
+            Debris:AddItem(drop, 0.35)
+        end
+
+        local miniRipple = Instance.new("Part")
+        miniRipple.Shape = Enum.PartType.Cylinder
+        miniRipple.Size = Vector3.new(0.002, 0.25, 0.25)
+        miniRipple.Color = Color3.fromRGB(225, 245, 255)
+        miniRipple.Material = Enum.Material.Glass
+        miniRipple.Transparency = 0.4
+        miniRipple.CanCollide = false
+        miniRipple.CanQuery = false
+        miniRipple.CanTouch = false
+        miniRipple.CastShadow = false
+        miniRipple.Anchored = true
+        miniRipple.CFrame = CFrame.new(impactPos.X, bPos.Y + (BLOCK_SIZE * 0.5) + 0.005, impactPos.Z) * CFrame.Angles(0, 0, math.rad(90))
+        miniRipple.Parent = Workspace
+        local tw = TweenService:Create(miniRipple, TweenInfo.new(0.65, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            Size = Vector3.new(0.002, 0.9, 0.9),
+            Transparency = 1
+        })
+        tw:Play()
+        tw.Completed:Connect(function() miniRipple:Destroy() end)
+
+    elseif bName:find("Sand") ~= nil then
+        local numGrains = math.random(4, 5)
+        for _ = 1, numGrains do
+            local grain = Instance.new("Part")
+            local s = math.random(6, 10) * 0.01
+            grain.Size = Vector3.new(s, s, s)
+            grain.Color = Color3.fromRGB(230, 205, 125)
+            grain.Material = Enum.Material.Sand
+            grain.Transparency = 0.05
+            grain.CanCollide = false
+            grain.CanQuery = false
+            grain.CanTouch = false
+            grain.CastShadow = false
+            grain.Anchored = false
+            grain.Position = impactPos
+            grain.Velocity = (n * math.random(3, 6)) + Vector3.new(
+                (math.random() - 0.5) * 3,
+                math.random(3, 5),
+                (math.random() - 0.5) * 3
+            )
+            grain.Parent = Workspace
+            Debris:AddItem(grain, 0.32)
+        end
+
+    elseif bName:find("Dirt") ~= nil then
+        local numChips = math.random(3, 4)
+        for _ = 1, numChips do
+            local chip = Instance.new("Part")
+            local s = math.random(8, 12) * 0.01
+            chip.Size = Vector3.new(s, s, s)
+            chip.Color = Color3.fromRGB(98, 64, 38)
+            chip.Material = Enum.Material.Ground
+            chip.Transparency = 0
+            chip.CanCollide = false
+            chip.CanQuery = false
+            chip.CanTouch = false
+            chip.CastShadow = false
+            chip.Anchored = false
+            chip.Position = impactPos
+            chip.Velocity = (n * math.random(3, 5)) + Vector3.new(
+                (math.random() - 0.5) * 3,
+                math.random(2.5, 4.5),
+                (math.random() - 0.5) * 3
+            )
+            chip.Parent = Workspace
+            Debris:AddItem(chip, 0.35)
+        end
+
+    elseif bName:find("Grass") ~= nil then
+        local numBlades = math.random(2, 3)
+        for _ = 1, numBlades do
+            local blade = Instance.new("Part")
+            blade.Size = Vector3.new(0.06, 0.14, 0.06)
+            blade.Color = Color3.fromRGB(115, 160, 45)
+            blade.Material = Enum.Material.Grass
+            blade.CanCollide = false
+            blade.CanQuery = false
+            blade.CanTouch = false
+            blade.CastShadow = false
+            blade.Anchored = false
+            blade.Position = impactPos
+            blade.Velocity = (n * math.random(3, 5)) + Vector3.new(
+                (math.random() - 0.5) * 3.5,
+                math.random(3, 5.5),
+                (math.random() - 0.5) * 3.5
+            )
+            blade.Parent = Workspace
+            Debris:AddItem(blade, 0.35)
+        end
+        local dirtChip = Instance.new("Part")
+        dirtChip.Size = Vector3.new(0.08, 0.08, 0.08)
+        dirtChip.Color = Color3.fromRGB(90, 60, 35)
+        dirtChip.Material = Enum.Material.Ground
+        dirtChip.CanCollide = false
+        dirtChip.Anchored = false
+        dirtChip.Position = impactPos
+        dirtChip.Velocity = Vector3.new((math.random() - 0.5) * 2, math.random(2, 4), (math.random() - 0.5) * 2)
+        dirtChip.Parent = Workspace
+        Debris:AddItem(dirtChip, 0.3)
+
+    elseif bName:find("Stone") ~= nil then
+        local numStone = math.random(3, 4)
+        for _ = 1, numStone do
+            local st = Instance.new("Part")
+            local s = math.random(7, 11) * 0.01
+            st.Size = Vector3.new(s, s, s)
+            st.Color = Color3.fromRGB(130, 135, 145)
+            st.Material = Enum.Material.Slate
+            st.CanCollide = false
+            st.CanQuery = false
+            st.CanTouch = false
+            st.CastShadow = false
+            st.Anchored = false
+            st.Position = impactPos
+            st.Velocity = (n * math.random(3, 6)) + Vector3.new(
+                (math.random() - 0.5) * 3.5,
+                math.random(3, 5),
+                (math.random() - 0.5) * 3.5
+            )
+            st.Parent = Workspace
+            Debris:AddItem(st, 0.32)
+        end
+
+    elseif bName:find("Wood") ~= nil then
+        local numSplinters = math.random(3, 4)
+        for _ = 1, numSplinters do
+            local sp = Instance.new("Part")
+            sp.Size = Vector3.new(0.05, 0.15, 0.05)
+            sp.Color = Color3.fromRGB(120, 75, 40)
+            sp.Material = Enum.Material.WoodPlanks
+            sp.CanCollide = false
+            sp.CanQuery = false
+            sp.CanTouch = false
+            sp.CastShadow = false
+            sp.Anchored = false
+            sp.Position = impactPos
+            sp.Velocity = (n * math.random(3, 5)) + Vector3.new(
+                (math.random() - 0.5) * 3,
+                math.random(3, 5),
+                (math.random() - 0.5) * 3
+            )
+            sp.Parent = Workspace
+            Debris:AddItem(sp, 0.32)
+        end
+    else
+        for _ = 1, 3 do
+            local p = Instance.new("Part")
+            local s = 0.08
+            p.Size = Vector3.new(s, s, s)
+            p.Color = block.Color
+            p.Material = block.Material
+            p.CanCollide = false
+            p.Anchored = false
+            p.Position = impactPos
+            p.Velocity = (n * 3) + Vector3.new((math.random() - 0.5) * 2, math.random(2, 4), (math.random() - 0.5) * 2)
+            p.Parent = Workspace
+            Debris:AddItem(p, 0.3)
+        end
+    end
+end
+
 local function doDigStep()
     local character = player.Character
     if not character or isBackpackOpen then return end
@@ -3632,6 +3831,7 @@ local function doDigStep()
             character:SetAttribute("IsDiggingUp", false)
         end
         voxelRemote:FireServer("Hit", { Block = currentTargetBlock })
+        spawnHitImpactParticles(currentTargetBlock, currentTargetNormal)
     else
         checkAndWarnFarClick()
     end

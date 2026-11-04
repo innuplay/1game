@@ -1091,26 +1091,38 @@ else
 end
 
 -- === ЧАСТИЦЫ ===
-local function spawnBreakParticles(position, color, isBreak)
-    for _ = 1, (isBreak and 8 or 4) do
+-- === Р§РђРЎРўРР¦Р« ===
+local function spawnBreakParticles(position, color, isBreak, optMaterial, isSphere)
+    local count = isBreak and 6 or 3
+    for _ = 1, count do
         local chip = Instance.new("Part")
-        chip.Size = Vector3.new(0.2, 0.2, 0.2)
-        chip.Color = color
-        chip.Material = Enum.Material.Plastic
+        if isSphere then
+            chip.Shape = Enum.PartType.Ball
+        end
+        local s = math.random(12, 18) * 0.01
+        chip.Size = Vector3.new(s, s, s)
+        chip.Color = color or Color3.fromRGB(150, 150, 150)
+        chip.Material = optMaterial or Enum.Material.Plastic
+        if optMaterial == Enum.Material.Glass then
+            chip.Transparency = 0.35
+        end
         chip.CanCollide = false
+        chip.CanQuery = false
+        chip.CanTouch = false
+        chip.CastShadow = false
         chip.Anchored = false
         chip.Position = position + Vector3.new(
-            math.random(-5, 5) * 0.1,
-            math.random(0, 5) * 0.1,
-            math.random(-5, 5) * 0.1
+            (math.random() - 0.5) * 0.4,
+            (math.random() - 0.5) * 0.3,
+            (math.random() - 0.5) * 0.4
         )
         chip.Velocity = Vector3.new(
-            math.random(-8, 8),
-            math.random(6, 14),
-            math.random(-8, 8)
+            (math.random() - 0.5) * 10,
+            math.random(5, 11),
+            (math.random() - 0.5) * 10
         )
         chip.Parent = Workspace
-        game:GetService("Debris"):AddItem(chip, 0.6)
+        game:GetService("Debris"):AddItem(chip, 0.4)
     end
 end
 
@@ -1170,7 +1182,7 @@ voxelRemote.OnServerEvent:Connect(function(player, action, data)
             character:SetAttribute("HeldItemCount", 1)
 
             -- Р—РІРѕРЅРєРёР№ РІСЃРїР»РµСЃРє РІРѕРґС‹
-            spawnBreakParticles(pondPos, Color3.fromRGB(180, 235, 255), false)
+            spawnBreakParticles(pondPos, Color3.fromRGB(190, 235, 255), false, Enum.Material.Glass, true)
 
             voxelRemote:FireClient(player, "ItemPickedUp", {
                 name = (currentSeason == "spring") and "\u{0412}\u{0435}\u{0441}\u{0435}\u{043d}\u{043d}\u{044f}\u{044f} \u{0440}\u{044b}\u{0431}\u{043a}\u{0430} \u{1F41F}\u{2728}" or "\u{0420}\u{044b}\u{0431}\u{043a}\u{0430} \u{1F41F}",
@@ -1178,7 +1190,7 @@ voxelRemote.OnServerEvent:Connect(function(player, action, data)
             })
         else
             -- Р С‹Р±РєР° СЃРѕСЂРІР°Р»Р°СЃСЊ СЃ РєСЂСЋС‡РєР° СЃ Р»РµРіРєРёРј РІСЃРїР»РµСЃРєРѕРј
-            spawnBreakParticles(pondPos, Color3.fromRGB(150, 215, 255), false)
+            spawnBreakParticles(pondPos, Color3.fromRGB(190, 235, 255), false, Enum.Material.Glass, true)
             voxelRemote:FireClient(player, "ItemPickedUp", {
                 name = "Рыбка вильнула хвостом и уплыла... 💦",
                 count = 0
@@ -1224,7 +1236,7 @@ voxelRemote.OnServerEvent:Connect(function(player, action, data)
             local cfg = BLOCK_CONFIG[bType] or BLOCK_CONFIG.Grass
             local blockPos = block.Position
 
-            spawnBreakParticles(blockPos, block.Color, true)
+            spawnBreakParticles(blockPos, block.Color, true, block.Material, block.Name:find("Water") ~= nil)
             block:Destroy()
 
             if cfg.DropId then
@@ -1236,7 +1248,7 @@ voxelRemote.OnServerEvent:Connect(function(player, action, data)
 
             voxelRemote:FireClient(player, "BlockDestroyed", { Position = blockPos })
         else
-            spawnBreakParticles(block.Position, block.Color, false)
+            spawnBreakParticles(block.Position, block.Color, false, block.Material, block.Name:find("Water") ~= nil)
             local origSize = block.Size
             local shrinkTween = TweenService:Create(block, TweenInfo.new(0.06), {
                 Size = origSize * 0.94
@@ -1320,7 +1332,7 @@ voxelRemote.OnServerEvent:Connect(function(player, action, data)
             end
 
             removeItemFromSlot(player, slotIndex, 1)
-            spawnBreakParticles(newPos, newBlock.Color, false)
+            spawnBreakParticles(newPos, newBlock.Color, false, newBlock.Material, newBlock.Name:find("Water") ~= nil)
             voxelRemote:FireClient(player, "BlockPlaced", { Block = newBlock })
         end
 

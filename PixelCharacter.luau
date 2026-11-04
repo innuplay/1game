@@ -2,6 +2,8 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local Debris = game:GetService("Debris")
 
 local character = script.Parent
 local humanoid = character:WaitForChild("Humanoid")
@@ -211,7 +213,9 @@ local function createPaw(name, relPos)
         origC0 = motor.C0,
         relPos = relPos,
         sock = sock,
-        currentY = relPos.Y
+        currentY = relPos.Y,
+        wasInAir = false,
+        lastGroundHit = nil
     }
 end
 
@@ -244,6 +248,7 @@ local function getPawTargetLocalY(paw)
     local rayOrigin = Vector3.new(worldPos.X, rootPart.Position.Y + 0.8, worldPos.Z)
     local rayDir = Vector3.new(0, -3.2, 0)
     local hit = workspace:Raycast(rayOrigin, rayDir, groundRayParams)
+    paw.lastGroundHit = hit
     if hit then
         local targetBaseWorldY = hit.Position.Y + PAW_BOTTOM_OFFSET
         local targetLocal = torso.CFrame:PointToObjectSpace(Vector3.new(worldPos.X, targetBaseWorldY, worldPos.Z))
@@ -373,6 +378,182 @@ end)
 updateHeldItemVisibility(false, false)
 
 -- === 4. УПРАВЛЕНИЕ, ЕСТЕСТВЕННАЯ ИНЕРЦИЯ И ЖИВАЯ ПОХОДКА КОТЁНКА ===
+-- === РђРўРњРћРЎР¤Р•Р РќР«Р• Р­Р¤Р¤Р•РљРўР«: РЎР›Р•Р”Р« РќРђ РЎРќР•Р“РЈ Р РџР›РђР’РђРќРР• Р’ Р’РћР”Р• ===
+local effectsFolder = workspace:FindFirstChild("CatVisualEffects")
+if not effectsFolder then
+    effectsFolder = Instance.new("Folder")
+    effectsFolder.Name = "CatVisualEffects"
+    effectsFolder.Parent = workspace
+end
+
+local activeSnowPrints = {}
+local MAX_SNOW_PRINTS = 45
+
+local function spawnSnowPawPrint(worldPos, yawAngle)
+    local printModel = Instance.new("Model")
+    printModel.Name = "PawPrint"
+    printModel.Parent = effectsFolder
+
+    local printBaseCF = CFrame.new(worldPos + Vector3.new(0, 0.004, 0)) * CFrame.Angles(0, yawAngle, 0)
+    local printColor = Color3.fromRGB(165, 192, 218)
+
+    local mainPad = Instance.new("Part")
+    mainPad.Name = "MainPad"
+    mainPad.Size = Vector3.new(0.13, 0.003, 0.11)
+    mainPad.Color = printColor
+    mainPad.Material = Enum.Material.SmoothPlastic
+    mainPad.Transparency = 0.35
+    mainPad.CanCollide = false
+    mainPad.CanQuery = false
+    mainPad.CanTouch = false
+    mainPad.CastShadow = false
+    mainPad.Anchored = true
+    mainPad.CFrame = printBaseCF
+    mainPad.Parent = printModel
+
+    local toeOffsets = {
+        Vector3.new(-0.045, 0, -0.075),
+        Vector3.new( 0.000, 0, -0.085),
+        Vector3.new( 0.045, 0, -0.075),
+    }
+    local allPads = { mainPad }
+    for i, off in ipairs(toeOffsets) do
+        local toe = Instance.new("Part")
+        toe.Name = "Toe_" .. i
+        toe.Size = Vector3.new(0.038, 0.003, 0.038)
+        toe.Color = printColor
+        toe.Material = Enum.Material.SmoothPlastic
+        toe.Transparency = 0.35
+        toe.CanCollide = false
+        toe.CanQuery = false
+        toe.CanTouch = false
+        toe.CastShadow = false
+        toe.Anchored = true
+        toe.CFrame = printBaseCF * CFrame.new(off)
+        toe.Parent = printModel
+        table.insert(allPads, toe)
+    end
+
+    table.insert(activeSnowPrints, { model = printModel, pads = allPads, time = tick() })
+
+    if #activeSnowPrints > MAX_SNOW_PRINTS then
+        local oldest = table.remove(activeSnowPrints, 1)
+        if oldest and oldest.model and oldest.model.Parent then
+            oldest.model:Destroy()
+        end
+    end
+
+    task.delay(7.5, function()
+        if printModel and printModel.Parent then
+            for _, pad in ipairs(allPads) do
+                TweenService:Create(pad, TweenInfo.new(2.5, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+                    Transparency = 1
+                }):Play()
+            end
+            task.delay(2.6, function()
+                if printModel and printModel.Parent then
+                    printModel:Destroy()
+                end
+            end)
+        end
+    end)
+end
+
+-- Р’РѕРґРЅС‹Рµ СЌС„С„РµРєС‚С‹
+local lastRippleTime = 0
+local lastSplashTime = 0
+local isInWater = false
+local currentWaterSurfaceY = nil
+
+local function spawnWaterRipple(pos, waterY, radiusScale)
+    local ripple = Instance.new("Part")
+    ripple.Name = "WaterRipple"
+    ripple.Shape = Enum.PartType.Cylinder
+    ripple.Size = Vector3.new(0.002, 0.35, 0.35)
+    ripple.Color = Color3.fromRGB(225, 245, 255)
+    ripple.Material = Enum.Material.Glass
+    ripple.Transparency = 0.42
+    ripple.CanCollide = false
+    ripple.CanQuery = false
+    ripple.CanTouch = false
+    ripple.CastShadow = false
+    ripple.Anchored = true
+    ripple.CFrame = CFrame.new(pos.X, waterY + 0.006, pos.Z) * CFrame.Angles(0, 0, math.rad(90))
+    ripple.Parent = effectsFolder
+
+    local targetDiam = (1.35 * (radiusScale or 1.0))
+    local tw = TweenService:Create(ripple, TweenInfo.new(0.85, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        Size = Vector3.new(0.002, targetDiam, targetDiam),
+        Transparency = 1
+    })
+    tw:Play()
+    tw.Completed:Connect(function()
+        ripple:Destroy()
+    end)
+end
+
+local function spawnWaterSplash(pos, velDir)
+    local numDrops = math.random(2, 4)
+    for _ = 1, numDrops do
+        local drop = Instance.new("Part")
+        drop.Name = "WaterDrop"
+        drop.Shape = Enum.PartType.Ball
+        local dropSize = math.random(7, 12) * 0.01
+        drop.Size = Vector3.new(dropSize, dropSize, dropSize)
+        drop.Color = Color3.fromRGB(215, 238, 255)
+        drop.Material = Enum.Material.Glass
+        drop.Transparency = 0.35
+        drop.CanCollide = false
+        drop.CanQuery = false
+        drop.CanTouch = false
+        drop.CastShadow = false
+        drop.Anchored = false
+        drop.Position = pos + Vector3.new(
+            math.random(-2, 2) * 0.06,
+            0.02,
+            math.random(-2, 2) * 0.06
+        )
+        local spread = Vector3.new(
+            (math.random() - 0.5) * 3.5,
+            math.random(35, 55) * 0.1,
+            (math.random() - 0.5) * 3.5
+        )
+        drop.Velocity = (velDir * 2.2) + spread
+        drop.Parent = effectsFolder
+        Debris:AddItem(drop, 0.38)
+    end
+end
+
+local function checkPawSnowStep(paw, lift)
+    if lift > 0.04 then
+        paw.wasInAir = true
+    elseif lift <= 0.02 and paw.wasInAir then
+        paw.wasInAir = false
+        if not isInWater and paw.lastGroundHit and paw.lastGroundHit.Normal.Y > 0.65 then
+            local isWinter = (workspace:GetAttribute("Season") == "winter")
+            local inst = paw.lastGroundHit.Instance
+            local isSnow = isWinter or (inst and (inst.Name:find("Snow") ~= nil or inst.Material == Enum.Material.Snow))
+            if isSnow then
+                local catYaw = math.atan2(-rootPart.CFrame.LookVector.X, -rootPart.CFrame.LookVector.Z) + math.pi
+                spawnSnowPawPrint(paw.lastGroundHit.Position, catYaw)
+            end
+        end
+    end
+end
+
+local waterRayParams = RaycastParams.new()
+waterRayParams.FilterType = Enum.RaycastFilterType.Include
+local function updateWaterRayFilter()
+    local wf = workspace:FindFirstChild("VoxelWorld")
+    if wf then
+        waterRayParams.FilterDescendantsInstances = { wf }
+    end
+end
+updateWaterRayFilter()
+workspace.ChildAdded:Connect(function(child)
+    if child.Name == "VoxelWorld" then updateWaterRayFilter() end
+end)
+
 local walkTimer = 0
 local idleTimer = 0
 local digTimer = 0
@@ -456,6 +637,43 @@ RunService.RenderStepped:Connect(function(dt)
     local isInteracting = isDigging or isDiggingUp or isPlacing or isPlacingUp
     local isMoving = currentMoveVector.Magnitude > 0.08
     local isActuallyWalking = currentMoveVector.Magnitude > 0.04
+    -- РћР±РЅР°СЂСѓР¶РµРЅРёРµ РІРѕРґС‹ РїРѕРґ/РІРѕРєСЂСѓРі РєРѕС‚РёРєР° РґР»СЏ РїР»Р°РІР°РЅРёСЏ
+    local now = tick()
+    local waterHit = workspace:Raycast(rootPart.Position + Vector3.new(0, 1.5, 0), Vector3.new(0, -3.5, 0), waterRayParams)
+    if waterHit and waterHit.Instance and waterHit.Instance.Name:find("Water") ~= nil then
+        isInWater = true
+        currentWaterSurfaceY = waterHit.Instance.Position.Y + waterHit.Instance.Size.Y * 0.5
+    else
+        local touching = workspace:GetPartsInPart(rootPart)
+        local foundWater = false
+        for _, p in ipairs(touching) do
+            if p.Name:find("Water") ~= nil then
+                foundWater = true
+                currentWaterSurfaceY = p.Position.Y + p.Size.Y * 0.5
+                break
+            end
+        end
+        isInWater = foundWater
+    end
+
+    if isInWater and currentWaterSurfaceY then
+        if isActuallyWalking then
+            if now - lastSplashTime >= 0.18 then
+                lastSplashTime = now
+                local forwardDir = rootPart.CFrame.LookVector
+                spawnWaterSplash(rootPart.Position + Vector3.new(0, -0.4, 0) + forwardDir * 0.4, forwardDir)
+            end
+            if now - lastRippleTime >= 0.28 then
+                lastRippleTime = now
+                spawnWaterRipple(rootPart.Position, currentWaterSurfaceY, 1.1)
+            end
+        else
+            if now - lastRippleTime >= 1.4 then
+                lastRippleTime = now
+                spawnWaterRipple(rootPart.Position, currentWaterSurfaceY, 0.75)
+            end
+        end
+    end
 
     local targetLookPos = character:GetAttribute("TargetLookPos")
     local testAim = character:GetAttribute("TestAimPos")
@@ -637,6 +855,10 @@ RunService.RenderStepped:Connect(function(dt)
         pawFR.motor.C0 = CFrame.new(pawFR.relPos.X, pawFR.currentY + liftFR, pawFR.relPos.Z) * CFrame.Angles(swingFR, 0, 0)
         pawBL.motor.C0 = CFrame.new(pawBL.relPos.X, pawBL.currentY + liftBL, pawBL.relPos.Z) * CFrame.Angles(swingBL, 0, 0)
         pawBR.motor.C0 = CFrame.new(pawBR.relPos.X, pawBR.currentY + liftBR, pawBR.relPos.Z) * CFrame.Angles(swingBR, 0, 0)
+        checkPawSnowStep(pawFL, liftFL)
+        checkPawSnowStep(pawFR, liftFR)
+        checkPawSnowStep(pawBL, liftBL)
+        checkPawSnowStep(pawBR, liftBR)
 
         -- Естественный вертикальный шаг тела и мягкий перенос веса
         local bodyBounce = math.abs(math.sin(walkTimer * 2)) * 0.05
@@ -703,6 +925,10 @@ RunService.RenderStepped:Connect(function(dt)
             pawFR.motor.C0 = idleCF_FR:Lerp(turnCF_FR, turnWeight)
             pawBL.motor.C0 = idleCF_BL:Lerp(turnCF_BL, turnWeight)
             pawBR.motor.C0 = idleCF_BR:Lerp(turnCF_BR, turnWeight)
+            checkPawSnowStep(pawFL, liftA)
+            checkPawSnowStep(pawFR, liftB)
+            checkPawSnowStep(pawBL, liftB)
+            checkPawSnowStep(pawBR, liftA)
 
             -- Туловище: лёгкий шаг и наклон в поворот
             local bounce = math.abs(math.sin(turnStepTimer * 2)) * 0.04 * turnWeight
