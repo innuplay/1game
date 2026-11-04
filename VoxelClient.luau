@@ -81,12 +81,12 @@ local SLOT_GAP = 8
 local TOTAL_HOTBAR_WIDTH = (NUM_HOTBAR_SLOTS * SLOT_SIZE) + ((NUM_HOTBAR_SLOTS - 1) * SLOT_GAP)
 
 local HOTBAR_SLOT_DEFS = {
-    [1] = { id = "wood_block",  sprite = "rbxassetid://102991854156536", name = "\u{0414}\u{0435}\u{0440}\u{0435}\u{0432}\u{043e}", icon = "\u{1FA95}" },
-    [2] = { id = "dirt_block",  sprite = "rbxassetid://104779952223143", name = "\u{0417}\u{0435}\u{043c}\u{043b}\u{044f}",  icon = "\u{1F7EB}" },
-    [3] = { id = "stone_block", sprite = "rbxassetid://109072643235539", name = "\u{041a}\u{0430}\u{043c}\u{0435}\u{043d}\u{044c}", icon = "\u{1FAA8}" },
+    [1] = { id = "dirt_block",  sprite = "rbxassetid://104779952223143", name = "\u{0417}\u{0435}\u{043c}\u{043b}\u{044f}",  icon = "\u{1F7EB}" },
+    [2] = { id = "sand_block",  sprite = "rbxassetid://136811617960488", name = "\u{041f}\u{0435}\u{0441}\u{043e}\u{043a}",  icon = "\u{23F3}" },
+    [3] = { id = "water_block", sprite = "rbxassetid://94567183251152",  name = "\u{0412}\u{043e}\u{0434}\u{0430}",   icon = "\u{1F4A7}" },
     [4] = { id = "grass_block", sprite = "rbxassetid://114424346454200", name = "\u{0422}\u{0440}\u{0430}\u{0432}\u{0430}",  icon = "\u{1F33F}" },
-    [5] = { id = "water_block", sprite = "rbxassetid://94567183251152", name = "\u{0412}\u{043e}\u{0434}\u{0430}",   icon = "\u{1F4A7}" },
-    [6] = { id = "sand_block",  sprite = "rbxassetid://136811617960488", name = "\u{041f}\u{0435}\u{0441}\u{043e}\u{043a}",  icon = "\u{23F3}" },
+    [5] = { id = "stone_block", sprite = "rbxassetid://109072643235539", name = "\u{041a}\u{0430}\u{043c}\u{0435}\u{043d}\u{044c}", icon = "\u{1FAA8}" },
+    [6] = { id = "wood_block",  sprite = "rbxassetid://102991854156536", name = "\u{0414}\u{0435}\u{0440}\u{0435}\u{0432}\u{043e}", icon = "\u{1FA95}" },
 }
 
 local cursorGui = playerGui:FindFirstChild("CustomCursorGui") or Instance.new("ScreenGui")
@@ -2479,6 +2479,13 @@ local function renderHotbarSlotUI(btn, slotData, isActive)
 
     if activeBorder then
         activeBorder.Visible = isActive
+    end
+
+    if spriteImg and slotData and slotData.id then
+        local def = itemsDefinition[slotData.id]
+        if def and def.sprite and def.sprite ~= "" then
+            spriteImg.Image = def.sprite
+        end
     end
 
     if slotData and slotData.count > 0 then

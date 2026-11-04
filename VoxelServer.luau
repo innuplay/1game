@@ -438,20 +438,20 @@ local function getOrCreateInventory(player)
             activeSlot = 0, -- При старте строительный блок не выбран
             slots = {
                 -- Активный хотбар спрайтов (1..4): Дерево, Земля, Камень, Трава
-                [1] = { id = "wood_block",  count = 24, max = 64 },
-                [2] = { id = "dirt_block",  count = 32, max = 64 },
-                [3] = { id = "stone_block", count = 16, max = 64 },
+                [1] = { id = "dirt_block",  count = 32, max = 64 },
+                [2] = { id = "sand_block",  count = 32, max = 64 },
+                [3] = { id = "water_block", count = 32, max = 64 },
                 [4] = { id = "grass_block", count = 32, max = 64 },
-                [5] = { id = "water_block", count = 32, max = 64 },
-                [6] = { id = "sand_block",  count = 32, max = 64 },
+                [5] = { id = "stone_block", count = 16, max = 64 },
+                [6] = { id = "wood_block",  count = 24, max = 64 },
 
-                -- Портфель: Ресурсы и блоки в пиксель-арт стилистике (10..29)
-                [10] = { id = "wood_block",  count = 24, max = 64 },
-                [11] = { id = "dirt_block",  count = 32, max = 64 },
-                [12] = { id = "stone_block", count = 16, max = 64 },
+                -- Portfolio: Resources and blocks
+                [10] = { id = "dirt_block",  count = 32, max = 64 },
+                [11] = { id = "sand_block",  count = 32, max = 64 },
+                [12] = { id = "water_block", count = 32, max = 64 },
                 [13] = { id = "grass_block", count = 32, max = 64 },
-                [14] = { id = "water_block", count = 32, max = 64 },
-                [15] = { id = "sand_block",  count = 32, max = 64 },
+                [14] = { id = "stone_block", count = 16, max = 64 },
+                [15] = { id = "wood_block",  count = 24, max = 64 },
 
                 -- Корзинка: Еда и урожай (30..44)
                 [30] = { id = "mushrooms",  count = 5,  max = 32 },
