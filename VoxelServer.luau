@@ -56,6 +56,17 @@ local ITEMS = {
         color = Color3.fromRGB(100, 70, 45),
         material = Enum.Material.Ground
     },
+    water_block = {
+        name = "\u{0412}\u{043e}\u{0434}\u{0430}",
+        max = 64,
+        isBlock = true,
+        blockType = "Water",
+        category = "resources",
+        sprite = "rbxassetid://94567183251152",
+        icon = "рџ’§",
+        color = Color3.fromRGB(75, 160, 235),
+        material = Enum.Material.Glass
+    },
     twigs = {
         name = "Ветки",
         max = 64,
@@ -77,7 +88,8 @@ local ITEMS = {
     sand = {
         name = "Песок",
         max = 64,
-        isBlock = false,
+        isBlock = true,
+        blockType = "Sand",
         category = "resources",
         icon = "⏳",
         color = Color3.fromRGB(225, 200, 120),
@@ -207,50 +219,79 @@ local ITEMS = {
 }
 
 local BLOCK_CONFIG = {
-    Grass = { Color = Color3.fromRGB(135, 145, 45),  Material = Enum.Material.Grass,      HP = 1, DropId = "grass_block" },
-    Wood  = { Color = Color3.fromRGB(110, 68, 38),   Material = Enum.Material.WoodPlanks, HP = 1, DropId = "wood_block" },
-    Stone = { Color = Color3.fromRGB(122, 128, 138), Material = Enum.Material.Slate,      HP = 1, DropId = "stone_block" },
-    Dirt  = { Color = Color3.fromRGB(98, 64, 38),    Material = Enum.Material.Ground,     HP = 1, DropId = "dirt_block" }
+    Grass = { Color = Color3.fromRGB(135, 145, 45),  Material = Enum.Material.Grass,      HP = 2, DropId = "grass_block" },
+    Wood  = { Color = Color3.fromRGB(110, 68, 38),   Material = Enum.Material.WoodPlanks, HP = 4, DropId = "wood_block" },
+    Stone = { Color = Color3.fromRGB(122, 128, 138), Material = Enum.Material.Slate,      HP = 5, DropId = "stone_block" },
+    Dirt  = { Color = Color3.fromRGB(98, 64, 38),    Material = Enum.Material.Ground,     HP = 3, DropId = "dirt_block" },
+    Sand  = { Color = Color3.fromRGB(225, 200, 120), Material = Enum.Material.Sand,       HP = 2, DropId = "sand" },
+    Water = { Color = Color3.fromRGB(75, 160, 235),  Material = Enum.Material.Glass,      HP = 1, DropId = "water_block", Transparency = 0.35, Reflectance = 0.3, CastShadow = false, CanCollide = false }
 }
 
 -- === ВРЕМЕНА ГОДА (ОСЕНЬ, ЗИМА, ВЕСНА, ЛЕТО) ===
 local SEASON_CONFIGS = {
     autumn = {
-        name = "Осень",
+        name = "\u{041e}\u{0441}\u{0435}\u{043d}\u{044c}",
         grassColor = Color3.fromRGB(135, 145, 45),
     },
     winter = {
-        name = "Зима",
+        name = "\u{0417}\u{0438}\u{043c}\u{0430}",
         grassColor = Color3.fromRGB(225, 235, 245),
     },
     spring = {
-        name = "Весна",
+        name = "\u{0412}\u{0435}\u{0441}\u{043d}\u{0430}",
         grassColor = Color3.fromRGB(75, 185, 50),
     },
     summer = {
-        name = "Лето",
+        name = "\u{041b}\u{0435}\u{0442}\u{043e}",
         grassColor = Color3.fromRGB(68, 168, 48),
     }
 }
 local currentSeason = "autumn"
 local SEASON_ORDER = { "autumn", "winter", "spring", "summer" }
+local DAY_CYCLE_SECONDS = 300
 local serverInGameTime = 14.0
 local lastServerTime = 14.0
 
--- === НАСТРОЙКА ОСВЕЩЕНИЯ (МЯГКИЙ КОНТРАСТ, БЕЗ СЛЕПЯЩИХ БЛИКОВ) ===
+-- === РћРЎР’Р•Р©Р•РќРР• Р РќР•Р‘Рћ (РЎРѕР»РЅС†Рµ, Р›СѓРЅР°, 5-РјРёРЅСѓС‚РЅС‹Рµ СЃСѓС‚РєРё) ===
 local Lighting = game:GetService("Lighting")
-Lighting.Brightness = 1.6
-Lighting.OutdoorAmbient = Color3.fromRGB(115, 125, 135)
-Lighting.Ambient = Color3.fromRGB(90, 95, 105)
-Lighting.ColorShift_Top = Color3.fromRGB(255, 245, 230)
+Lighting.Brightness = 2.0
+Lighting.OutdoorAmbient = Color3.fromRGB(120, 130, 140)
+Lighting.Ambient = Color3.fromRGB(85, 90, 100)
+Lighting.ColorShift_Top = Color3.fromRGB(255, 245, 225)
 Lighting.ClockTime = 14
 Lighting.GeographicLatitude = 41.7
-Lighting.ExposureCompensation = 0
+Lighting.ExposureCompensation = 0.05
+Lighting.ShadowSoftness = 0.35
+
+local sky = Lighting:FindFirstChildOfClass("Sky") or Instance.new("Sky")
+sky.Name = "Sky"
+sky.CelestialBodiesShown = true
+sky.SunTextureId = "rbxassetid://6196665106"
+sky.MoonTextureId = "rbxassetid://6444320592"
+sky.SunAngularSize = 8
+sky.MoonAngularSize = 8
+sky.StarCount = 3000
+sky.Parent = Lighting
+
+local atmo = Lighting:FindFirstChildOfClass("Atmosphere") or Instance.new("Atmosphere")
+atmo.Glare = 0.35
+atmo.Haze = 0.15
+atmo.Density = 0.30
+atmo.Parent = Lighting
+
+local sunRays = Lighting:FindFirstChildOfClass("SunRaysEffect") or Instance.new("SunRaysEffect")
+sunRays.Intensity = 0.25
+sunRays.Spread = 0.75
+sunRays.Parent = Lighting
 
 local function applyBlockTextures(part, blockType)
     local cfg = BLOCK_CONFIG[blockType] or BLOCK_CONFIG.Grass
     part.Color = cfg.Color
     part.Material = cfg.Material
+    if cfg.Transparency then part.Transparency = cfg.Transparency end
+    if cfg.Reflectance then part.Reflectance = cfg.Reflectance end
+    if cfg.CastShadow ~= nil then part.CastShadow = cfg.CastShadow end
+    if cfg.CanCollide ~= nil then part.CanCollide = cfg.CanCollide end
 
     -- Удаляем текстуры и декали для чистого и ровного воксельного рельефа
     for _, child in ipairs(part:GetChildren()) do
@@ -282,6 +323,19 @@ if not voxelRemote then
     voxelRemote.Parent = ReplicatedStorage
 end
 
+local function getCanopyColor(treeType, seasonId)
+    seasonId = seasonId or currentSeason
+    if seasonId == "spring" then
+        return (treeType == "Sakura") and Color3.fromRGB(255, 185, 215) or Color3.fromRGB(255, 240, 248)
+    elseif seasonId == "autumn" then
+        return (treeType == "Sakura") and Color3.fromRGB(215, 95, 30) or Color3.fromRGB(235, 165, 35)
+    elseif seasonId == "winter" then
+        return Color3.fromRGB(230, 240, 250)
+    else
+        return Color3.fromRGB(60, 165, 50)
+    end
+end
+
 local function applySeason(seasonId)
     local sCfg = SEASON_CONFIGS[seasonId]
     if not sCfg then return end
@@ -289,36 +343,25 @@ local function applySeason(seasonId)
     BLOCK_CONFIG.Grass.Color = sCfg.grassColor
     ITEMS.grass_block.color = sCfg.grassColor
 
-    -- РџРµСЂРµРєСЂР°С€РёРІР°РµРј Р±Р»РѕРєРё С‚СЂР°РІС‹ Рё РєСЂРѕРЅ С†РІРµС‚СѓС‰РёС… РґРµСЂРµРІСЊРµРІ РІРµСЃРЅРѕР№
+    -- Перекрашиваем блоки травы и крон цветущих деревьев
     for _, block in ipairs(worldFolder:GetChildren()) do
         if block:GetAttribute("BlockType") == "Grass" then
-            local isCanopy = block:GetAttribute("IsCanopy")
-            local treeType = block:GetAttribute("TreeType")
-            if isCanopy and treeType then
-                if seasonId == "spring" then
-                    if treeType == "Sakura" then
-                        block.Color = Color3.fromRGB(255, 185, 215) -- РќРµР¶РЅРѕ-СЂРѕР·РѕРІР°СЏ С†РІРµС‚СѓС‰Р°СЏ СЃР°РєСѓСЂР°!
-                    else
-                        block.Color = Color3.fromRGB(255, 240, 248) -- Р‘РµР»Рѕ-СЂРѕР·РѕРІС‹Р№ С†РІРµС‚ СЏР±Р»РѕРЅРё!
-                    end
-                elseif seasonId == "autumn" then
-                    if treeType == "Sakura" then
-                        block.Color = Color3.fromRGB(215, 95, 30) -- РћСЃРµРЅРЅСЏСЏ СЃР°РєСѓСЂР°
-                    else
-                        block.Color = Color3.fromRGB(235, 165, 35) -- Р—РѕР»РѕС‚РёСЃС‚Р°СЏ СЏР±Р»РѕРЅСЏ
-                    end
-                elseif seasonId == "winter" then
-                    block.Color = Color3.fromRGB(230, 240, 250) -- Р—Р°СЃРЅРµР¶РµРЅРЅР°СЏ РєСЂРѕРЅР°
-                else
-                    block.Color = Color3.fromRGB(60, 165, 50) -- Р›РµС‚РЅСЏСЏ СЃРѕС‡РЅР°СЏ РєСЂРѕРЅР°
+            local isCanopy = (block:GetAttribute("IsCanopy") == true)
+            if isCanopy then
+                local treeType = block:GetAttribute("TreeType")
+                if not treeType then
+                    treeType = (block.Position.X > 0) and "Apple" or "Sakura"
+                    block:SetAttribute("TreeType", treeType)
                 end
+                block:SetAttribute("IsCanopy", true)
+                block.Color = getCanopyColor(treeType, seasonId)
             else
                 block.Color = sCfg.grassColor
             end
         end
     end
 
-    -- РћРїРѕРІРµС‰Р°РµРј РІСЃРµС… РєР»РёРµРЅС‚РѕРІ Рѕ СЃРјРµРЅРµ СЃРµР·РѕРЅР°
+    -- Оповещаем всех клиентов о смене сезона
     voxelRemote:FireAllClients("SeasonChanged", {
         season = currentSeason,
         seasonName = sCfg.name,
@@ -353,6 +396,10 @@ local function createBlock(blockType, position, isDynamic)
     part.Color = cfg.Color
     part.TopSurface = Enum.SurfaceType.Smooth
     part.BottomSurface = Enum.SurfaceType.Smooth
+    if cfg.Transparency then part.Transparency = cfg.Transparency end
+    if cfg.Reflectance then part.Reflectance = cfg.Reflectance end
+    if cfg.CastShadow ~= nil then part.CastShadow = cfg.CastShadow end
+    if cfg.CanCollide ~= nil then part.CanCollide = cfg.CanCollide end
 
     part:SetAttribute("BlockType", blockType)
     part:SetAttribute("HP", cfg.HP)
@@ -370,7 +417,7 @@ end
 -- 30..44 = Корзинка (Еда и сбор: 15 слотов)
 -- 45..54 = Сумка (Инструменты: 10 слотов)
 local MAX_SLOTS = 54
-local HOTBAR_SLOTS = 4
+local HOTBAR_SLOTS = 5
 local playerInventories = {}
 
 local function getOrCreateInventory(player)
@@ -384,12 +431,14 @@ local function getOrCreateInventory(player)
                 [2] = { id = "dirt_block",  count = 32, max = 64 },
                 [3] = { id = "stone_block", count = 16, max = 64 },
                 [4] = { id = "grass_block", count = 32, max = 64 },
+                [5] = { id = "water_block", count = 32, max = 64 },
 
                 -- Портфель: Ресурсы и блоки в пиксель-арт стилистике (10..29)
                 [10] = { id = "wood_block",  count = 24, max = 64 },
                 [11] = { id = "dirt_block",  count = 32, max = 64 },
                 [12] = { id = "stone_block", count = 16, max = 64 },
                 [13] = { id = "grass_block", count = 32, max = 64 },
+                [14] = { id = "water_block", count = 32, max = 64 },
 
                 -- Корзинка: Еда и урожай (30..44)
                 [30] = { id = "mushrooms",  count = 5,  max = 32 },
@@ -642,7 +691,7 @@ end
 
 RunService.Heartbeat:Connect(function(dt)
     -- Продвижение внутриигрового времени на сервере: 1 игровые сутки (24ч) = 720 секунд (12 минут реального времени)
-    serverInGameTime = (serverInGameTime + dt * (24 / 120)) % 24
+    serverInGameTime = (serverInGameTime + dt * (24 / DAY_CYCLE_SECONDS)) % 24
     if serverInGameTime < lastServerTime and lastServerTime >= 23.0 and serverInGameTime < 2.0 then
         -- 1 игровые сутки завершились! Автоматический переход к следующему времени года: Осень -> Зима -> Весна -> Лето -> Осень...
         local nextSeason = "autumn"
@@ -747,48 +796,130 @@ local function generateWorld()
         child:Destroy()
     end
 
-    local BASE_Y = 0
-    local CLEARING_RADIUS = 18 -- Просторная поляна (радиус 18 блоков ~ 27 стадов, диаметр 54 стада)
+    local oldPondBasin = Workspace:FindFirstChild("PondBasin")
+    if oldPondBasin then
+        oldPondBasin:Destroy()
+    end
 
-    -- 1. Создаем просторный многослойный ландшафт поляны с естественными живыми краями
-    for x = -CLEARING_RADIUS - 2, CLEARING_RADIUS + 2 do
-        for z = -CLEARING_RADIUS - 2, CLEARING_RADIUS + 2 do
+    local BASE_Y = 0
+    local CLEARING_RADIUS = 28 -- РџСЂРѕСЃС‚РѕСЂРЅР°СЏ Р¶РёРІРѕРїРёСЃРЅР°СЏ РїРѕР»СЏРЅР° (РґРёР°РјРµС‚СЂ ~84 СЃС‚Р°РґР°)
+
+    -- Р’СЃРїРѕРјРѕРіР°С‚РµР»СЊРЅР°СЏ С„СѓРЅРєС†РёСЏ РґР»СЏ РїСЂРѕРІРµСЂРєРё Р±Р»РёР·РѕСЃС‚Рё Рє РѕС‚СЂРµР·РєСѓ (РґР»СЏ С‚СЂРѕРїРёРЅРѕРє)
+    local function distToSegment(px, pz, ax, az, bx, bz)
+        local abx = bx - ax
+        local abz = bz - az
+        local apx = px - ax
+        local apz = pz - az
+        local lenSq = abx * abx + abz * abz
+        if lenSq == 0 then return math.sqrt(apx * apx + apz * apz) end
+        local t = math.clamp((apx * abx + apz * abz) / lenSq, 0, 1)
+        local nx = ax + t * abx
+        local nz = az + t * abz
+        local dx = px - nx
+        local dz = pz - nz
+        return math.sqrt(dx * dx + dz * dz)
+    end
+
+    local function isPath(x, z)
+        if distToSegment(x, z, 0, 0, 5, 2) < 1.1 then return true end
+        if distToSegment(x, z, 5, 2, 9, 5) < 1.1 then return true end
+        if distToSegment(x, z, 9, 5, 12, 6) < 1.1 then return true end
+
+        if distToSegment(x, z, 0, 0, -5, -5) < 1.1 then return true end
+        if distToSegment(x, z, -5, -5, -9, -9) < 1.1 then return true end
+
+        if distToSegment(x, z, 0, 0, 7, -6) < 1.1 then return true end
+        if distToSegment(x, z, 7, -6, 13, -11) < 1.1 then return true end
+
+        if distToSegment(x, z, 0, 0, -2, 8) < 1.1 then return true end
+        if distToSegment(x, z, -2, 8, -4, 14) < 1.1 then return true end
+
+        return false
+    end
+
+    -- 1. Р РµР»СЊРµС„, С…РѕР»РјС‹, РѕР·РµСЂРѕ Рё СЂРѕРґРЅРёРє
+    for x = -CLEARING_RADIUS - 4, CLEARING_RADIUS + 4 do
+        for z = -CLEARING_RADIUS - 4, CLEARING_RADIUS + 4 do
             local dist = math.sqrt(x*x + z*z)
             local angle = math.atan2(z, x)
-            -- Мягкие гармонические волны по краям, чтобы поляна была живой и органичной
-            local edgeWobble = math.sin(angle * 4) * 1.8 + math.cos(angle * 3) * 1.3
-            local maxDist = CLEARING_RADIUS + edgeWobble
+            local wobble = math.sin(angle * 3) * 2.8 + math.cos(angle * 5) * 1.6 + math.sin(angle * 2) * 1.2
+            local maxDist = CLEARING_RADIUS + wobble
 
             if dist <= maxDist then
-                local worldX = x * BLOCK_SIZE
-                local worldZ = z * BLOCK_SIZE
+                local wx = x * BLOCK_SIZE
+                local wz = z * BLOCK_SIZE
 
-                -- Верхний слой: мягкая сочная трава
-                createBlock("Grass", Vector3.new(worldX, BASE_Y, worldZ), false)
-                -- Подповерхностный слой: плодородная земля
-                createBlock("Dirt", Vector3.new(worldX, BASE_Y - BLOCK_SIZE, worldZ), false)
-                -- Коренной слой: крепкий камень
-                createBlock("Stone", Vector3.new(worldX, BASE_Y - BLOCK_SIZE * 2, worldZ), false)
+                local lakeDist = math.sqrt(((x - 13) / 1.15)^2 + ((z - 8) / 0.95)^2)
+                local springDist = math.sqrt((x + 18)^2 + (z - 5)^2)
 
-                -- Уютный холмик в северо-западном углу поляны (ступенька +1 блок для прыжков)
-                local hillDist = math.sqrt((x + 10)^2 + (z + 10)^2)
-                if hillDist <= 4.2 then
-                    createBlock("Grass", Vector3.new(worldX, BASE_Y + BLOCK_SIZE, worldZ), false)
+                if lakeDist <= 4.6 then
+                    createBlock("Water", Vector3.new(wx, BASE_Y, wz), false)
+                    createBlock("Sand",  Vector3.new(wx, BASE_Y - BLOCK_SIZE, wz), false)
+                    createBlock("Stone", Vector3.new(wx, BASE_Y - BLOCK_SIZE * 2, wz), false)
+                elseif springDist <= 2.3 then
+                    createBlock("Water", Vector3.new(wx, BASE_Y, wz), false)
+                    createBlock("Sand",  Vector3.new(wx, BASE_Y - BLOCK_SIZE, wz), false)
+                    createBlock("Stone", Vector3.new(wx, BASE_Y - BLOCK_SIZE * 2, wz), false)
+                else
+                    local dHill1 = math.sqrt((x + 13)^2 + (z + 13)^2)
+                    local dHill2 = math.sqrt((x - 16)^2 + (z + 14)^2)
+                    local dHill3 = math.sqrt(((x + 5) / 1.35)^2 + ((z - 18) / 0.95)^2)
+
+                    local hillTier = 0
+                    if dHill1 <= 3.8 then
+                        hillTier = 2
+                    elseif dHill1 <= 7.2 then
+                        hillTier = 1
+                    elseif dHill2 <= 2.5 then
+                        hillTier = 2
+                    elseif dHill2 <= 5.4 then
+                        hillTier = 1
+                    elseif dHill3 <= 4.8 then
+                        hillTier = 1
+                    end
+
+                    local surfaceType = "Grass"
+                    if lakeDist <= 5.8 then
+                        surfaceType = ((x + z) % 2 == 0) and "Sand" or "Dirt"
+                    elseif springDist <= 3.4 then
+                        surfaceType = "Dirt"
+                    elseif isPath(x, z) then
+                        surfaceType = "Dirt"
+                    end
+
+                    local topY = BASE_Y + hillTier * BLOCK_SIZE
+                    createBlock(surfaceType, Vector3.new(wx, topY, wz), false)
+
+                    for h = hillTier - 1, 0, -1 do
+                        createBlock("Dirt", Vector3.new(wx, BASE_Y + h * BLOCK_SIZE, wz), false)
+                    end
+
+                    createBlock("Dirt",  Vector3.new(wx, BASE_Y - BLOCK_SIZE, wz), false)
+                    createBlock("Stone", Vector3.new(wx, BASE_Y - BLOCK_SIZE * 2, wz), false)
                 end
             end
         end
     end
 
-    -- Вспомогательная функция для генерации аккуратного воксельного деревца
-    local function spawnVoxelTree(bx, bz, trunkHeight, treeType)
+    -- 2. Р’СЃРїРѕРјРѕРіР°С‚РµР»СЊРЅР°СЏ С„СѓРЅРєС†РёСЏ РґР»СЏ РіРµРЅРµСЂР°С†РёРё Р°РєРєСѓСЂР°С‚РЅРѕРіРѕ РІРѕРєСЃРµР»СЊРЅРѕРіРѕ РґРµСЂРµРІС†Р°
+    local function spawnVoxelTree(bx, bz, trunkHeight, treeType, baseY)
+        baseY = baseY or BASE_Y
         local posX = bx * BLOCK_SIZE
         local posZ = bz * BLOCK_SIZE
-        -- РЎС‚РІРѕР» РёР· РґСЂРµРІРµСЃРёРЅС‹
-        for h = 1, trunkHeight do
-            createBlock("Wood", Vector3.new(posX, BASE_Y + h * BLOCK_SIZE, posZ), false)
+
+        for dx = -1, 1 do
+            for dz = -1, 1 do
+                if math.abs(dx) + math.abs(dz) <= 1 then
+                    createBlock("Dirt", Vector3.new(posX + dx * BLOCK_SIZE, baseY, posZ + dz * BLOCK_SIZE), false)
+                end
+            end
         end
-        -- Р›РёСЃС‚РІРµРЅРЅР°СЏ РєСЂРѕРЅР° (СЃ СЂР°Р·РјРµС‚РєРѕР№ С‚РёРїР° РґРµСЂРµРІР°)
-        local topY = BASE_Y + trunkHeight * BLOCK_SIZE
+
+        for h = 1, trunkHeight do
+            createBlock("Wood", Vector3.new(posX, baseY + h * BLOCK_SIZE, posZ), false)
+        end
+
+        local topY = baseY + trunkHeight * BLOCK_SIZE
         for dx = -1, 1 do
             for dz = -1, 1 do
                 local blk = createBlock("Grass", Vector3.new(posX + dx * BLOCK_SIZE, topY, posZ + dz * BLOCK_SIZE), false)
@@ -805,32 +936,119 @@ local function generateWorld()
                 end
             end
         end
+        if trunkHeight >= 4 then
+            local peakBlk = createBlock("Grass", Vector3.new(posX, topY + BLOCK_SIZE * 2, posZ), false)
+            if peakBlk then
+                peakBlk:SetAttribute("IsCanopy", true)
+                peakBlk:SetAttribute("TreeType", treeType or "Sakura")
+            end
+        end
     end
 
-    -- 2. РЎС‚Р°РІРёРј С†РІРµС‚СѓС‰РёРµ РґРµСЂРµРІСЊСЏ (РЎР°РєСѓСЂС‹ Рё РЇР±Р»РѕРЅРё)
-    spawnVoxelTree(-9, -6, 3, "Sakura")
-    spawnVoxelTree(10, -8, 3, "Apple")
-    spawnVoxelTree(-10, 8, 3, "Sakura")
-    spawnVoxelTree(9, 7, 3, "Apple")
-    spawnVoxelTree(2, -12, 3, "Sakura")
-    spawnVoxelTree(-5, 12, 3, "Apple")
+    -- РЎР°РєСѓСЂС‹
+    spawnVoxelTree(-13, -13, 4, "Sakura", BASE_Y + BLOCK_SIZE * 2)
+    spawnVoxelTree(-18, -10, 3, "Sakura", BASE_Y + BLOCK_SIZE)
+    spawnVoxelTree(-21, -4, 4, "Sakura", BASE_Y)
+    spawnVoxelTree(-16, 9, 3, "Sakura", BASE_Y)
+    spawnVoxelTree(-11, 10, 4, "Sakura", BASE_Y)
+    spawnVoxelTree(-15, 14, 3, "Sakura", BASE_Y)
+    spawnVoxelTree(8, 14, 4, "Sakura", BASE_Y)
+    spawnVoxelTree(3, -11, 3, "Sakura", BASE_Y)
 
-    local function spawnBoulder(bx, bz)
+    -- РЇР±Р»РѕРЅРё
+    spawnVoxelTree(16, -14, 4, "Apple", BASE_Y + BLOCK_SIZE * 2)
+    spawnVoxelTree(11, -8, 3, "Apple", BASE_Y)
+    spawnVoxelTree(21, -6, 4, "Apple", BASE_Y)
+    spawnVoxelTree(3, -20, 4, "Apple", BASE_Y)
+    spawnVoxelTree(-6, -20, 3, "Apple", BASE_Y)
+    spawnVoxelTree(21, 10, 3, "Apple", BASE_Y)
+    spawnVoxelTree(15, 17, 4, "Apple", BASE_Y)
+    spawnVoxelTree(-5, 19, 3, "Apple", BASE_Y + BLOCK_SIZE)
+
+    -- 3. РљР°РјРЅРё Рё СЃРєР°Р»С‹
+    local function spawnBoulder(bx, bz, height, baseY)
+        baseY = baseY or BASE_Y
         local posX = bx * BLOCK_SIZE
         local posZ = bz * BLOCK_SIZE
-        createBlock("Stone", Vector3.new(posX, BASE_Y + BLOCK_SIZE, posZ), false)
-        createBlock("Stone", Vector3.new(posX + BLOCK_SIZE, BASE_Y + BLOCK_SIZE, posZ), false)
-        createBlock("Stone", Vector3.new(posX, BASE_Y + BLOCK_SIZE, posZ + BLOCK_SIZE), false)
-    end
-    spawnBoulder(7, 3)
-    spawnBoulder(-7, -2)
-    spawnBoulder(4, -8)
-    spawnBoulder(-6, 7)
+        height = height or 1
 
-    -- 4. Пенечки и бревнышки
-    createBlock("Wood", Vector3.new(-4 * BLOCK_SIZE, BASE_Y + BLOCK_SIZE, 3 * BLOCK_SIZE), false)
-    createBlock("Wood", Vector3.new(5 * BLOCK_SIZE, BASE_Y + BLOCK_SIZE, -3 * BLOCK_SIZE), false)
-    createBlock("Wood", Vector3.new(6 * BLOCK_SIZE, BASE_Y + BLOCK_SIZE, -3 * BLOCK_SIZE), false)
+        createBlock("Stone", Vector3.new(posX, baseY + BLOCK_SIZE, posZ), false)
+        createBlock("Stone", Vector3.new(posX + BLOCK_SIZE, baseY + BLOCK_SIZE, posZ), false)
+        createBlock("Stone", Vector3.new(posX, baseY + BLOCK_SIZE, posZ + BLOCK_SIZE), false)
+        if height >= 2 then
+            createBlock("Stone", Vector3.new(posX, baseY + BLOCK_SIZE * 2, posZ), false)
+        end
+        createBlock("Dirt", Vector3.new(posX - BLOCK_SIZE, baseY, posZ), false)
+        createBlock("Dirt", Vector3.new(posX, baseY, posZ - BLOCK_SIZE), false)
+    end
+
+    createBlock("Stone", Vector3.new(-2 * BLOCK_SIZE, BASE_Y + BLOCK_SIZE, -23 * BLOCK_SIZE), false)
+    createBlock("Stone", Vector3.new(-1 * BLOCK_SIZE, BASE_Y + BLOCK_SIZE, -23 * BLOCK_SIZE), false)
+    createBlock("Stone", Vector3.new(0 * BLOCK_SIZE, BASE_Y + BLOCK_SIZE, -23 * BLOCK_SIZE), false)
+    createBlock("Stone", Vector3.new(0 * BLOCK_SIZE, BASE_Y + BLOCK_SIZE * 2, -23 * BLOCK_SIZE), false)
+    createBlock("Stone", Vector3.new(1 * BLOCK_SIZE, BASE_Y + BLOCK_SIZE, -23 * BLOCK_SIZE), false)
+    createBlock("Stone", Vector3.new(2 * BLOCK_SIZE, BASE_Y + BLOCK_SIZE, -22 * BLOCK_SIZE), false)
+    createBlock("Stone", Vector3.new(3 * BLOCK_SIZE, BASE_Y + BLOCK_SIZE, -22 * BLOCK_SIZE), false)
+
+    spawnBoulder(-18, -16, 2, BASE_Y + BLOCK_SIZE)
+    spawnBoulder(-9, -17, 1, BASE_Y + BLOCK_SIZE)
+    spawnBoulder(-16, -7, 1, BASE_Y)
+
+    spawnBoulder(-21, 5, 2, BASE_Y)
+    spawnBoulder(-16, 3, 1, BASE_Y)
+    spawnBoulder(-19, 7, 1, BASE_Y)
+
+    spawnBoulder(18, 5, 2, BASE_Y)
+    spawnBoulder(17, 12, 1, BASE_Y)
+    spawnBoulder(9, 4, 1, BASE_Y)
+
+    createBlock("Stone", Vector3.new(10 * BLOCK_SIZE, BASE_Y, 7 * BLOCK_SIZE), false)
+    createBlock("Stone", Vector3.new(10 * BLOCK_SIZE, BASE_Y, 8 * BLOCK_SIZE), false)
+    createBlock("Stone", Vector3.new(11 * BLOCK_SIZE, BASE_Y, 9 * BLOCK_SIZE), false)
+
+    spawnBoulder(13, -18, 1, BASE_Y + BLOCK_SIZE)
+    spawnBoulder(20, -11, 2, BASE_Y)
+
+    spawnBoulder(-9, 18, 1, BASE_Y + BLOCK_SIZE)
+    spawnBoulder(0, 20, 2, BASE_Y)
+
+    spawnBoulder(-6, 4, 1, BASE_Y)
+    spawnBoulder(6, -3, 1, BASE_Y)
+    spawnBoulder(-11, -3, 1, BASE_Y)
+    spawnBoulder(22, 1, 1, BASE_Y)
+    spawnBoulder(-20, 15, 1, BASE_Y)
+    spawnBoulder(4, 18, 1, BASE_Y)
+
+    -- 4. РџРµРЅРµС‡РєРё Рё Р±СЂРµРІРЅС‹С€РєРё
+    createBlock("Wood", Vector3.new(-6 * BLOCK_SIZE, BASE_Y + BLOCK_SIZE, -9 * BLOCK_SIZE), false)
+    createBlock("Wood", Vector3.new(-5 * BLOCK_SIZE, BASE_Y + BLOCK_SIZE, -9 * BLOCK_SIZE), false)
+    createBlock("Wood", Vector3.new(-4 * BLOCK_SIZE, BASE_Y + BLOCK_SIZE, -9 * BLOCK_SIZE), false)
+
+    createBlock("Wood", Vector3.new(16 * BLOCK_SIZE, BASE_Y + BLOCK_SIZE, 2 * BLOCK_SIZE), false)
+    createBlock("Wood", Vector3.new(17 * BLOCK_SIZE, BASE_Y + BLOCK_SIZE, 2 * BLOCK_SIZE), false)
+    createBlock("Wood", Vector3.new(18 * BLOCK_SIZE, BASE_Y + BLOCK_SIZE, 2 * BLOCK_SIZE), false)
+
+    createBlock("Wood", Vector3.new(-12 * BLOCK_SIZE, BASE_Y + BLOCK_SIZE, 1 * BLOCK_SIZE), false)
+    createBlock("Wood", Vector3.new(5 * BLOCK_SIZE, BASE_Y + BLOCK_SIZE, -6 * BLOCK_SIZE), false)
+    createBlock("Wood", Vector3.new(18 * BLOCK_SIZE, BASE_Y + BLOCK_SIZE, -11 * BLOCK_SIZE), false)
+    createBlock("Wood", Vector3.new(-3 * BLOCK_SIZE, BASE_Y + BLOCK_SIZE, 14 * BLOCK_SIZE), false)
+    createBlock("Wood", Vector3.new(12 * BLOCK_SIZE, BASE_Y + BLOCK_SIZE, 14 * BLOCK_SIZE), false)
+
+    -- 5. РћР±РЅРѕРІР»СЏРµРј SpringFishingPond РґР»СЏ РѕР·РµСЂР°
+    local pondPart = Workspace:FindFirstChild("SpringFishingPond")
+    if not pondPart then
+        pondPart = Instance.new("Part")
+        pondPart.Name = "SpringFishingPond"
+        pondPart.Anchored = true
+        pondPart.CanCollide = false
+        pondPart.Material = Enum.Material.Glass
+        pondPart.Color = Color3.fromRGB(45, 160, 230)
+        pondPart.Parent = Workspace
+    end
+    pondPart.Position = Vector3.new(13 * BLOCK_SIZE, -0.1, 8 * BLOCK_SIZE)
+    pondPart.Size = Vector3.new(16.5, 1.2, 15.0)
+    pondPart.Transparency = 0.95
+    pondPart.CanCollide = false
 end
 
 if #worldFolder:GetChildren() == 0 then
@@ -842,11 +1060,17 @@ else
             local bType = block:GetAttribute("BlockType")
             if bType and BLOCK_CONFIG[bType] then
                 applyBlockTextures(block, bType)
+                local bCfg = BLOCK_CONFIG[bType]
+                block:SetAttribute("HP", bCfg.HP)
+                block:SetAttribute("MaxHP", bCfg.HP)
             end
-            if bType == "Grass" and block.Position.Y > 2.0 then
-                block:SetAttribute("IsCanopy", true)
-                local isApple = (block.Position.X > 0)
-                block:SetAttribute("TreeType", isApple and "Apple" or "Sakura")
+            if bType == "Grass" and (block:GetAttribute("IsCanopy") == true) then
+                local treeType = block:GetAttribute("TreeType")
+                if not treeType then
+                    local isApple = (block.Position.X > 0)
+                    treeType = isApple and "Apple" or "Sakura"
+                    block:SetAttribute("TreeType", treeType)
+                end
             end
         end
     end
@@ -909,6 +1133,8 @@ for _, pl in ipairs(Players:GetPlayers()) do
     end)
 end
 
+local playerLastHitTime = {}
+
 -- === ОБРАБОТКА ДЕЙСТВИЙ ИГРОКА ===
 voxelRemote.OnServerEvent:Connect(function(player, action, data)
     local character = player.Character
@@ -941,7 +1167,7 @@ voxelRemote.OnServerEvent:Connect(function(player, action, data)
             -- Р С‹Р±РєР° СЃРѕСЂРІР°Р»Р°СЃСЊ СЃ РєСЂСЋС‡РєР° СЃ Р»РµРіРєРёРј РІСЃРїР»РµСЃРєРѕРј
             spawnBreakParticles(pondPos, Color3.fromRGB(150, 215, 255), false)
             voxelRemote:FireClient(player, "ItemPickedUp", {
-                name = "Р С‹Р±РєР° РІРёР»СЊРЅСѓР»Р° С…РІРѕСЃС‚РѕРј Рё СѓРїР»С‹Р»Р°... рџ’¦",
+                name = "Рыбка вильнула хвостом и уплыла... 💦",
                 count = 0
             })
         end
@@ -953,9 +1179,32 @@ voxelRemote.OnServerEvent:Connect(function(player, action, data)
         local dist = (rootPart.Position - block.Position).Magnitude
         if dist > MAX_REACH then return end
 
-        local hp = block:GetAttribute("HP") or 1
+        local nowHit = os.clock()
+        local lastHit = playerLastHitTime[player] or 0
+        if nowHit - lastHit < 0.18 then
+            return -- Защита от дублирования сетевых пакетов за один клик
+        end
+        playerLastHitTime[player] = nowHit
+
+        local bType = block:GetAttribute("BlockType") or "Grass"
+        local cfg = BLOCK_CONFIG[bType] or BLOCK_CONFIG.Grass
+
+        local hp = block:GetAttribute("HP")
+        if hp == nil or hp <= 0 then
+            hp = cfg.HP
+        end
         hp = hp - 1
         block:SetAttribute("HP", hp)
+        block:SetAttribute("MaxHP", cfg.HP)
+
+        -- РЎР±СЂРѕСЃ HP Рє РјР°РєСЃРёРјСѓРјСѓ, РµСЃР»Рё РєРѕС‚РёРє РїРµСЂРµСЃС‚Р°Р» РєРѕРїР°С‚СЊ СЌС‚РѕС‚ Р±Р»РѕРє РЅР° 8 СЃРµРєСѓРЅРґ
+        local hitTimestamp = os.clock()
+        block:SetAttribute("LastHitTime", hitTimestamp)
+        task.delay(8, function()
+            if block and block.Parent and block:GetAttribute("LastHitTime") == hitTimestamp then
+                block:SetAttribute("HP", cfg.HP)
+            end
+        end)
 
         if hp <= 0 then
             local bType = block:GetAttribute("BlockType") or "Grass"
@@ -1025,6 +1274,38 @@ voxelRemote.OnServerEvent:Connect(function(player, action, data)
 
         local newBlock = createBlock(itemDef.blockType, newPos, true)
         if newBlock then
+            if itemDef.blockType == "Grass" then
+                local isHigh = (newPos.Y >= 2.0)
+                local targetIsWood = targetBlock and (targetBlock:GetAttribute("BlockType") == "Wood")
+                local targetIsCanopy = targetBlock and targetBlock:GetAttribute("IsCanopy")
+
+                if isHigh or targetIsWood or targetIsCanopy then
+                    local treeType = targetBlock and targetBlock:GetAttribute("TreeType")
+                    if not treeType then
+                        for _, other in ipairs(worldFolder:GetChildren()) do
+                            if other:IsA("BasePart") and other:GetAttribute("IsCanopy") then
+                                if (other.Position - newPos).Magnitude <= 3.8 then
+                                    treeType = other:GetAttribute("TreeType")
+                                    if treeType then break end
+                                end
+                            end
+                        end
+                    end
+                    if not treeType then
+                        treeType = (newPos.X > 0) and "Apple" or "Sakura"
+                    end
+
+                    newBlock:SetAttribute("IsCanopy", true)
+                    newBlock:SetAttribute("TreeType", treeType)
+                    newBlock.Color = getCanopyColor(treeType, currentSeason)
+                else
+                    local sCfg = SEASON_CONFIGS[currentSeason]
+                    if sCfg then
+                        newBlock.Color = sCfg.grassColor
+                    end
+                end
+            end
+
             removeItemFromSlot(player, slotIndex, 1)
             spawnBreakParticles(newPos, newBlock.Color, false)
             voxelRemote:FireClient(player, "BlockPlaced", { Block = newBlock })

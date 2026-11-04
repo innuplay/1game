@@ -49,11 +49,12 @@ screenGui.Parent = playerGui
 -- === ДИНАМИЧЕСКИЙ КАСТОМНЫЙ КУРСОР МЫШИ (ЛАПКА И ПРЕДМЕТЫ-РУКИ) ===
 -- Отображается ВЕЗДЕ: в мире, над кнопками, слотами и инвентарем без переключения на системную стрелку
 local CURSORS = {
-    paw   = "rbxassetid://81554992150735", -- Р§С‘СЂРЅР°СЏ РєРѕС€Р°С‡СЊСЏ Р»Р°РїРєР° (РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ)
-    wood  = "rbxassetid://78173367572097", -- Р СѓРєР° РёР· РїРѕР»РµРЅР° (РґРµСЂРµРІРѕ)
-    stone = "rbxassetid://125315613353193",-- Р СѓРєР° РёР· РєР°РјРЅСЏ
-    grass = "rbxassetid://78225648528704", -- Р СѓРєР° РёР· С‚СЂР°РІС‹ Рё Р»РёСЃС‚РІС‹
-    dirt  = "rbxassetid://75303885811286", -- Р СѓРєР° РёР· Р·РµРјР»Рё/РіСЂСѓРЅС‚Р°
+    paw   = "rbxassetid://101200170800629",
+    wood  = "rbxassetid://89025202129773",
+    stone = "rbxassetid://71254227847223",
+    grass = "rbxassetid://137250626647209",
+    dirt  = "rbxassetid://92809404994132",
+    water = "rbxassetid://116693966145406",
 }
 
 local ITEM_TO_CURSOR = {
@@ -61,18 +62,37 @@ local ITEM_TO_CURSOR = {
     stone_block = CURSORS.stone,
     grass_block = CURSORS.grass,
     dirt_block  = CURSORS.dirt,
+    water_block = CURSORS.water,
+    wood        = CURSORS.wood,
+    stone       = CURSORS.stone,
+    grass       = CURSORS.grass,
+    dirt        = CURSORS.dirt,
+    water       = CURSORS.water,
+}
+
+local NUM_HOTBAR_SLOTS = 5
+local SLOT_SIZE = 54
+local SLOT_GAP = 8
+local TOTAL_HOTBAR_WIDTH = (NUM_HOTBAR_SLOTS * SLOT_SIZE) + ((NUM_HOTBAR_SLOTS - 1) * SLOT_GAP)
+
+local HOTBAR_SLOT_DEFS = {
+    [1] = { id = "wood_block",  sprite = "rbxassetid://102991854156536", name = "\u{0414}\u{0435}\u{0440}\u{0435}\u{0432}\u{043e}", icon = "\u{1FA95}" },
+    [2] = { id = "dirt_block",  sprite = "rbxassetid://104779952223143", name = "\u{0417}\u{0435}\u{043c}\u{043b}\u{044f}",  icon = "\u{1F7EB}" },
+    [3] = { id = "stone_block", sprite = "rbxassetid://109072643235539", name = "\u{041a}\u{0430}\u{043c}\u{0435}\u{043d}\u{044c}", icon = "\u{1FAA8}" },
+    [4] = { id = "grass_block", sprite = "rbxassetid://114424346454200", name = "\u{0422}\u{0440}\u{0430}\u{0432}\u{0430}",  icon = "\u{1F33F}" },
+    [5] = { id = "water_block", sprite = "rbxassetid://94567183251152", name = "\u{0412}\u{043e}\u{0434}\u{0430}",   icon = "\u{1F4A7}" },
 }
 
 local cursorGui = playerGui:FindFirstChild("CustomCursorGui") or Instance.new("ScreenGui")
 cursorGui.Name = "CustomCursorGui"
 cursorGui.ResetOnSpawn = false
 cursorGui.IgnoreGuiInset = true
-cursorGui.DisplayOrder = 1000000 -- Всегда поверх всех элементов интерфейса
+cursorGui.DisplayOrder = 1000000
 cursorGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
 local cursorImage = cursorGui:FindFirstChild("CursorImage") or Instance.new("ImageLabel")
 cursorImage.Name = "CursorImage"
-cursorImage.Size = UDim2.new(0, 52, 0, 52)
+cursorImage.Size = UDim2.new(0, 32, 0, 32)
 cursorImage.Position = UDim2.new(0, 0, 0, 0)
 cursorImage.BackgroundTransparency = 1
 cursorImage.Image = CURSORS.paw
@@ -98,33 +118,33 @@ local function isPointerOverUIOrSystem(mPos)
         return false
     end
 
-    -- 1. РњРѕРґР°Р»СЊРЅС‹Рµ РѕРєРЅР°:
+    -- 1. РњРѕРґР°Р»СЊРЅС‹Рµ РѕРєРЅР° (РµСЃР»Рё РѕС‚РєСЂС‹С‚С‹):
     if isBackpackOpen then return true end
     if settingsModalRef and settingsModalRef.Visible then return true end
     if mapModalRef and mapModalRef.Visible then return true end
     if notebookModalRef and notebookModalRef.Visible then return true end
 
-    -- 2. РњРµРЅСЋ Р РѕР±Р»РѕРєСЃР° (С‚РѕР»СЊРєРѕ РєРѕРјРїР°РєС‚РЅР°СЏ С‡РµСЂРЅР°СЏ РїР»Р°С€РєР° РІ Р»РµРІРѕРј РІРµСЂС…РЅРµРј СѓРіР»Сѓ):
+    -- 2. РњРµРЅСЋ CoreGui (С‚РѕР»СЊРєРѕ РєРѕРјРїР°РєС‚РЅР°СЏ Р·РѕРЅР° РІ Р»РµРІРѕРј РІРµСЂС…РЅРµРј СѓРіР»Сѓ):
     if mPos.X <= 220 and mPos.Y <= 50 then
         return true
     end
 
-    -- 3. Р§Р°СЃС‹ Рё РїРѕРіРѕРґР°:
+    -- 3. Р§Р°СЃС‹ Рё РїРѕРіРѕРґР° (РІ РїСЂР°РІРѕРј РІРµСЂС…РЅРµРј СѓРіР»Сѓ):
     if seasonWidgetRef and isInsideGui(seasonWidgetRef, mPos) then
         return true
     end
 
-    -- 4. РРєРѕРЅРєРё РІРёС‚Р°Р»СЊРЅРѕСЃС‚Рё (РµРґР°/РІРѕРґР°/СЌРЅРµСЂРіРёСЏ):
+    -- 4. РџР°РЅРµР»СЊ РїРѕРєР°Р·Р°С‚РµР»РµР№ (СЃР»РµРІР° РІРЅРёР·Сѓ):
     if vitalityFrameRef and isInsideGui(vitalityFrameRef, mPos) then
         return true
     end
 
-    -- 5. РќРёР¶РЅРёРµ РёРєРѕРЅРєРё С…РѕС‚Р±Р°СЂР°:
+    -- 5. РҐРѕС‚Р±Р°СЂ (РїРѕ С†РµРЅС‚СЂСѓ РІРЅРёР·Сѓ):
     if hudContainerRef and isInsideGui(hudContainerRef, mPos) then
         return true
     end
 
-    -- 6. РљРЅРѕРїРєР° СЂСЋРєР·Р°РєР°:
+    -- 6. РљРЅРѕРїРєР° СЂСЋРєР·Р°РєР° [E] (РІ РїСЂР°РІРѕРј РЅРёР¶РЅРµРј СѓРіР»Сѓ):
     if backpackBtnRef and isInsideGui(backpackBtnRef, mPos) then
         return true
     end
@@ -133,14 +153,14 @@ local function isPointerOverUIOrSystem(mPos)
 end
 
 local function getDesiredCursor(mPos)
-    -- РџСЂРё РЅР°РІРµРґРµРЅРёРё РЅР° РёРЅС‚РµСЂС„РµР№СЃ (CoreGui, С‡Р°СЃС‹, РїРѕРєР°Р·Р°С‚РµР»Рё, СЂСЋРєР·Р°Рє, С…РѕС‚Р±Р°СЂ) -> С‡РµСЂРЅР°СЏ РєРѕС€Р°С‡СЊСЏ Р»Р°РїРєР°:
+    -- РџСЂРё РЅР°РІРµРґРµРЅРёРё РЅР° СЌР»РµРјРµРЅС‚С‹ РёРЅС‚РµСЂС„РµР№СЃР° -> Р°РєРєСѓСЂР°С‚РЅР°СЏ С‡РµСЂРЅР°СЏ Р»Р°РїРєР°:
     if isPointerOverUIOrSystem(mPos) then
         return CURSORS.paw
     end
 
-    -- Р’ РјРёСЂРµ: РµСЃР»Рё РІС‹Р±СЂР°РЅ СЃР»РѕС‚ СЃС‚СЂРѕРёС‚РµР»СЊСЃС‚РІР° (1..4) -> СЂСѓРєР° СЃРѕРѕС‚РІРµС‚СЃС‚РІСѓСЋС‰РµРіРѕ Р±Р»РѕРєР°:
-    if activeHotbarSlot and activeHotbarSlot >= 1 and activeHotbarSlot <= 4 then
-        local slotDef = HOTBAR_SLOT_DEFS[activeHotbarSlot]
+    -- Р’ РёРіСЂРѕРІРѕРј РјРёСЂРµ: РµСЃР»Рё РІС‹Р±СЂР°РЅ СЃР»РѕС‚ С…РѕС‚Р±Р°СЂР° 1..4 -> РєСЂР°СЃРёРІС‹Р№ РєСѓСЂСЃРѕСЂ РІС‹Р±СЂР°РЅРЅРѕРіРѕ Р±Р»РѕРєР°!
+    if activeHotbarSlot and activeHotbarSlot >= 1 and activeHotbarSlot <= 5 then
+        local slotDef = HOTBAR_SLOT_DEFS and HOTBAR_SLOT_DEFS[activeHotbarSlot]
         local activeItem = currentInventorySlots and currentInventorySlots[activeHotbarSlot]
         local itemId = (activeItem and activeItem.id) or (slotDef and slotDef.id)
         if itemId then
@@ -151,7 +171,7 @@ local function getDesiredCursor(mPos)
         end
     end
 
-    -- Р•СЃР»Рё СЃС‚СЂРѕРёС‚РµР»СЊРЅС‹Р№ РѕР±СЉРµРєС‚ РЅРµ РІС‹Р±СЂР°РЅ -> С‡РµСЂРЅР°СЏ РєРѕС€Р°С‡СЊСЏ Р»Р°РїРєР°
+    -- РџРѕ СѓРјРѕР»С‡Р°РЅРёСЋ -> Р°РєРєСѓСЂР°С‚РЅР°СЏ С‡РµСЂРЅР°СЏ Р»Р°РїРєР°:
     return CURSORS.paw
 end
 
@@ -163,12 +183,9 @@ local function updateCustomCursor()
     if cursorImage.Image ~= targetIcon then
         cursorImage.Image = targetIcon
     end
-    if mouse and mouse.Icon ~= targetIcon then
-        mouse.Icon = targetIcon
-    end
 
-    -- РќР°Рґ СЃРёСЃС‚РµРјРЅС‹Рј Р±Р°СЂРѕРј CoreGui Roblox (X <= 220 and Y <= 50) РІРєР»СЋС‡Р°РµРј РЅР°С‚РёРІРЅС‹Р№ РєСѓСЂСЃРѕСЂ:
-    local isOverCoreGuiBar = (mPos.X <= 220 and mPos.Y <= 50)
+    -- Р’РµСЂС…РЅСЏСЏ СЃРёСЃС‚РµРјРЅР°СЏ РїРѕР»РѕСЃР° Roblox CoreGui (X <= 220 and Y <= 48):
+    local isOverCoreGuiBar = (mPos.X <= 220 and mPos.Y <= 48)
     if isOverCoreGuiBar then
         UserInputService.MouseIconEnabled = true
         cursorImage.Visible = false
@@ -176,35 +193,22 @@ local function updateCustomCursor()
         UserInputService.MouseIconEnabled = false
         cursorImage.Visible = true
 
+        -- РђРєРєСѓСЂР°С‚РЅС‹Р№ СЂР°Р·РјРµСЂ РєСѓСЂСЃРѕСЂР°: 32x32 РІ РїРѕРєРѕРµ, 28x28 РїСЂРё РЅР°Р¶Р°С‚РёРё
         if isPressed then
-            cursorImage.Size = UDim2.new(0, 46, 0, 46)
+            cursorImage.Size = UDim2.new(0, 28, 0, 28)
             cursorImage.Position = UDim2.new(0, mPos.X - 1, 0, mPos.Y - 1)
         else
-            cursorImage.Size = UDim2.new(0, 52, 0, 52)
+            cursorImage.Size = UDim2.new(0, 32, 0, 32)
             cursorImage.Position = UDim2.new(0, mPos.X - 2, 0, mPos.Y - 2)
         end
     end
 end
-RunService.RenderStepped:Connect(updateCustomCursor)
-
-player.CharacterAdded:Connect(function()
+RunService.RenderStepped:Connect(updateCustomCursor)player.CharacterAdded:Connect(function()
     task.wait(0.1)
     updateCustomCursor()
 end)
 
--- 1. СПРАЙТОВЫЙ ПИКСЕЛЬНЫЙ ХОТБАР (4 СЛОТА: ДЕРЕВО, ЗЕМЛЯ, КАМЕНЬ, ТРАВА)
-local NUM_HOTBAR_SLOTS = 4
-local SLOT_SIZE = 54
-local SLOT_GAP = 8
-local TOTAL_HOTBAR_WIDTH = (NUM_HOTBAR_SLOTS * SLOT_SIZE) + ((NUM_HOTBAR_SLOTS - 1) * SLOT_GAP) -- 216 + 24 = 240px
-
-local HOTBAR_SLOT_DEFS = {
-    [1] = { id = "wood_block",  sprite = "rbxassetid://102991854156536", name = "Дерево", icon = "🪵" },
-    [2] = { id = "dirt_block",  sprite = "rbxassetid://104779952223143", name = "Земля",  icon = "🟤" },
-    [3] = { id = "stone_block", sprite = "rbxassetid://109072643235539", name = "Камень", icon = "🪨" },
-    [4] = { id = "grass_block", sprite = "rbxassetid://114424346454200", name = "Трава",  icon = "🌿" },
-}
-
+-- [HOTBAR_SLOT_DEFS defined at top of script]
 local hudContainer = Instance.new("Frame")
 hudContainer.Name = "WoodHudContainer"
 hudContainerRef = hudContainer
@@ -281,8 +285,9 @@ local catStats = {
 local vitalityFrame = Instance.new("Frame")
 vitalityFrame.Name = "VitalityStatusPanel"
 vitalityFrameRef = vitalityFrame
-vitalityFrame.Size = UDim2.new(0, 146, 0, 72)
-vitalityFrame.Position = UDim2.new(0, 16, 1, -86) -- Левый нижний угол экрана
+vitalityFrame.Size = UDim2.new(0, 50, 0, 142)
+vitalityFrame.Position = UDim2.new(1, -8, 0, 82) -- Р’ РїСЂР°РІРѕРј РІРµСЂС…РЅРµРј СѓРіР»Сѓ РїРѕРґ С‡Р°СЃР°РјРё Рё РїРѕРіРѕРґРѕР№
+vitalityFrame.AnchorPoint = Vector2.new(1, 0)
 vitalityFrame.BackgroundColor3 = Color3.fromRGB(111, 98, 77)
 vitalityFrame.BorderSizePixel = 0
 vitalityFrame.ZIndex = 5
@@ -301,11 +306,11 @@ vitStroke.Parent = vitalityFrame
 local vitalityUIElements = {}
 
 local function createVitalityColumn(name, iconId, colIndex, defaultPercent)
-    local colW = 146 / 3
+    local rowH = 142 / 3
     local colFrame = Instance.new("Frame")
     colFrame.Name = "Col_" .. name
-    colFrame.Size = UDim2.new(0, math.floor(colW), 1, 0)
-    colFrame.Position = UDim2.new(0, math.floor((colIndex - 1) * colW), 0, 0)
+    colFrame.Size = UDim2.new(1, 0, 0, math.floor(rowH))
+    colFrame.Position = UDim2.new(0, 0, 0, math.floor((colIndex - 1) * rowH))
     colFrame.BackgroundTransparency = 1
     colFrame.ZIndex = 6
     colFrame.Parent = vitalityFrame
@@ -313,8 +318,8 @@ local function createVitalityColumn(name, iconId, colIndex, defaultPercent)
     -- Пиксельная иконка
     local icon = Instance.new("ImageLabel")
     icon.Name = "Icon"
-    icon.Size = UDim2.new(0, 24, 0, 28)
-    icon.Position = UDim2.new(0.5, -12, 0, 6)
+    icon.Size = UDim2.new(0, 22, 0, 24)
+    icon.Position = UDim2.new(0.5, -11, 0, 4)
     icon.BackgroundTransparency = 1
     icon.Image = iconId
     icon.ResampleMode = Enum.ResamplerMode.Pixelated
@@ -325,13 +330,13 @@ local function createVitalityColumn(name, iconId, colIndex, defaultPercent)
     -- Текст процентов под иконкой
     local pctLabel = Instance.new("TextLabel")
     pctLabel.Name = "PercentText"
-    pctLabel.Size = UDim2.new(1, 0, 0, 16)
-    pctLabel.Position = UDim2.new(0, 0, 0, 36)
+    pctLabel.Size = UDim2.new(1, 0, 0, 14)
+    pctLabel.Position = UDim2.new(0, 0, 0, 27)
     pctLabel.BackgroundTransparency = 1
     pctLabel.Text = math.floor(defaultPercent) .. "%"
     pctLabel.TextColor3 = Color3.fromRGB(235, 230, 210)
     pctLabel.Font = Enum.Font.FredokaOne
-    pctLabel.TextSize = 11
+    pctLabel.TextSize = 10
     pctLabel.ZIndex = 7
     pctLabel.Parent = colFrame
 
@@ -343,8 +348,8 @@ local function createVitalityColumn(name, iconId, colIndex, defaultPercent)
     -- Темная подложка горизонтальной полоски
     local barBg = Instance.new("Frame")
     barBg.Name = "BarBg"
-    barBg.Size = UDim2.new(0, 32, 0, 3)
-    barBg.Position = UDim2.new(0.5, -16, 0, 56)
+    barBg.Size = UDim2.new(0, 30, 0, 3)
+    barBg.Position = UDim2.new(0.5, -15, 0, 41)
     barBg.BackgroundColor3 = Color3.fromRGB(65, 75, 60)
     barBg.BorderSizePixel = 0
     barBg.ZIndex = 7
@@ -398,62 +403,50 @@ end
 -- === ВРЕМЕНА ГОДА И ДЕНЬ / НОЧЬ (НОЧЬ С 23:00 ДО 05:00, ЗОЛОТЫЕ ЧАСЫ БЕЗ ЦИФР) ===
 local SEASON_CONFIGS = {
     autumn = {
-        name = "Осень",
-        icon = "🍂",
-        accentColor = Color3.fromRGB(255, 195, 90),
-        tempBase = 8,
-        tempNight = 3,
+        name = "\u{041e}\u{0441}\u{0435}\u{043d}\u{044c}",
+        tempNight = 2,
         tempDay = 12,
-        ambientDay = Color3.fromRGB(135, 125, 110),
-        ambientNight = Color3.fromRGB(38, 42, 60),
+        ambientDay = Color3.fromRGB(125, 125, 115),
+        ambientNight = Color3.fromRGB(60, 75, 105),
         colorShiftTop = Color3.fromRGB(255, 230, 190),
-        brightnessDay = 1.5,
-        brightnessNight = 0.35,
+        brightnessDay = 1.9,
+        brightnessNight = 0.85,
         fogColor = Color3.fromRGB(175, 155, 130),
         fogEnd = 320,
     },
     winter = {
-        name = "Зима",
-        icon = "❄️",
-        accentColor = Color3.fromRGB(195, 230, 255),
-        tempBase = -8,
-        tempNight = -16,
+        name = "\u{0417}\u{0438}\u{043c}\u{0430}",
+        tempNight = -12,
         tempDay = -4,
-        ambientDay = Color3.fromRGB(130, 145, 165),
-        ambientNight = Color3.fromRGB(30, 36, 62),
+        ambientDay = Color3.fromRGB(135, 145, 165),
+        ambientNight = Color3.fromRGB(65, 80, 120),
         colorShiftTop = Color3.fromRGB(210, 230, 255),
-        brightnessDay = 1.3,
-        brightnessNight = 0.35,
+        brightnessDay = 1.8,
+        brightnessNight = 0.85,
         fogColor = Color3.fromRGB(190, 210, 235),
         fogEnd = 250,
     },
     spring = {
-        name = "Весна",
-        icon = "🌸",
-        accentColor = Color3.fromRGB(180, 255, 190),
-        tempBase = 14,
-        tempNight = 3,
+        name = "\u{0412}\u{0435}\u{0441}\u{043d}\u{0430}",
+        tempNight = 4,
         tempDay = 18,
-        ambientDay = Color3.fromRGB(135, 148, 130),
-        ambientNight = Color3.fromRGB(36, 42, 58),
-        colorShiftTop = Color3.fromRGB(245, 250, 220),
-        brightnessDay = 1.6,
-        brightnessNight = 0.35,
+        ambientDay = Color3.fromRGB(130, 145, 135),
+        ambientNight = Color3.fromRGB(65, 82, 118),
+        colorShiftTop = Color3.fromRGB(255, 245, 220),
+        brightnessDay = 2.0,
+        brightnessNight = 0.85,
         fogColor = Color3.fromRGB(180, 215, 195),
         fogEnd = 380,
     },
     summer = {
-        name = "Лето",
-        icon = "☀️",
-        accentColor = Color3.fromRGB(255, 240, 120),
-        tempBase = 24,
+        name = "\u{041b}\u{0435}\u{0442}\u{043e}",
         tempNight = 16,
         tempDay = 28,
-        ambientDay = Color3.fromRGB(150, 145, 130),
-        ambientNight = Color3.fromRGB(42, 44, 62),
+        ambientDay = Color3.fromRGB(135, 145, 130),
+        ambientNight = Color3.fromRGB(68, 85, 122),
         colorShiftTop = Color3.fromRGB(255, 245, 215),
-        brightnessDay = 1.7,
-        brightnessNight = 0.35,
+        brightnessDay = 2.1,
+        brightnessNight = 0.85,
         fogColor = Color3.fromRGB(200, 220, 240),
         fogEnd = 500,
     }
@@ -467,8 +460,9 @@ local seasonButtonsUI = {}
 local seasonWidget = Instance.new("Frame")
 seasonWidget.Name = "SeasonTimeWidget"
 seasonWidgetRef = seasonWidget
-seasonWidget.Size = UDim2.new(0, 130, 0, 72)
-seasonWidget.Position = UDim2.new(1, -16, 0, 16)
+seasonWidget.Size = UDim2.new(0, 0, 0, 0)
+seasonWidget.AutomaticSize = Enum.AutomaticSize.XY
+seasonWidget.Position = UDim2.new(1, -8, 0, 8)
 seasonWidget.AnchorPoint = Vector2.new(1, 0)
 seasonWidget.BackgroundTransparency = 1
 seasonWidget.ZIndex = 5
@@ -545,10 +539,11 @@ pCorner.CornerRadius = UDim.new(1, 0)
 pCorner.Parent = pin
 local seasonLabel = Instance.new("TextLabel")
 seasonLabel.Name = "SeasonLabel"
-seasonLabel.Size = UDim2.new(1, -38, 0, 26)
+seasonLabel.Size = UDim2.new(0, 0, 0, 26)
+seasonLabel.AutomaticSize = Enum.AutomaticSize.X
 seasonLabel.Position = UDim2.new(0, 38, 0, 3)
 seasonLabel.BackgroundTransparency = 1
-seasonLabel.Text = "Осень"
+seasonLabel.Text = "\u{041e}\u{0441}\u{0435}\u{043d}\u{044c}"
 seasonLabel.TextColor3 = Color3.fromRGB(240, 235, 220)
 seasonLabel.Font = Enum.Font.FredokaOne
 seasonLabel.TextSize = 15
@@ -574,7 +569,8 @@ thermoIcon.Parent = seasonWidget
 -- Значение температуры ("+8 °C")
 local tempLabel = Instance.new("TextLabel")
 tempLabel.Name = "TempLabel"
-tempLabel.Size = UDim2.new(1, -38, 0, 24)
+tempLabel.Size = UDim2.new(0, 0, 0, 24)
+tempLabel.AutomaticSize = Enum.AutomaticSize.X
 tempLabel.Position = UDim2.new(0, 38, 0, 42)
 tempLabel.BackgroundTransparency = 1
 tempLabel.Text = "+8 °C"
@@ -591,42 +587,75 @@ tStroke.Parent = tempLabel
 
 local notifContainer = Instance.new("Frame")
 notifContainer.Name = "NotifContainer"
-notifContainer.Size = UDim2.new(0, 260, 0, 100)
-notifContainer.Position = UDim2.new(0.5, -130, 1, -220)
+notifContainer.Size = UDim2.new(0, 320, 0, 50)
+notifContainer.Position = UDim2.new(0.5, -160, 1, -114)
 notifContainer.BackgroundTransparency = 1
 notifContainer.Parent = screenGui
 
 local function showPickupNotification(itemName, count)
     local pill = Instance.new("TextLabel")
-    pill.Size = UDim2.new(0, 220, 0, 28)
-    pill.Position = UDim2.new(0.5, -110, 1, 0)
-    pill.BackgroundColor3 = Color3.fromRGB(20, 25, 20)
-    pill.BackgroundTransparency = 0.2
-    pill.TextColor3 = Color3.fromRGB(130, 255, 120)
+    pill.Size = UDim2.new(0, 210, 0, 24)
+    pill.Position = UDim2.new(0.5, -105, 0, 18)
+    pill.BackgroundColor3 = Color3.fromRGB(22, 34, 24)
+    pill.BackgroundTransparency = 1
+    pill.TextTransparency = 1
+    pill.TextColor3 = Color3.fromRGB(160, 255, 150)
+    pill.TextStrokeColor3 = Color3.fromRGB(15, 25, 15)
+    pill.TextStrokeTransparency = 1
     pill.Font = Enum.Font.FredokaOne
-    pill.TextSize = 14
+    pill.TextSize = 12
     pill.Text = (count and count > 0) and string.format("+%d %s", count, itemName) or tostring(itemName)
+    pill.ZIndex = 80
     pill.Parent = notifContainer
 
     local pillCorner = Instance.new("UICorner")
-    pillCorner.CornerRadius = UDim.new(0, 8)
+    pillCorner.CornerRadius = UDim.new(0, 7)
     pillCorner.Parent = pill
 
-    local tweenUp = TweenService:Create(pill, TweenInfo.new(1.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-        Position = UDim2.new(0.5, -110, 0, -20),
-        TextTransparency = 1,
-        BackgroundTransparency = 1
+    local pillStroke = Instance.new("UIStroke")
+    pillStroke.Name = "Border"
+    pillStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    pillStroke.Color = Color3.fromRGB(70, 185, 85)
+    pillStroke.Thickness = 1.2
+    pillStroke.Transparency = 1
+    pillStroke.Parent = pill
+
+    local popIn = TweenService:Create(pill, TweenInfo.new(0.22, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+        Position = UDim2.new(0.5, -105, 0, 4),
+        BackgroundTransparency = 0.12,
+        TextTransparency = 0,
+        TextStrokeTransparency = 0.3
     })
-    tweenUp:Play()
-    tweenUp.Completed:Connect(function()
-        pill:Destroy()
+    local strokeIn = TweenService:Create(pillStroke, TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        Transparency = 0.35
+    })
+    popIn:Play()
+    strokeIn:Play()
+
+    task.delay(2.4, function()
+        if pill and pill.Parent then
+            local fadeOut = TweenService:Create(pill, TweenInfo.new(0.45, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+                Position = UDim2.new(0.5, -105, 0, -10),
+                BackgroundTransparency = 1,
+                TextTransparency = 1,
+                TextStrokeTransparency = 1
+            })
+            local strokeOut = TweenService:Create(pillStroke, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+                Transparency = 1
+            })
+            fadeOut:Play()
+            strokeOut:Play()
+            fadeOut.Completed:Connect(function()
+                if pill and pill.Parent then pill:Destroy() end
+            end)
+        end
     end)
 end
 
 -- ============================================================
 -- === ПОГОДНАЯ СИСТЕМА (ДОЖДЬ, СНЕГ, ВЕТЕР, ЛИСТЬЯ, ГРАД, ЛЕПЕСТКИ, СВЕТЛЯЧКИ) ===
 -- ============================================================
-local DAY_CYCLE_SECONDS = 120 -- 1 игровые сутки (24 часа) = 2 минуты реального времени
+local DAY_CYCLE_SECONDS = 300 -- 1 игровые сутки (24 часа) = 2 минуты реального времени
 
 local weatherAnchor = Instance.new("Part")
 weatherAnchor.Name = "WeatherAnchor"
@@ -899,13 +928,6 @@ bumblebeesEmitter.Enabled = false
 bumblebeesEmitter.Parent = firefliesAnchor
 
 -- 11. Р¤РѕРЅРѕРІРѕРµ РїРµРЅРёРµ РїС‚РёС† (Р°РєС‚РёРІРёСЂСѓРµС‚СЃСЏ РЅР° СЂР°СЃСЃРІРµС‚Рµ СЃ 05:00, РїРѕРµС‚ РґРЅРµРј Рё Р·Р°С‚РёС…Р°РµС‚ Рє 21:00)
-local birdsAmbientSound = Instance.new("Sound")
-birdsAmbientSound.Name = "BirdsAmbientSound"
-birdsAmbientSound.SoundId = "rbxassetid://1843404009"
-birdsAmbientSound.Looped = true
-birdsAmbientSound.Volume = 0
-birdsAmbientSound.Parent = Workspace
-pcall(function() birdsAmbientSound:Play() end)
 local rainbowFolder = Instance.new("Folder")
 rainbowFolder.Name = "RainbowVisual"
 rainbowFolder.Parent = Workspace
@@ -1017,17 +1039,6 @@ local function triggerLightningStrike()
         end
         boltModel.Parent = Workspace
 
-        pcall(function()
-            local thunderSound = Instance.new("Sound")
-            thunderSound.SoundId = "rbxassetid://130833677"
-            -- Р’РµСЃРЅРѕР№ СЂР°СЃРєР°С‚С‹ РіСЂРѕРјР° РјСЏРіРєРёРµ Рё РґР°Р»РµРєРёРµ (Volume = 0.42), Р»РµС‚РѕРј Р±РѕР»РµРµ Р·РІРѕРЅРєРёРµ (0.75)
-            thunderSound.Volume = (currentSeasonId == "spring") and 0.42 or 0.75
-            thunderSound.Pitch = (currentSeasonId == "spring") and (math.random(80, 95) / 100) or (math.random(90, 110) / 100)
-            thunderSound.Parent = Workspace
-            thunderSound:Play()
-            game:GetService("Debris"):AddItem(thunderSound, 6)
-        end)
-
         local origBrightness = Lighting.Brightness
         local origColorShift = Lighting.ColorShift_Top
         local origAmbient = Lighting.Ambient
@@ -1072,7 +1083,6 @@ local groundPuddles = {}
 local groundSnowCaps = {}
 local groundLeafPatches = {}
 local groundSpringFlowers = {}
-local groundWaterRipples = {}
 
 local puddleWetness = 0
 local snowCoverage = (currentSeasonId == "winter") and 1 or 0
@@ -1081,7 +1091,14 @@ local flowersCoverage = (currentSeasonId == "spring") and 1 or 0
 
 local lastProcessedDecorBlockCount = 0
 local lastDecorRegenTick = 0
-local lastRippleSpawnTick = 0
+
+local function cellHash(x, z, seed)
+    local h = bit32.bxor(x * 374761393, z * 668265263) + seed
+    h = bit32.bxor(h, bit32.rshift(h, 13))
+    h = (h * 1274126177) % 4294967296
+    h = bit32.bxor(h, bit32.rshift(h, 16))
+    return h
+end
 
 local function setupGroundWeatherDecor()
     local worldFolder = Workspace:FindFirstChild("VoxelWorld")
@@ -1095,7 +1112,6 @@ local function setupGroundWeatherDecor()
     table.clear(groundSnowCaps)
     table.clear(groundLeafPatches)
     table.clear(groundSpringFlowers)
-    table.clear(groundWaterRipples)
 
     local blockGrid = {}
     for _, block in ipairs(allChildren) do
@@ -1131,11 +1147,15 @@ local function setupGroundWeatherDecor()
             continue
         end
 
-        local h_puddle = math.abs((gx * 73856093) + (gz * 19349663) + 12345)
-        local h_flower = math.abs((gx * 83492791) + (gz * 29496729) + 67891)
-        local h_leaf   = math.abs((gx * 19349663) + (gz * 83492791) + 45678)
+                local h_puddle = cellHash(gx, gz, 101)
+        local h_flower = cellHash(gx, gz, 202)
+        local h_leaf   = cellHash(gx, gz, 303)
 
-        -- 1. РЎРЅРµР¶РЅС‹Р№ РїРѕРєСЂРѕРІ РЅР° Р±Р»РѕРєР°С… (Р·РёРјРѕР№ - 100% РїРѕРєСЂС‹С‚РёСЏ РѕС‚РєСЂС‹С‚РѕР№ С‚СЂР°РІС‹)
+        local n_puddle = math.noise(gx * 0.19 + 5.2, gz * 0.19 + 17.8, 11.4)
+        local n_flower = math.noise(gx * 0.22 + 43.1, gz * 0.22 + 7.6, 88.2)
+        local n_leaf   = math.noise(gx * 0.24 + 19.4, gz * 0.24 + 52.3, 144.7)
+
+        -- 1. РЎРЅРµР¶РЅС‹Рµ С€Р°РїРєРё Р·РёРјРѕР№:
         local sH = 0.06
         local snowCap = Instance.new("Part")
         snowCap.Name = "SnowCap"
@@ -1154,28 +1174,28 @@ local function setupGroundWeatherDecor()
 
         local hasPuddleOnBlock = false
 
-        -- 2. Р’РµСЃРµРЅРЅРёРµ Рё РґРѕР¶РґРµРІС‹Рµ Р»СѓР¶Рё Р РђР—РќРћР“Рћ Р РђР—РњР•Р Рђ (~28% СЃРІРѕР±РѕРґРЅРѕР№ С‚СЂР°РІС‹)
-        if isGroundLevel and ((h_puddle % 4 == 0) or (h_puddle % 11 == 0)) then
+        -- 2. Р’РµСЃРµРЅРЅРёРµ Рё РґРѕР¶РґРµРІС‹Рµ Р»СѓР¶Рё: РѕСЂРіР°РЅРёС‡РµСЃРєРёРµ РµСЃС‚РµСЃС‚РІРµРЅРЅС‹Рµ Р·РѕРЅС‹, Р±РµР· РїРѕР»РѕСЃ Рё РїРѕРІС‚РѕСЂРµРЅРёР№
+        if isGroundLevel and (n_puddle > 0.05) and ((h_puddle % 100) < 60) then
             hasPuddleOnBlock = true
             local pSizeCat = (h_puddle % 10)
             local pRadX, pRadZ, pH
             if pSizeCat < 3 then
-                -- РњР°Р»РµРЅСЊРєРёРµ РєР°РїР»Рё (РґРёР°РјРµС‚СЂ 0.38..0.55 СЃС‚Р°РґСЃР°)
-                local r = 0.20 + ((h_puddle % 13) / 13) * 0.08
+                -- РњРµР»РєРёРµ РєСЂСѓРіР»С‹Рµ Р±СЂС‹Р·РіРё/Р»СѓР¶РёС†С‹
+                local r = 0.20 + ((h_puddle % 13) / 13) * 0.10
                 pRadX = r
-                pRadZ = r
+                pRadZ = r * (0.95 + ((h_puddle % 5) / 5) * 0.15)
                 pH = 0.012
             elseif pSizeCat < 7 then
-                -- РЎСЂРµРґРЅРёРµ Р»СѓР¶Рё (РґРёР°РјРµС‚СЂ 0.85..1.2 СЃС‚Р°РґСЃР°, СЃР»РµРіРєР° РѕРІР°Р»СЊРЅС‹Рµ)
-                local r = 0.42 + ((h_puddle % 17) / 17) * 0.16
-                local aspect = 1.15 + ((h_puddle % 7) / 7) * 0.22
+                -- РЎСЂРµРґРЅРёРµ Р»СѓР¶РёС†С‹ РµСЃС‚РµСЃС‚РІРµРЅРЅРѕР№ С„РѕСЂРјС‹
+                local r = 0.40 + ((h_puddle % 17) / 17) * 0.18
+                local aspect = 1.10 + ((h_puddle % 7) / 7) * 0.25
                 pRadX = r
                 pRadZ = r * aspect
                 pH = 0.015
             else
-                -- Р‘РѕР»СЊС€РёРµ С‚Р°Р»С‹Рµ РІРµСЃРµРЅРЅРёРµ СЂР°Р·Р»РёРІС‹ (РґРёР°РјРµС‚СЂ 1.5..2.1 СЃС‚Р°РґСЃР°)
-                local r = 0.75 + ((h_puddle % 23) / 23) * 0.28
-                local aspect = 1.25 + ((h_puddle % 9) / 9) * 0.40
+                -- РљСЂСѓРїРЅС‹Рµ РІРµСЃРµРЅРЅРёРµ Р»СѓР¶Рё
+                local r = 0.70 + ((h_puddle % 23) / 23) * 0.32
+                local aspect = 1.15 + ((h_puddle % 9) / 9) * 0.35
                 pRadX = r
                 pRadZ = r * aspect
                 pH = 0.018
@@ -1184,10 +1204,13 @@ local function setupGroundWeatherDecor()
             local puddle = Instance.new("Part")
             puddle.Name = "Puddle"
             puddle.Size = Vector3.new(pRadX * 2, pH, pRadZ * 2)
+            -- РЎРјРµС‰РµРЅРёРµ РїРѕР·РёС†РёРё РІРЅСѓС‚СЂРё РІРѕРєСЃРµР»СЏ: Р»СѓР¶Рё Р±РѕР»СЊС€Рµ РЅРёРєРѕРіРґР° РЅРµ РІС‹СЃС‚СЂР°РёРІР°СЋС‚СЃСЏ РІ СЂРµС€РµС‚РєСѓ
+            local offsetX = (((h_puddle % 15) - 7) / 7) * 0.28
+            local offsetZ = ((((h_puddle / 15) % 15) - 7) / 7) * 0.28
             puddle.Position = Vector3.new(
-                block.Position.X + (((h_puddle % 7) - 3) * 0.04),
+                block.Position.X + offsetX,
                 topY + (pH / 2) + 0.002,
-                block.Position.Z + (((h_puddle % 5) - 2) * 0.04)
+                block.Position.Z + offsetZ
             )
             puddle.Orientation = Vector3.new(0, (h_puddle % 360), 0)
             puddle.Color = Color3.fromRGB(115, 170, 225)
@@ -1209,27 +1232,29 @@ local function setupGroundWeatherDecor()
             table.insert(groundPuddles, puddle)
         end
 
-        -- 3. Р’РµСЃРµРЅРЅРёРµ РїРµСЂРІРѕС†РІРµС‚С‹: СЃРїР°РІРЅСЏС‚СЃСЏ РўРћР›Р¬РљРћ С‚Р°Рј, РіРґРµ РќР•Рў Р»СѓР¶Рё (С†РІРµС‚С‹ РЅРёРєРѕРіРґР° РЅРµ Р»РµР¶Р°С‚ РІ РІРѕРґРµ!)
-        if isGroundLevel and (not hasPuddleOnBlock) and ((h_flower % 4 == 0) or (h_flower % 7 == 0)) then
+        -- 3. Р’РµСЃРµРЅРЅРёРµ РїРµСЂРІРѕС†РІРµС‚С‹: Р¶РёРІРѕРїРёСЃРЅС‹Рµ РїРѕР»СЏРЅС‹ (РЅРµ СЂР°СЃС‚СѓС‚ РІ Р»СѓР¶Р°С…)
+        if isGroundLevel and (not hasPuddleOnBlock) and (n_flower > 0.04) and ((h_flower % 100) < 52) then
             local flower = Instance.new("Part")
             flower.Name = "SpringFlower"
             local fType = (h_flower % 3)
             local fColor
             if fType == 0 then
-                fColor = Color3.fromRGB(255, 225, 45) -- Р—РѕР»РѕС‚РёСЃС‚С‹Р№ РѕРґСѓРІР°РЅС‡РёРє
+                fColor = Color3.fromRGB(255, 225, 45) -- Р¶РµР»С‚С‹Р№ РїРµСЂРІРѕС†РІРµС‚
             elseif fType == 1 then
-                fColor = Color3.fromRGB(252, 255, 255) -- Р‘РµР»С‹Р№ РїРѕРґСЃРЅРµР¶РЅРёРє
+                fColor = Color3.fromRGB(252, 255, 255) -- Р±РµР»Р°СЏ РІРµС‚СЂРµРЅРёС†Р°
             else
-                fColor = Color3.fromRGB(165, 120, 245) -- РЎРёРЅРµ-С„РёРѕР»РµС‚РѕРІС‹Р№ РєСЂРѕРєСѓСЃ
+                fColor = Color3.fromRGB(165, 120, 245) -- РЅРµР¶РЅРѕ-СЃРёСЂРµРЅРµРІС‹Р№ С€Р°С„СЂР°РЅ
             end
 
             local fH = 0.08
-            local fSize = 0.25 + ((h_flower % 11) / 11) * 0.08
+            local fSize = 0.24 + ((h_flower % 11) / 11) * 0.09
             flower.Size = Vector3.new(fSize, fH, fSize)
+            local fOffX = (((h_flower % 15) - 7) / 7) * 0.32
+            local fOffZ = ((((h_flower / 15) % 15) - 7) / 7) * 0.32
             flower.Position = Vector3.new(
-                block.Position.X + (((h_flower % 13) - 6) * 0.05),
+                block.Position.X + fOffX,
                 topY + (fH / 2) + 0.002,
-                block.Position.Z + (((h_flower % 11) - 5) * 0.05)
+                block.Position.Z + fOffZ
             )
             flower.Color = fColor
             flower.Material = Enum.Material.SmoothPlastic
@@ -1258,8 +1283,8 @@ local function setupGroundWeatherDecor()
             table.insert(groundSpringFlowers, flower)
         end
 
-        -- 4. РћРїР°РІС€РёРµ Р»РёСЃС‚СЊСЏ (РѕСЃРµРЅСЊСЋ - РЅР° РѕС‚РєСЂС‹С‚РѕР№ С‚СЂР°РІРµ)
-        if isGroundLevel and (not hasPuddleOnBlock) and ((h_leaf % 3 == 0) or (h_leaf % 7 == 0)) then
+        -- 4. РћСЃРµРЅРЅРёРµ Р»РёСЃС‚СЊСЏ: РµСЃС‚РµСЃС‚РІРµРЅРЅС‹Р№ Р»РёСЃС‚РѕРїР°Рґ Р±РµР· СЂСЏРґРѕРІ Рё РїРѕР»РѕСЃ
+        if isGroundLevel and (not hasPuddleOnBlock) and (n_leaf > -0.05) and ((h_leaf % 100) < 45) then
             local lH = 0.012
             local leafColors = {
                 Color3.fromRGB(225, 125, 20),
@@ -1269,13 +1294,15 @@ local function setupGroundWeatherDecor()
             }
             local leafPatch = Instance.new("Part")
             leafPatch.Name = "LeafPatch"
-            local lW = 0.40 + ((h_leaf % 11) / 11) * 0.16
-            local lL = 0.32 + ((h_leaf % 13) / 13) * 0.14
+            local lW = 0.38 + ((h_leaf % 11) / 11) * 0.18
+            local lL = 0.30 + ((h_leaf % 13) / 13) * 0.16
+            local lOffX = (((h_leaf % 15) - 7) / 7) * 0.32
+            local lOffZ = ((((h_leaf / 15) % 15) - 7) / 7) * 0.32
             leafPatch.Size = Vector3.new(lW, lH, lL)
             leafPatch.Position = Vector3.new(
-                block.Position.X + (((h_leaf % 9) - 4) * 0.06),
+                block.Position.X + lOffX,
                 topY + (lH / 2) + 0.001,
-                block.Position.Z + (((h_leaf % 7) - 3) * 0.06)
+                block.Position.Z + lOffZ
             )
             leafPatch.Orientation = Vector3.new(0, (h_leaf % 360), 0)
             leafPatch.Color = leafColors[(h_leaf % #leafColors) + 1]
@@ -1365,60 +1392,6 @@ local function updateGroundDecor(dt, isRaining)
             if stem then stem.Transparency = flTrans end
         end
     end
-
-    -- 5. РђРЅРёРјР°С†РёСЏ РєСЂСѓРіРѕРІ РЅР° РІРѕРґРµ РІ РїСЂСѓРґСѓ (WaterRipples)
-    for i = #groundWaterRipples, 1, -1 do
-        local rip = groundWaterRipples[i]
-        if rip and rip.part and rip.part.Parent then
-            local age = tick() - rip.startTime
-            if age >= rip.duration then
-                rip.part:Destroy()
-                table.remove(groundWaterRipples, i)
-            else
-                local progress = age / rip.duration
-                local currentR = rip.startRadius + (rip.endRadius - rip.startRadius) * progress
-                rip.part.Size = Vector3.new(currentR * 2, 0.01, currentR * 2)
-                rip.part.Transparency = 0.35 + (progress * 0.65)
-            end
-        else
-            table.remove(groundWaterRipples, i)
-        end
-    end
-
-    -- РџРµСЂРёРѕРґРёС‡РµСЃРєРёР№ СЃРїР°РІРЅ РєСЂСѓРіРѕРІ РѕС‚ РїР»Р°РІР°СЋС‰РёС… СЂС‹Р±РѕРє РЅР° РІРѕРґРµ
-    if tick() - lastRippleSpawnTick >= 1.6 then
-        lastRippleSpawnTick = tick()
-        local pondWater = Workspace:FindFirstChild("SpringFishingPond")
-        if pondWater then
-            local pSize = pondWater.Size
-            local pPos = pondWater.Position
-            local rx = (math.random() - 0.5) * (pSize.X * 0.75)
-            local rz = (math.random() - 0.5) * (pSize.Z * 0.75)
-            local ripPart = Instance.new("Part")
-            ripPart.Name = "WaterRipple"
-            ripPart.Shape = Enum.PartType.Cylinder
-            ripPart.Orientation = Vector3.new(0, 0, 90)
-            ripPart.Size = Vector3.new(0.01, 0.4, 0.4)
-            ripPart.Position = Vector3.new(pPos.X + rx, pPos.Y + (pSize.Y / 2) + 0.005, pPos.Z + rz)
-            ripPart.Color = Color3.fromRGB(215, 240, 255)
-            ripPart.Material = Enum.Material.Glass
-            ripPart.Anchored = true
-            ripPart.CanCollide = false
-            ripPart.CanTouch = false
-            ripPart.CanQuery = false
-            ripPart.CastShadow = false
-            ripPart.Transparency = 0.35
-            ripPart.Parent = groundDecorFolder
-
-            table.insert(groundWaterRipples, {
-                part = ripPart,
-                startTime = tick(),
-                duration = 2.4,
-                startRadius = 0.25,
-                endRadius = 1.35
-            })
-        end
-    end
 end
 
 local function setSeason(seasonKey, notifyServer)
@@ -1457,11 +1430,13 @@ local function setSeason(seasonKey, notifyServer)
         if sKey == currentSeasonId then
             btnData.stroke.Color = Color3.fromRGB(255, 215, 100)
             btnData.stroke.Thickness = 2
-            btnData.button.BackgroundColor3 = Color3.fromRGB(70, 56, 42)
+            btnData.button.BackgroundColor3 = Color3.fromRGB(75, 58, 42)
+            btnData.button.TextColor3 = Color3.fromRGB(255, 255, 255)
         else
             btnData.stroke.Color = Color3.fromRGB(85, 65, 48)
             btnData.stroke.Thickness = 1
             btnData.button.BackgroundColor3 = Color3.fromRGB(48, 38, 30)
+            btnData.button.TextColor3 = Color3.fromRGB(220, 210, 195)
         end
     end
 
@@ -1504,7 +1479,15 @@ local function updateDayNightAndWeather(dt)
     else
         curTemp = math.floor(cfg.tempNight + (cfg.tempDay - cfg.tempNight) * heatFactor + 0.5)
     end
-    tempLabel.Text = (curTemp > 0 and ("+" .. curTemp) or tostring(curTemp)) .. " °C"
+    local tempStr
+    if curTemp > 0 then
+        tempStr = "+" .. curTemp
+    elseif curTemp < 0 then
+        tempStr = "- " .. math.abs(curTemp)
+    else
+        tempStr = "0"
+    end
+    tempLabel.Text = tempStr .. " \u{00b0}C"
 
     -- Плавное освещение:
     -- Светлеет строго в 5 утра (рассвет 05:00 - 06:30)
@@ -1514,43 +1497,54 @@ local function updateDayNightAndWeather(dt)
     -- РўРµРјРЅРµС‚СЊ РЅР°С‡РёРЅР°РµС‚ РЎРўР РћР“Рћ СЃ 23:00 РІРµС‡РµСЂР° (Р·Р°РєР°С‚ 23:00 - 23:45).
     -- РЎ 23:45 РґРѕ 05:00 - С‚РµРјРЅР°СЏ РЅРѕС‡СЊ.
 
-    -- РЎРёРЅС…СЂРѕРЅРёР·Р°С†РёСЏ РІРёР·СѓР°Р»СЊРЅРѕРіРѕ СЃРѕР»РЅС†Р° Roblox СЃ РёРіСЂРѕРІС‹РјРё СЃСѓС‚РєР°РјРё:
-    local robloxClockTime
-    if inGameTime >= 5 and inGameTime < 23 then
-        local dayFrac = (inGameTime - 5) / 18
-        robloxClockTime = 6.2 + dayFrac * 11.6 -- СЃРѕР»РЅС†Рµ РЅР° РЅРµР±Рµ СЃ 05:00 (РІРѕСЃС…РѕРґ 6.2) РґРѕ 23:00 (Р·Р°РєР°С‚ 17.8)
-    else
-        local nightFrac = (inGameTime >= 23 and (inGameTime - 23) or (inGameTime + 1)) / 6
-        robloxClockTime = (17.8 + nightFrac * 12.4) % 24 -- РЅРѕС‡СЊ СЃ Р»СѓРЅРѕР№ РѕС‚ 23:00 РґРѕ 05:00
-    end
-    Lighting.ClockTime = robloxClockTime
+    Lighting.ClockTime = inGameTime
 
-    if inGameTime >= 5 and inGameTime < 5.75 then
-        -- Р Р°СЃСЃРІРµС‚ (05:00 - 05:45): СЃРІРµС‚Р»РµРµС‚ РЎРўР РћР“Рћ СЃ 5 СѓС‚СЂР°!
-        local a = (inGameTime - 5) / 0.75
-        Lighting.Brightness = cfg.brightnessNight + (cfg.brightnessDay - cfg.brightnessNight) * a
-        Lighting.OutdoorAmbient = cfg.ambientNight:Lerp(cfg.ambientDay, a)
-        Lighting.Ambient = Color3.fromRGB(25, 25, 38):Lerp(Color3.fromRGB(90, 95, 105), a)
-        Lighting.ColorShift_Top = Color3.fromRGB(130, 160, 215):Lerp(Color3.fromRGB(255, 200, 150), math.sin(a * math.pi)):Lerp(cfg.colorShiftTop, a)
-    elseif inGameTime >= 5.75 and inGameTime < 23 then
-        -- РџРѕР»РЅС‹Р№ СЃРІРµС‚Р»С‹Р№ РґРµРЅСЊ (05:45 - 23:00): СЃРІРµС‚Р»Рѕ РІСЃРµ РІСЂРµРјСЏ РґРѕ 11 РІРµС‡РµСЂР°!
-        Lighting.Brightness = cfg.brightnessDay
-        Lighting.OutdoorAmbient = cfg.ambientDay
-        Lighting.Ambient = Color3.fromRGB(90, 95, 105)
-        Lighting.ColorShift_Top = cfg.colorShiftTop
-    elseif inGameTime >= 23 and inGameTime < 23.75 then
-        -- Р—Р°РєР°С‚ (23:00 - 23:45): С‚РµРјРЅРµРµС‚ РЎРўР РћР“Рћ СЃ 11 РІРµС‡РµСЂР° (23:00)!
-        local a = (inGameTime - 23) / 0.75
-        Lighting.Brightness = cfg.brightnessDay + (cfg.brightnessNight - cfg.brightnessDay) * a
-        Lighting.OutdoorAmbient = cfg.ambientDay:Lerp(cfg.ambientNight, a)
-        Lighting.Ambient = Color3.fromRGB(90, 95, 105):Lerp(Color3.fromRGB(25, 25, 38), a)
-        Lighting.ColorShift_Top = cfg.colorShiftTop:Lerp(Color3.fromRGB(255, 120, 60), math.sin(a * math.pi)):Lerp(Color3.fromRGB(130, 160, 215), a)
+    -- РџР»Р°РІРЅРѕРµ СЃРѕР»РЅРµС‡РЅРѕРµ Рё Р»СѓРЅРЅРѕРµ РѕСЃРІРµС‰РµРЅРёРµ РїРѕР»СЏРЅС‹:
+    -- Р”РµРЅСЊ (06:30 - 17:30): СЏСЂРєРѕРµ С‚РµРїР»РѕРµ СЃРѕР»РЅС†Рµ РѕСЃРІРµС‰Р°РµС‚ РїРѕР»СЏРЅСѓ
+    -- Р—Р°РєР°С‚ (17:30 - 19:30): СЃРѕР»РЅС†Рµ СЃР°РґРёС‚СЃСЏ, Р·Р°РєР°С‚РЅС‹Рµ Р·РѕР»РѕС‚РёСЃС‚Рѕ-РѕСЂР°РЅР¶РµРІС‹Рµ Р»СѓС‡Рё
+    -- РќРѕС‡СЊ (19:30 - 05:00): Р»СѓРЅР° РЅР° РЅРµР±Рµ РјСЏРіРєРѕ РѕСЃРІРµС‰Р°РµС‚ РїРѕР»СЏРЅСѓ СЃРµСЂРµР±СЂРёСЃС‚Рѕ-РіРѕР»СѓР±С‹Рј СЃРІРµС‚РѕРј
+    -- Р Р°СЃСЃРІРµС‚ (05:00 - 06:30): Р»СѓРЅР° Р·Р°С…РѕРґРёС‚, РІРѕСЃС…РѕРґРёС‚ СѓС‚СЂРµРЅРЅРµРµ Р·РѕР»РѕС‚РѕРµ СЃРѕР»РЅС†Рµ
+
+    local moonColorShift = Color3.fromRGB(145, 180, 240)
+    local moonAmbient = cfg.ambientNight
+    local moonOutdoorAmbient = Color3.fromRGB(65, 80, 115)
+    local moonBrightness = cfg.brightnessNight
+
+    local sunColorShift = cfg.colorShiftTop
+    local sunAmbient = Color3.fromRGB(85, 90, 100)
+    local sunOutdoorAmbient = cfg.ambientDay
+    local sunBrightness = cfg.brightnessDay
+
+    if inGameTime >= 5.0 and inGameTime < 6.5 then
+        -- Р Р°СЃСЃРІРµС‚ (05:00 - 06:30): РїРµСЂРµС…РѕРґ РѕС‚ Р»СѓРЅС‹ Рє РІРѕСЃС…РѕРґСЏС‰РµРјСѓ СЃРѕР»РЅС†Сѓ
+        local a = (inGameTime - 5.0) / 1.5
+        local dawnTint = Color3.fromRGB(255, 185, 115)
+        Lighting.Brightness = moonBrightness + (sunBrightness - moonBrightness) * a
+        Lighting.OutdoorAmbient = moonOutdoorAmbient:Lerp(sunOutdoorAmbient, a)
+        Lighting.Ambient = moonAmbient:Lerp(sunAmbient, a)
+        local colorBlend = moonColorShift:Lerp(sunColorShift, a)
+        Lighting.ColorShift_Top = colorBlend:Lerp(dawnTint, math.sin(a * math.pi) * 0.7)
+    elseif inGameTime >= 6.5 and inGameTime < 17.5 then
+        -- РџРѕР»РЅС‹Р№ РґРµРЅСЊ (06:30 - 17:30): РїРѕР»СЏРЅР° СЏСЂРєРѕ Р·Р°Р»РёС‚Р° СЃРѕР»РЅРµС‡РЅС‹Рј СЃРІРµС‚РѕРј
+        Lighting.Brightness = sunBrightness
+        Lighting.OutdoorAmbient = sunOutdoorAmbient
+        Lighting.Ambient = sunAmbient
+        Lighting.ColorShift_Top = sunColorShift
+    elseif inGameTime >= 17.5 and inGameTime < 19.5 then
+        -- Р—Р°РєР°С‚ (17:30 - 19:30): Р·Р°С…РѕРґ СЃРѕР»РЅС†Р°, РјСЏРіРєРёР№ С‚РµРїР»С‹Р№ СЃРІРµС‚
+        local a = (inGameTime - 17.5) / 2.0
+        local duskTint = Color3.fromRGB(255, 140, 70)
+        Lighting.Brightness = sunBrightness + (moonBrightness - sunBrightness) * a
+        Lighting.OutdoorAmbient = sunOutdoorAmbient:Lerp(moonOutdoorAmbient, a)
+        Lighting.Ambient = sunAmbient:Lerp(moonAmbient, a)
+        local colorBlend = sunColorShift:Lerp(moonColorShift, a)
+        Lighting.ColorShift_Top = colorBlend:Lerp(duskTint, math.sin(a * math.pi) * 0.8)
     else
-        -- РўРµРјРЅР°СЏ РЅРѕС‡СЊ (23:45 - 05:00): С‚РµРјРЅРѕ СЂРѕРІРЅРѕ РґРѕ 5 СѓС‚СЂР°!
-        Lighting.Brightness = cfg.brightnessNight
-        Lighting.OutdoorAmbient = cfg.ambientNight
-        Lighting.Ambient = Color3.fromRGB(25, 25, 38)
-        Lighting.ColorShift_Top = Color3.fromRGB(130, 160, 215)
+        -- РќРѕС‡СЊ (19:30 - 05:00): РїРѕР»СЏРЅР° РјСЏРіРєРѕ РѕСЃРІРµС‰Р°РµС‚СЃСЏ СЃРµСЂРµР±СЂРёСЃС‚Рѕ-РіРѕР»СѓР±РѕР№ Р»СѓРЅРѕР№
+        Lighting.Brightness = moonBrightness
+        Lighting.OutdoorAmbient = moonOutdoorAmbient
+        Lighting.Ambient = moonAmbient
+        Lighting.ColorShift_Top = moonColorShift
     end
 
     local cam = Workspace.CurrentCamera
@@ -1612,19 +1606,6 @@ local function updateDayNightAndWeather(dt)
     local isSpringButterflyHours = isSpring and (inGameTime >= 11.0 and inGameTime <= 17.0) and (not isRaining)
     butterfliesEmitter.Enabled = isSpringButterflyHours
     bumblebeesEmitter.Enabled = isSpringButterflyHours
-
-    -- Р¤РѕРЅРѕРІРѕРµ РїРµРЅРёРµ Р»РµСЃРЅС‹С… РїС‚РёС†: РїСЂРѕСЃС‹РїР°СЋС‚СЃСЏ РЅР° СЂР°СЃСЃРІРµС‚Рµ (СЃ 05:00), Р°РєС‚РёРІРЅС‹ РґРЅРµРј, Р·Р°С‚РёС…Р°СЋС‚ Рє 21:00
-    local targetBirdVolume = 0
-    if (isSpring or isSummer) and (not isRaining) then
-        if inGameTime >= 5.0 and inGameTime < 7.0 then
-            targetBirdVolume = ((inGameTime - 5.0) / 2.0) * 0.35 -- Р Р°СЃСЃРІРµС‚РЅРѕРµ РїСЂРѕР±СѓР¶РґРµРЅРёРµ
-        elseif inGameTime >= 7.0 and inGameTime < 18.0 then
-            targetBirdVolume = 0.35 -- Р—РІРѕРЅРєРѕРµ РґРЅРµРІРЅРѕРµ РїРµРЅРёРµ
-        elseif inGameTime >= 18.0 and inGameTime < 21.0 then
-            targetBirdVolume = (1.0 - ((inGameTime - 18.0) / 3.0)) * 0.35 -- Р’РµС‡РµСЂРЅРµРµ Р·Р°С‚РёС…Р°РЅРёРµ
-        end
-    end
-    birdsAmbientSound.Volume = birdsAmbientSound.Volume + (targetBirdVolume - birdsAmbientSound.Volume) * math.clamp(dt * 2.0, 0, 1)
 
     -- 8. Гроза с молниями: весной (13-16) и летом (14-17)
     -- 8. Thunderstorm with lightning: spring (13:00 - 16:30) and summer (14:00 - 17:00)
@@ -2255,8 +2236,13 @@ for i = 1, NUM_HOTBAR_SLOTS do
             selectedBackpackSlot = nil
             refreshAllInventoryUI()
         else
-            activeHotbarSlot = i
-            voxelRemote:FireServer("SelectSlot", { slot = i })
+            if activeHotbarSlot == i then
+                activeHotbarSlot = nil
+                voxelRemote:FireServer("SelectSlot", { slot = 0 })
+            else
+                activeHotbarSlot = i
+                voxelRemote:FireServer("SelectSlot", { slot = i })
+            end
             refreshAllInventoryUI()
         end
     end)
@@ -2837,6 +2823,13 @@ setScroll.CanvasSize = UDim2.new(0, 0, 0, 960)
 setScroll.ZIndex = 61
 setScroll.Parent = settingsModal
 
+local setPad = Instance.new("UIPadding")
+setPad.PaddingLeft = UDim.new(0, 5)
+setPad.PaddingRight = UDim.new(0, 10)
+setPad.PaddingTop = UDim.new(0, 4)
+setPad.PaddingBottom = UDim.new(0, 8)
+setPad.Parent = setScroll
+
 local setListLayout = Instance.new("UIListLayout")
 setListLayout.Padding = UDim.new(0, 8)
 setListLayout.SortOrder = Enum.SortOrder.LayoutOrder
@@ -2845,7 +2838,7 @@ setListLayout.Parent = setScroll
 local function createSectionHeader(text, layoutOrder)
     local lbl = Instance.new("TextLabel")
     lbl.Name = "Header_" .. layoutOrder
-    lbl.Size = UDim2.new(1, -10, 0, 24)
+    lbl.Size = UDim2.new(1, 0, 0, 24)
     lbl.BackgroundTransparency = 1
     lbl.Text = text
     lbl.TextColor3 = Color3.fromRGB(255, 215, 100)
@@ -2861,7 +2854,7 @@ end
 local function createInstructionCard(icon, keyText, actionTitle, descText, layoutOrder)
     local card = Instance.new("Frame")
     card.Name = "Card_" .. layoutOrder
-    card.Size = UDim2.new(1, -10, 0, 44)
+    card.Size = UDim2.new(1, 0, 0, 44)
     card.BackgroundColor3 = Color3.fromRGB(48, 38, 30)
     card.BorderSizePixel = 0
     card.LayoutOrder = layoutOrder
@@ -2927,14 +2920,14 @@ createSectionHeader("⏰ ВРЕМЯ СУТОК", 1)
 
 local timeGrid = Instance.new("Frame")
 timeGrid.Name = "TimeGrid"
-timeGrid.Size = UDim2.new(1, -10, 0, 76)
+timeGrid.Size = UDim2.new(1, 0, 0, 76)
 timeGrid.BackgroundTransparency = 1
 timeGrid.LayoutOrder = 2
 timeGrid.ZIndex = 62
 timeGrid.Parent = setScroll
 
 local tGridLay = Instance.new("UIGridLayout")
-tGridLay.CellSize = UDim2.new(0.5, -6, 0, 34)
+tGridLay.CellSize = UDim2.new(0.5, -4, 0, 34)
 tGridLay.CellPadding = UDim2.new(0, 8, 0, 8)
 tGridLay.Parent = timeGrid
 
@@ -2945,12 +2938,35 @@ local timeOptions = {
     { text = "🌇 Закат (21:00)",  time = 21.0, order = 4 },
 }
 
+local timeButtonsUI = {}
+local selectedTimeValue = nil
+
+local function updateTimeButtonsUI(targetTime)
+    selectedTimeValue = targetTime
+    for tVal, btnData in pairs(timeButtonsUI) do
+        local isSelected = (targetTime ~= nil and math.abs(tVal - targetTime) < 0.1)
+        if isSelected then
+            btnData.stroke.Color = Color3.fromRGB(255, 215, 100)
+            btnData.stroke.Thickness = 2
+            btnData.button.BackgroundColor3 = Color3.fromRGB(75, 58, 42)
+            btnData.button.TextColor3 = Color3.fromRGB(255, 255, 255)
+        else
+            btnData.stroke.Color = Color3.fromRGB(85, 65, 48)
+            btnData.stroke.Thickness = 1
+            btnData.button.BackgroundColor3 = Color3.fromRGB(48, 38, 30)
+            btnData.button.TextColor3 = Color3.fromRGB(255, 235, 180)
+        end
+    end
+end
+
 for _, opt in ipairs(timeOptions) do
     local tBtn = Instance.new("TextButton")
     tBtn.Name = "TimeBtn_" .. opt.time
     tBtn.BackgroundColor3 = Color3.fromRGB(48, 38, 30)
     tBtn.Text = opt.text
     tBtn.TextColor3 = Color3.fromRGB(255, 235, 180)
+    tBtn.TextStrokeColor3 = Color3.fromRGB(25, 18, 12)
+    tBtn.TextStrokeTransparency = 0.3
     tBtn.Font = Enum.Font.FredokaOne
     tBtn.TextSize = 12
     tBtn.LayoutOrder = opt.order
@@ -2962,29 +2978,59 @@ for _, opt in ipairs(timeOptions) do
     tCorner.Parent = tBtn
 
     local tStroke = Instance.new("UIStroke")
+    tStroke.Name = "ButtonBorder"
+    tStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
     tStroke.Color = Color3.fromRGB(85, 65, 48)
     tStroke.Thickness = 1
     tStroke.Parent = tBtn
 
+    timeButtonsUI[opt.time] = {
+        button = tBtn,
+        stroke = tStroke
+    }
+
     tBtn.MouseButton1Click:Connect(function()
         inGameTime = opt.time
+        updateTimeButtonsUI(opt.time)
         voxelRemote:FireServer("SetTime", { time = opt.time })
-        showPickupNotification("⏰ Время суток: " .. opt.text, 0)
+        showPickupNotification("\u{23f0} \u{0412}\u{0440}\u{0435}\u{043c}\u{044f} \u{0441}\u{0443}\u{0442}\u{043e}\u{043a}: " .. opt.text, 0)
     end)
 end
+
+local function getClosestTimeOption()
+    local bestTime = 12.0
+    local minDiff = 999
+    for _, opt in ipairs(timeOptions) do
+        local diff = math.abs(inGameTime - opt.time)
+        if diff > 12 then diff = 24 - diff end
+        if diff < minDiff then
+            minDiff = diff
+            bestTime = opt.time
+        end
+    end
+    return bestTime
+end
+
+updateTimeButtonsUI(getClosestTimeOption())
+
+settingsModal:GetPropertyChangedSignal("Visible"):Connect(function()
+    if settingsModal.Visible and selectedTimeValue == nil then
+        updateTimeButtonsUI(getClosestTimeOption())
+    end
+end)
 
 createSectionHeader("🌿 ВРЕМЕНА ГОДА", 3)
 
 local seasonsGrid = Instance.new("Frame")
 seasonsGrid.Name = "SeasonsGrid"
-seasonsGrid.Size = UDim2.new(1, -10, 0, 76)
+seasonsGrid.Size = UDim2.new(1, 0, 0, 76)
 seasonsGrid.BackgroundTransparency = 1
 seasonsGrid.LayoutOrder = 4
 seasonsGrid.ZIndex = 62
 seasonsGrid.Parent = setScroll
 
 local sGridLay = Instance.new("UIGridLayout")
-sGridLay.CellSize = UDim2.new(0.5, -6, 0, 34)
+sGridLay.CellSize = UDim2.new(0.5, -4, 0, 34)
 sGridLay.CellPadding = UDim2.new(0, 8, 0, 8)
 sGridLay.Parent = seasonsGrid
 
@@ -2996,13 +3042,16 @@ local seasonDefs = {
 }
 
 for _, sDef in ipairs(seasonDefs) do
+    local isSelected = (sDef.id == currentSeasonId)
     local sBtn = Instance.new("TextButton")
     sBtn.Name = "SeasonBtn_" .. sDef.id
-    sBtn.BackgroundColor3 = (sDef.id == currentSeasonId) and Color3.fromRGB(70, 56, 42) or Color3.fromRGB(48, 38, 30)
+    sBtn.BackgroundColor3 = isSelected and Color3.fromRGB(75, 58, 42) or Color3.fromRGB(48, 38, 30)
     sBtn.Text = sDef.name
-    sBtn.TextColor3 = Color3.fromRGB(255, 235, 180)
+    sBtn.TextColor3 = isSelected and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(230, 220, 205)
+    sBtn.TextStrokeColor3 = Color3.fromRGB(25, 18, 12)
+    sBtn.TextStrokeTransparency = 0.3
     sBtn.Font = Enum.Font.FredokaOne
-    sBtn.TextSize = 13
+    sBtn.TextSize = 14
     sBtn.LayoutOrder = sDef.order
     sBtn.ZIndex = 63
     sBtn.Parent = seasonsGrid
@@ -3012,8 +3061,10 @@ for _, sDef in ipairs(seasonDefs) do
     sCorner.Parent = sBtn
 
     local sBtnStroke = Instance.new("UIStroke")
-    sBtnStroke.Color = (sDef.id == currentSeasonId) and Color3.fromRGB(255, 215, 100) or Color3.fromRGB(85, 65, 48)
-    sBtnStroke.Thickness = (sDef.id == currentSeasonId) and 2 or 1
+    sBtnStroke.Name = "ButtonBorder"
+    sBtnStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    sBtnStroke.Color = isSelected and Color3.fromRGB(255, 215, 100) or Color3.fromRGB(85, 65, 48)
+    sBtnStroke.Thickness = isSelected and 2 or 1
     sBtnStroke.Parent = sBtn
 
     seasonButtonsUI[sDef.id] = {
@@ -3123,6 +3174,8 @@ local SLOT_KEY_MAP = {
     [Enum.KeyCode.Two]   = 2,
     [Enum.KeyCode.Three] = 3,
     [Enum.KeyCode.Four]  = 4,
+    [Enum.KeyCode.Five]        = 5,
+    [Enum.KeyCode.KeypadFive]  = 5,
 }
 
 UserInputService.InputBegan:Connect(function(input, processed)
@@ -3148,8 +3201,13 @@ UserInputService.InputBegan:Connect(function(input, processed)
     elseif not isBackpackOpen and not settingsModal.Visible then
         local slotNum = SLOT_KEY_MAP[input.KeyCode]
         if slotNum then
-            activeHotbarSlot = slotNum
-            voxelRemote:FireServer("SelectSlot", { slot = slotNum })
+            if activeHotbarSlot == slotNum then
+                activeHotbarSlot = nil
+                voxelRemote:FireServer("SelectSlot", { slot = 0 })
+            else
+                activeHotbarSlot = slotNum
+                voxelRemote:FireServer("SelectSlot", { slot = slotNum })
+            end
             refreshAllInventoryUI()
         end
     end
@@ -3343,33 +3401,85 @@ local lastDigTick = 0
 local isPlacingCooldown = false
 
 local lastDistanceWarningTick = 0
+local activeDistanceWarningPill = nil
 local function showDistanceWarning()
-    if tick() - lastDistanceWarningTick < 1.2 then return end
-    lastDistanceWarningTick = tick()
+    local now = tick()
+    if now - lastDistanceWarningTick < 1.0 and activeDistanceWarningPill and activeDistanceWarningPill.Parent then
+        return
+    end
+    lastDistanceWarningTick = now
+
+    if activeDistanceWarningPill and activeDistanceWarningPill.Parent then
+        activeDistanceWarningPill:Destroy()
+        activeDistanceWarningPill = nil
+    end
 
     local pill = Instance.new("TextLabel")
-    pill.Size = UDim2.new(0, 260, 0, 28)
-    pill.Position = UDim2.new(0.5, -130, 1, 0)
-    pill.BackgroundColor3 = Color3.fromRGB(35, 20, 20)
-    pill.BackgroundTransparency = 0.2
-    pill.TextColor3 = Color3.fromRGB(255, 140, 140)
+    pill.Name = "DistanceWarningPill"
+    pill.Size = UDim2.new(0, 246, 0, 24)
+    pill.Position = UDim2.new(0.5, -123, 0, 18)
+    pill.BackgroundColor3 = Color3.fromRGB(42, 20, 20)
+    pill.BackgroundTransparency = 1
+    pill.TextTransparency = 1
+    pill.TextColor3 = Color3.fromRGB(255, 235, 230)
+    pill.TextStrokeColor3 = Color3.fromRGB(35, 10, 10)
+    pill.TextStrokeTransparency = 1
     pill.Font = Enum.Font.FredokaOne
-    pill.TextSize = 13
+    pill.TextSize = 12
     pill.Text = "🐾 Слишком далеко! Подойдите ближе"
+    pill.ZIndex = 80
     pill.Parent = notifContainer
+    activeDistanceWarningPill = pill
 
     local pillCorner = Instance.new("UICorner")
-    pillCorner.CornerRadius = UDim.new(0, 8)
+    pillCorner.CornerRadius = UDim.new(0, 7)
     pillCorner.Parent = pill
 
-    local tween = TweenService:Create(pill, TweenInfo.new(1.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-        Position = UDim2.new(0.5, -130, 0, 0),
-        TextTransparency = 1,
-        BackgroundTransparency = 1
+    local pillStroke = Instance.new("UIStroke")
+    pillStroke.Name = "Border"
+    pillStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    pillStroke.Color = Color3.fromRGB(215, 75, 75)
+    pillStroke.Thickness = 1.2
+    pillStroke.Transparency = 1
+    pillStroke.Parent = pill
+
+    -- 1. Быстрое плавное появление (0.22 сек)
+    local popIn = TweenService:Create(pill, TweenInfo.new(0.22, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+        Position = UDim2.new(0.5, -123, 0, 4),
+        BackgroundTransparency = 0.08,
+        TextTransparency = 0,
+        TextStrokeTransparency = 0.2
     })
-    tween:Play()
-    tween.Completed:Connect(function()
-        pill:Destroy()
+    local strokeIn = TweenService:Create(pillStroke, TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        Transparency = 0.25
+    })
+    popIn:Play()
+    strokeIn:Play()
+
+    -- 2. Время на спокойное чтение: подсказка неподвижно и четко видна 2.8 секунды
+    task.delay(2.8, function()
+        if pill and pill.Parent then
+            -- 3. Плавное затухание (0.5 сек)
+            local fadeOut = TweenService:Create(pill, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+                Position = UDim2.new(0.5, -123, 0, -10),
+                BackgroundTransparency = 1,
+                TextTransparency = 1,
+                TextStrokeTransparency = 1
+            })
+            local strokeOut = TweenService:Create(pillStroke, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+                Transparency = 1
+            })
+            fadeOut:Play()
+            strokeOut:Play()
+            fadeOut.Completed:Connect(function()
+                if pill and pill.Parent then
+                    if activeDistanceWarningPill == pill then
+                        activeDistanceWarningPill = nil
+                    end
+                    pill:Destroy()
+                end
+            end)
+        end
     end)
 end
 
@@ -3518,8 +3628,12 @@ UserInputService.InputBegan:Connect(function(input, processed)
                 end
             end
 
+            local now = tick()
             isDiggingKeyHeld = true
-            doDigStep()
+            if now - lastDigTick >= 0.22 then
+                lastDigTick = now
+                doDigStep()
+            end
         end
     -- ПКМ или Q: ставить блок из активного слота
     elseif input.KeyCode == Enum.KeyCode.Q or input.UserInputType == Enum.UserInputType.MouseButton2 then
