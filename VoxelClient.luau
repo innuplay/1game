@@ -472,133 +472,147 @@ local inGameTime = 14.0 -- Стартуем в 14:00 (ясный день)
 local seasonButtonsUI = {}
 
 -- Виджет в верхнем правом углу экрана
-local seasonWidget = Instance.new("Frame")
+-- === NEW INTERACTIVE TIME & WEATHER WIDGET ===
+local seasonWidget = Instance.new("ImageButton")
 seasonWidget.Name = "SeasonTimeWidget"
 seasonWidgetRef = seasonWidget
-seasonWidget.Size = UDim2.new(0, 0, 0, 0)
-seasonWidget.AutomaticSize = Enum.AutomaticSize.XY
-seasonWidget.Position = UDim2.new(1, -8, 0, 8)
+seasonWidget.Size = UDim2.new(0, 96, 0, 100)
+seasonWidget.Position = UDim2.new(1, -10, 0, 10)
 seasonWidget.AnchorPoint = Vector2.new(1, 0)
 seasonWidget.BackgroundTransparency = 1
+seasonWidget.Image = "rbxassetid://93841513073199"
+seasonWidget.ScaleType = Enum.ScaleType.Fit
 seasonWidget.ZIndex = 5
 seasonWidget.Parent = screenGui
 
--- Золотые часы без цифр
-local clockIcon = Instance.new("ImageLabel")
-clockIcon.Name = "ClockIcon"
-clockIcon.Size = UDim2.new(0, 32, 0, 32)
-clockIcon.Position = UDim2.new(0, 0, 0, 0)
-clockIcon.BackgroundTransparency = 1
-clockIcon.Image = "rbxassetid://82825016999107"
-clockIcon.ScaleType = Enum.ScaleType.Fit
-clockIcon.ZIndex = 6
-clockIcon.Parent = seasonWidget
+-- Click opens settings modal (time of day & season controls)
+seasonWidget.MouseButton1Click:Connect(function()
+    if settingsModalRef then
+        settingsModalRef.Visible = not settingsModalRef.Visible
+    end
+end)
 
--- Часовая стрелка (вращается по времени суток)
--- РџРѕРІРѕСЂРѕС‚РЅР°СЏ РѕСЃСЊ С‡Р°СЃРѕРІРѕР№ СЃС‚СЂРµР»РєРё (СЂР°Р·РјРµСЂ 1x1 СЂРѕРґРёС‚РµР»СЏ, РІСЂР°С‰Р°РµС‚СЃСЏ СЃС‚СЂРѕРіРѕ РІРѕРєСЂСѓРі С†РµРЅС‚СЂР° С‡Р°СЃРѕРІ)
+-- Clock center (X=38.7%, Y=42.6%)
+local clockCenter = Instance.new("Frame")
+clockCenter.Name = "ClockCenter"
+clockCenter.Size = UDim2.new(0, 1, 0, 1)
+clockCenter.Position = UDim2.new(0.387, 0, 0.426, 0)
+clockCenter.AnchorPoint = Vector2.new(0.5, 0.5)
+clockCenter.BackgroundTransparency = 1
+clockCenter.ZIndex = 6
+clockCenter.Parent = seasonWidget
+
 local hourPivot = Instance.new("Frame")
 hourPivot.Name = "HourPivot"
-hourPivot.Size = UDim2.new(1, 0, 1, 0)
+hourPivot.Size = UDim2.new(0, 24, 0, 24)
 hourPivot.Position = UDim2.new(0.5, 0, 0.5, 0)
 hourPivot.AnchorPoint = Vector2.new(0.5, 0.5)
 hourPivot.BackgroundTransparency = 1
 hourPivot.ZIndex = 7
-hourPivot.Parent = clockIcon
+hourPivot.Parent = clockCenter
 
-local hourHand = Instance.new("Frame")
+local hourHand = Instance.new("ImageLabel")
 hourHand.Name = "HourHand"
-hourHand.Size = UDim2.new(0, 2.5, 0, 8)
-hourHand.Position = UDim2.new(0.5, -1.25, 0.5, -8)
-hourHand.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-hourHand.BorderSizePixel = 0
+hourHand.Size = UDim2.new(1, 0, 1, 0)
+hourHand.Position = UDim2.new(0, 0, 0, 0)
+hourHand.BackgroundTransparency = 1
+hourHand.Image = "rbxassetid://88338543564871"
+hourHand.ScaleType = Enum.ScaleType.Fit
 hourHand.ZIndex = 7
 hourHand.Parent = hourPivot
 
-local hCorner = Instance.new("UICorner")
-hCorner.CornerRadius = UDim.new(1, 0)
-hCorner.Parent = hourHand
-
 local minutePivot = Instance.new("Frame")
 minutePivot.Name = "MinutePivot"
-minutePivot.Size = UDim2.new(1, 0, 1, 0)
+minutePivot.Size = UDim2.new(0, 26, 0, 26)
 minutePivot.Position = UDim2.new(0.5, 0, 0.5, 0)
 minutePivot.AnchorPoint = Vector2.new(0.5, 0.5)
 minutePivot.BackgroundTransparency = 1
 minutePivot.ZIndex = 8
-minutePivot.Parent = clockIcon
+minutePivot.Parent = clockCenter
 
 local minuteHand = Instance.new("Frame")
 minuteHand.Name = "MinuteHand"
-minuteHand.Size = UDim2.new(0, 1.8, 0, 11.5)
-minuteHand.Position = UDim2.new(0.5, -0.9, 0.5, -11.5)
-minuteHand.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+minuteHand.Size = UDim2.new(0, 1.4, 0, 9.5)
+minuteHand.Position = UDim2.new(0.5, -0.7, 0.5, -9.5)
+minuteHand.BackgroundColor3 = Color3.fromRGB(55, 38, 25)
 minuteHand.BorderSizePixel = 0
 minuteHand.ZIndex = 8
 minuteHand.Parent = minutePivot
 
-local mCorner = Instance.new("UICorner")
-mCorner.CornerRadius = UDim.new(1, 0)
-mCorner.Parent = minuteHand
-
 local pin = Instance.new("Frame")
 pin.Name = "ClockPin"
-pin.Size = UDim2.new(0, 4, 0, 4)
+pin.Size = UDim2.new(0, 3.5, 0, 3.5)
 pin.Position = UDim2.new(0.5, 0, 0.5, 0)
 pin.AnchorPoint = Vector2.new(0.5, 0.5)
-pin.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+pin.BackgroundColor3 = Color3.fromRGB(180, 140, 70)
 pin.BorderSizePixel = 0
-pin.ZIndex = 10
-pin.Parent = clockIcon
+pin.ZIndex = 9
+pin.Parent = clockCenter
 local pCorner = Instance.new("UICorner")
 pCorner.CornerRadius = UDim.new(1, 0)
 pCorner.Parent = pin
-local seasonLabel = Instance.new("TextLabel")
-seasonLabel.Name = "SeasonLabel"
-seasonLabel.Size = UDim2.new(0, 0, 0, 26)
-seasonLabel.AutomaticSize = Enum.AutomaticSize.X
-seasonLabel.Position = UDim2.new(0, 38, 0, 3)
-seasonLabel.BackgroundTransparency = 1
-seasonLabel.Text = "\u{041e}\u{0441}\u{0435}\u{043d}\u{044c}"
-seasonLabel.TextColor3 = Color3.fromRGB(240, 235, 220)
-seasonLabel.Font = Enum.Font.FredokaOne
-seasonLabel.TextSize = 15
-seasonLabel.TextXAlignment = Enum.TextXAlignment.Left
-seasonLabel.ZIndex = 6
-seasonLabel.Parent = seasonWidget
-local sStroke = Instance.new("UIStroke")
-sStroke.Color = Color3.fromRGB(30, 20, 15)
-sStroke.Thickness = 1.2
-sStroke.Parent = seasonLabel
 
--- Золотой термометр
-local thermoIcon = Instance.new("ImageLabel")
-thermoIcon.Name = "ThermoIcon"
-thermoIcon.Size = UDim2.new(0, 13, 0, 30)
-thermoIcon.Position = UDim2.new(0, 9, 0, 38)
-thermoIcon.BackgroundTransparency = 1
-thermoIcon.Image = "rbxassetid://78871414670017"
-thermoIcon.ScaleType = Enum.ScaleType.Fit
-thermoIcon.ZIndex = 6
-thermoIcon.Parent = seasonWidget
+-- Dynamic mercury column of thermometer
+local thermoTrack = Instance.new("Frame")
+thermoTrack.Name = "ThermoTrack"
+thermoTrack.Size = UDim2.new(0, 2.5, 0, 17)
+thermoTrack.Position = UDim2.new(0.790, -1, 0.777, 0)
+thermoTrack.AnchorPoint = Vector2.new(0, 1)
+thermoTrack.BackgroundTransparency = 1
+thermoTrack.ClipsDescendants = false
+thermoTrack.ZIndex = 6
+thermoTrack.Parent = seasonWidget
 
--- Значение температуры ("+8 °C")
+local mercuryBar = Instance.new("Frame")
+mercuryBar.Name = "MercuryBar"
+mercuryBar.Size = UDim2.new(1, 0, 0.5, 0)
+mercuryBar.Position = UDim2.new(0, 0, 1, 0)
+mercuryBar.AnchorPoint = Vector2.new(0, 1)
+mercuryBar.BackgroundColor3 = Color3.fromRGB(200, 50, 45)
+mercuryBar.BorderSizePixel = 0
+mercuryBar.ZIndex = 7
+mercuryBar.Parent = thermoTrack
+local mCorner = Instance.new("UICorner")
+mCorner.CornerRadius = UDim.new(1, 0)
+mCorner.Parent = mercuryBar
+
+-- Temperature Text ("+11 В°C")
 local tempLabel = Instance.new("TextLabel")
 tempLabel.Name = "TempLabel"
-tempLabel.Size = UDim2.new(0, 0, 0, 24)
-tempLabel.AutomaticSize = Enum.AutomaticSize.X
-tempLabel.Position = UDim2.new(0, 38, 0, 42)
+tempLabel.Size = UDim2.new(0, 48, 0, 14)
+tempLabel.Position = UDim2.new(0.42, 0, 0.68, 0)
+tempLabel.AnchorPoint = Vector2.new(0.5, 0.5)
 tempLabel.BackgroundTransparency = 1
-tempLabel.Text = "+8 °C"
+tempLabel.Text = "+11 \u{00b0}C"
 tempLabel.TextColor3 = Color3.fromRGB(240, 235, 220)
 tempLabel.Font = Enum.Font.FredokaOne
-tempLabel.TextSize = 14
-tempLabel.TextXAlignment = Enum.TextXAlignment.Left
-tempLabel.ZIndex = 6
+tempLabel.TextSize = 11
+tempLabel.TextXAlignment = Enum.TextXAlignment.Center
+tempLabel.ZIndex = 7
 tempLabel.Parent = seasonWidget
 local tStroke = Instance.new("UIStroke")
-tStroke.Color = Color3.fromRGB(30, 20, 15)
-tStroke.Thickness = 1.2
+tStroke.Color = Color3.fromRGB(25, 25, 25)
+tStroke.Thickness = 1.0
 tStroke.Parent = tempLabel
+
+-- Season Name
+local seasonLabel = Instance.new("TextLabel")
+seasonLabel.Name = "SeasonLabel"
+seasonLabel.Size = UDim2.new(0, 48, 0, 14)
+seasonLabel.Position = UDim2.new(0.42, 0, 0.83, 0)
+seasonLabel.AnchorPoint = Vector2.new(0.5, 0.5)
+seasonLabel.BackgroundTransparency = 1
+seasonLabel.Text = "\u{0412}\u{0435}\u{0441}\u{043d}\u{0430}"
+seasonLabel.TextColor3 = Color3.fromRGB(240, 235, 220)
+seasonLabel.Font = Enum.Font.FredokaOne
+seasonLabel.TextSize = 11
+seasonLabel.TextXAlignment = Enum.TextXAlignment.Center
+seasonLabel.ZIndex = 7
+seasonLabel.Parent = seasonWidget
+local sStroke = Instance.new("UIStroke")
+sStroke.Color = Color3.fromRGB(25, 25, 25)
+sStroke.Thickness = 1.0
+sStroke.Parent = seasonLabel
 
 local notifContainer = Instance.new("Frame")
 notifContainer.Name = "NotifContainer"
@@ -1577,6 +1591,18 @@ local function updateDayNightAndWeather(dt)
         tempStr = "0"
     end
     tempLabel.Text = tempStr .. " \u{00b0}C"
+    if mercuryBar then
+        local minT, maxT = -15, 30
+        local tFrac = math.clamp((displayTemp - minT) / (maxT - minT), 0.15, 1.0)
+        mercuryBar.Size = UDim2.new(1, 0, tFrac, 0)
+        if displayTemp < 0 then
+            mercuryBar.BackgroundColor3 = Color3.fromRGB(110, 180, 240)
+        elseif displayTemp >= 22 then
+            mercuryBar.BackgroundColor3 = Color3.fromRGB(235, 60, 45)
+        else
+            mercuryBar.BackgroundColor3 = Color3.fromRGB(210, 85, 65)
+        end
+    end
 
     -- Плавное освещение:
     -- Светлеет строго в 5 утра (рассвет 05:00 - 06:30)
