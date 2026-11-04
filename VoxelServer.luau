@@ -63,23 +63,23 @@ local ITEMS = {
         blockType = "Water",
         category = "resources",
         sprite = "rbxassetid://94567183251152",
-        icon = "рџ’§",
+        icon = "\u{1F4A7}",
         color = Color3.fromRGB(75, 160, 235),
         material = Enum.Material.Glass
     },
     sand_block = {
-        name = "РџРµСЃРѕРє",
+        name = "\u{041f}\u{0435}\u{0441}\u{043e}\u{043a}",
         max = 64,
         isBlock = true,
         blockType = "Sand",
         category = "resources",
         sprite = "rbxassetid://136811617960488",
-        icon = "вЏі",
+        icon = "\u{23F3}",
         color = Color3.fromRGB(225, 200, 120),
         material = Enum.Material.Sand
     },
     twigs = {
-        name = "Ветки",
+        name = "\u{0412}\u{0435}\u{0442}\u{043a}\u{0438}",
         max = 64,
         isBlock = false,
         category = "resources",
@@ -1173,7 +1173,7 @@ voxelRemote.OnServerEvent:Connect(function(player, action, data)
             spawnBreakParticles(pondPos, Color3.fromRGB(180, 235, 255), false)
 
             voxelRemote:FireClient(player, "ItemPickedUp", {
-                name = (currentSeason == "spring") and "Р’РµСЃРµРЅРЅСЏСЏ СЂС‹Р±РєР° рџђџвњЁ" or "Р С‹Р±РєР° рџђџ",
+                name = (currentSeason == "spring") and "\u{0412}\u{0435}\u{0441}\u{0435}\u{043d}\u{043d}\u{044f}\u{044f} \u{0440}\u{044b}\u{0431}\u{043a}\u{0430} \u{1F41F}\u{2728}" or "\u{0420}\u{044b}\u{0431}\u{043a}\u{0430} \u{1F41F}",
                 count = 1
             })
         else

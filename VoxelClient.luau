@@ -598,7 +598,44 @@ notifContainer.Position = UDim2.new(0.5, -160, 1, -114)
 notifContainer.BackgroundTransparency = 1
 notifContainer.Parent = screenGui
 
+local ITEM_CLEAN_NAMES = {
+    sand_block  = "\u{041f}\u{0435}\u{0441}\u{043e}\u{043a}",
+    sand        = "\u{041f}\u{0435}\u{0441}\u{043e}\u{043a}",
+    dirt_block  = "\u{0417}\u{0435}\u{043c}\u{043b}\u{044f}",
+    dirt        = "\u{0417}\u{0435}\u{043c}\u{043b}\u{044f}",
+    water_block = "\u{0412}\u{043e}\u{0434}\u{0430}",
+    water       = "\u{0412}\u{043e}\u{0434}\u{0430}",
+    grass_block = "\u{0422}\u{0440}\u{0430}\u{0432}\u{0430}",
+    grass       = "\u{0422}\u{0440}\u{0430}\u{0432}\u{0430}",
+    stone_block = "\u{041a}\u{0430}\u{043c}\u{0435}\u{043d}\u{044c}",
+    stone       = "\u{041a}\u{0430}\u{043c}\u{0435}\u{043d}\u{044c}",
+    wood_block  = "\u{0414}\u{0435}\u{0440}\u{0435}\u{0432}\u{043e}",
+    wood        = "\u{0414}\u{0435}\u{0440}\u{0435}\u{0432}\u{043e}",
+    twigs       = "\u{0412}\u{0435}\u{0442}\u{043a}\u{0438}",
+    clay        = "\u{0413}\u{043b}\u{0438}\u{043d}\u{0430}",
+    coal        = "\u{0423}\u{0433}\u{043e}\u{043b}\u{044c}",
+    ore         = "\u{0420}\u{0443}\u{0434}\u{0430}",
+    bones       = "\u{041a}\u{043e}\u{0441}\u{0442}\u{0438}",
+    fish        = "\u{0420}\u{044b}\u{0431}\u{043a}\u{0430}",
+    berries     = "\u{042f}\u{0433}\u{043e}\u{0434}\u{044b}",
+    mushrooms   = "\u{0413}\u{0440}\u{0438}\u{0431}\u{044b}",
+    seeds       = "\u{0421}\u{0435}\u{043c}\u{0435}\u{043d}\u{0430}",
+    leaves      = "\u{041b}\u{0438}\u{0441}\u{0442}\u{044c}\u{044f}",
+    flowers     = "\u{0426}\u{0432}\u{0435}\u{0442}\u{044b}",
+    axe         = "\u{0422}\u{043e}\u{043f}\u{043e}\u{0440}",
+    pickaxe     = "\u{041a}\u{0438}\u{0440}\u{043a}\u{0430}",
+    shovel      = "\u{041b}\u{043e}\u{043f}\u{0430}\u{0442}\u{0430}",
+    rod         = "\u{0423}\u{0434}\u{043e}\u{0447}\u{043a}\u{0430}",
+}
+
 local function showPickupNotification(itemName, count)
+    local cleanName = itemName
+    if ITEM_CLEAN_NAMES[itemName] then
+        cleanName = ITEM_CLEAN_NAMES[itemName]
+    elseif string.find(string.lower(tostring(itemName)), "sand") or tostring(itemName):find("Р ") then
+        cleanName = "\u{041f}\u{0435}\u{0441}\u{043e}\u{043a}"
+    end
+
     local pill = Instance.new("TextLabel")
     pill.Size = UDim2.new(0, 210, 0, 24)
     pill.Position = UDim2.new(0.5, -105, 0, 18)
@@ -610,7 +647,7 @@ local function showPickupNotification(itemName, count)
     pill.TextStrokeTransparency = 1
     pill.Font = Enum.Font.FredokaOne
     pill.TextSize = 12
-    pill.Text = (count and count > 0) and string.format("+%d %s", count, itemName) or tostring(itemName)
+    pill.Text = (count and count > 0) and string.format("+%d %s", count, cleanName) or tostring(cleanName)
     pill.ZIndex = 80
     pill.Parent = notifContainer
 
