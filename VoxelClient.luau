@@ -55,6 +55,7 @@ local CURSORS = {
     grass = "rbxassetid://137250626647209",
     dirt  = "rbxassetid://92809404994132",
     water = "rbxassetid://116693966145406",
+    sand  = "rbxassetid://120371198773898",
 }
 
 local ITEM_TO_CURSOR = {
@@ -63,14 +64,16 @@ local ITEM_TO_CURSOR = {
     grass_block = CURSORS.grass,
     dirt_block  = CURSORS.dirt,
     water_block = CURSORS.water,
+    sand_block  = CURSORS.sand,
     wood        = CURSORS.wood,
     stone       = CURSORS.stone,
     grass       = CURSORS.grass,
     dirt        = CURSORS.dirt,
     water       = CURSORS.water,
+    sand        = CURSORS.sand,
 }
 
-local NUM_HOTBAR_SLOTS = 5
+local NUM_HOTBAR_SLOTS = 6
 local SLOT_SIZE = 54
 local SLOT_GAP = 8
 local TOTAL_HOTBAR_WIDTH = (NUM_HOTBAR_SLOTS * SLOT_SIZE) + ((NUM_HOTBAR_SLOTS - 1) * SLOT_GAP)
@@ -81,6 +84,7 @@ local HOTBAR_SLOT_DEFS = {
     [3] = { id = "stone_block", sprite = "rbxassetid://109072643235539", name = "\u{041a}\u{0430}\u{043c}\u{0435}\u{043d}\u{044c}", icon = "\u{1FAA8}" },
     [4] = { id = "grass_block", sprite = "rbxassetid://114424346454200", name = "\u{0422}\u{0440}\u{0430}\u{0432}\u{0430}",  icon = "\u{1F33F}" },
     [5] = { id = "water_block", sprite = "rbxassetid://94567183251152", name = "\u{0412}\u{043e}\u{0434}\u{0430}",   icon = "\u{1F4A7}" },
+    [6] = { id = "sand_block",  sprite = "rbxassetid://136811617960488", name = "\u{041f}\u{0435}\u{0441}\u{043e}\u{043a}",  icon = "\u{23F3}" },
 }
 
 local cursorGui = playerGui:FindFirstChild("CustomCursorGui") or Instance.new("ScreenGui")
@@ -159,7 +163,7 @@ local function getDesiredCursor(mPos)
     end
 
     -- Р’ РёРіСЂРѕРІРѕРј РјРёСЂРµ: РµСЃР»Рё РІС‹Р±СЂР°РЅ СЃР»РѕС‚ С…РѕС‚Р±Р°СЂР° 1..4 -> РєСЂР°СЃРёРІС‹Р№ РєСѓСЂСЃРѕСЂ РІС‹Р±СЂР°РЅРЅРѕРіРѕ Р±Р»РѕРєР°!
-    if activeHotbarSlot and activeHotbarSlot >= 1 and activeHotbarSlot <= 5 then
+    if activeHotbarSlot and activeHotbarSlot >= 1 and activeHotbarSlot <= 6 then
         local slotDef = HOTBAR_SLOT_DEFS and HOTBAR_SLOT_DEFS[activeHotbarSlot]
         local activeItem = currentInventorySlots and currentInventorySlots[activeHotbarSlot]
         local itemId = (activeItem and activeItem.id) or (slotDef and slotDef.id)
@@ -3176,6 +3180,8 @@ local SLOT_KEY_MAP = {
     [Enum.KeyCode.Four]  = 4,
     [Enum.KeyCode.Five]        = 5,
     [Enum.KeyCode.KeypadFive]  = 5,
+    [Enum.KeyCode.Six]         = 6,
+    [Enum.KeyCode.KeypadSix]   = 6,
 }
 
 UserInputService.InputBegan:Connect(function(input, processed)

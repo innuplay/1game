@@ -67,6 +67,17 @@ local ITEMS = {
         color = Color3.fromRGB(75, 160, 235),
         material = Enum.Material.Glass
     },
+    sand_block = {
+        name = "РџРµСЃРѕРє",
+        max = 64,
+        isBlock = true,
+        blockType = "Sand",
+        category = "resources",
+        sprite = "rbxassetid://136811617960488",
+        icon = "вЏі",
+        color = Color3.fromRGB(225, 200, 120),
+        material = Enum.Material.Sand
+    },
     twigs = {
         name = "Ветки",
         max = 64,
@@ -223,7 +234,7 @@ local BLOCK_CONFIG = {
     Wood  = { Color = Color3.fromRGB(110, 68, 38),   Material = Enum.Material.WoodPlanks, HP = 4, DropId = "wood_block" },
     Stone = { Color = Color3.fromRGB(122, 128, 138), Material = Enum.Material.Slate,      HP = 5, DropId = "stone_block" },
     Dirt  = { Color = Color3.fromRGB(98, 64, 38),    Material = Enum.Material.Ground,     HP = 3, DropId = "dirt_block" },
-    Sand  = { Color = Color3.fromRGB(225, 200, 120), Material = Enum.Material.Sand,       HP = 2, DropId = "sand" },
+    Sand  = { Color = Color3.fromRGB(225, 200, 120), Material = Enum.Material.Sand,       HP = 2, DropId = "sand_block" },
     Water = { Color = Color3.fromRGB(75, 160, 235),  Material = Enum.Material.Glass,      HP = 1, DropId = "water_block", Transparency = 0.35, Reflectance = 0.3, CastShadow = false, CanCollide = false }
 }
 
@@ -417,7 +428,7 @@ end
 -- 30..44 = Корзинка (Еда и сбор: 15 слотов)
 -- 45..54 = Сумка (Инструменты: 10 слотов)
 local MAX_SLOTS = 54
-local HOTBAR_SLOTS = 5
+local HOTBAR_SLOTS = 6
 local playerInventories = {}
 
 local function getOrCreateInventory(player)
@@ -432,6 +443,7 @@ local function getOrCreateInventory(player)
                 [3] = { id = "stone_block", count = 16, max = 64 },
                 [4] = { id = "grass_block", count = 32, max = 64 },
                 [5] = { id = "water_block", count = 32, max = 64 },
+                [6] = { id = "sand_block",  count = 32, max = 64 },
 
                 -- Портфель: Ресурсы и блоки в пиксель-арт стилистике (10..29)
                 [10] = { id = "wood_block",  count = 24, max = 64 },
@@ -439,6 +451,7 @@ local function getOrCreateInventory(player)
                 [12] = { id = "stone_block", count = 16, max = 64 },
                 [13] = { id = "grass_block", count = 32, max = 64 },
                 [14] = { id = "water_block", count = 32, max = 64 },
+                [15] = { id = "sand_block",  count = 32, max = 64 },
 
                 -- Корзинка: Еда и урожай (30..44)
                 [30] = { id = "mushrooms",  count = 5,  max = 32 },
