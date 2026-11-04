@@ -49,13 +49,15 @@ screenGui.Parent = playerGui
 -- === ДИНАМИЧЕСКИЙ КАСТОМНЫЙ КУРСОР МЫШИ (ЛАПКА И ПРЕДМЕТЫ-РУКИ) ===
 -- Отображается ВЕЗДЕ: в мире, над кнопками, слотами и инвентарем без переключения на системную стрелку
 local CURSORS = {
-    paw   = "rbxassetid://101200170800629",
-    wood  = "rbxassetid://89025202129773",
-    stone = "rbxassetid://71254227847223",
-    grass = "rbxassetid://137250626647209",
-    dirt  = "rbxassetid://92809404994132",
-    water = "rbxassetid://116693966145406",
-    sand  = "rbxassetid://120371198773898",
+    paw       = "rbxassetid://122151686047697",
+    paw_black = "rbxassetid://122151686047697",
+    paw_white = "rbxassetid://140384836139208",
+    wood      = "rbxassetid://89025202129773",
+    stone     = "rbxassetid://71254227847223",
+    grass     = "rbxassetid://137250626647209",
+    dirt      = "rbxassetid://92809404994132",
+    water     = "rbxassetid://140670080649685",
+    sand      = "rbxassetid://140675465145697",
 }
 
 local ITEM_TO_CURSOR = {
