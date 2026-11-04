@@ -56,8 +56,8 @@ local CURSORS = {
     stone     = "rbxassetid://71254227847223",
     grass     = "rbxassetid://137250626647209",
     dirt      = "rbxassetid://92809404994132",
-    water     = "rbxassetid://140670080649685",
-    sand      = "rbxassetid://140675465145697",
+    water     = "rbxassetid://75387381858777",
+    sand      = "rbxassetid://123242950554748",
 }
 
 local ITEM_TO_CURSOR = {
