@@ -270,7 +270,7 @@ local SEASON_CONFIGS = {
     }
 }
 local currentSeason = "autumn"
-local SEASON_ORDER = { "autumn", "winter", "spring", "summer" }
+local SEASON_ORDER = { "winter", "spring", "summer", "autumn" }
 local DAY_CYCLE_SECONDS = 300
 local serverInGameTime = 14.0
 local lastServerTime = 14.0
@@ -359,39 +359,6 @@ local function getCanopyColor(treeType, seasonId)
     end
 end
 
-local function applySeason(seasonId)
-    local sCfg = SEASON_CONFIGS[seasonId]
-    if not sCfg then return end
-    currentSeason = seasonId
-    BLOCK_CONFIG.Grass.Color = sCfg.grassColor
-    ITEMS.grass_block.color = sCfg.grassColor
-
-    -- Перекрашиваем блоки травы и крон цветущих деревьев
-    for _, block in ipairs(worldFolder:GetChildren()) do
-        if block:GetAttribute("BlockType") == "Grass" then
-            local isCanopy = (block:GetAttribute("IsCanopy") == true)
-            if isCanopy then
-                local treeType = block:GetAttribute("TreeType")
-                if not treeType then
-                    treeType = (block.Position.X > 0) and "Apple" or "Sakura"
-                    block:SetAttribute("TreeType", treeType)
-                end
-                block:SetAttribute("IsCanopy", true)
-                block.Color = getCanopyColor(treeType, seasonId)
-            else
-                block.Color = sCfg.grassColor
-            end
-        end
-    end
-
-    -- Оповещаем всех клиентов о смене сезона
-    voxelRemote:FireAllClients("SeasonChanged", {
-        season = currentSeason,
-        seasonName = sCfg.name,
-        time = serverInGameTime
-    })
-end
-
 local function snapToGrid(pos, size)
     return Vector3.new(
         math.floor(pos.X / size + 0.5) * size,
@@ -452,7 +419,7 @@ local function getOrCreateInventory(player)
                 -- Активный хотбар спрайтов (1..4): Дерево, Земля, Камень, Трава
                 [1] = { id = "dirt_block",  count = 32, max = 64 },
                 [2] = { id = "sand_block",  count = 32, max = 64 },
-                [3] = { id = "water_block", count = 32, max = 64 },
+                [3] = { id = (currentSeason == "winter") and "ice_block" or "water_block", count = 32, max = 64 },
                 [4] = { id = "grass_block", count = 32, max = 64 },
                 [5] = { id = "stone_block", count = 16, max = 64 },
                 [6] = { id = "wood_block",  count = 24, max = 64 },
@@ -460,7 +427,7 @@ local function getOrCreateInventory(player)
                 -- Portfolio: Resources and blocks
                 [10] = { id = "dirt_block",  count = 32, max = 64 },
                 [11] = { id = "sand_block",  count = 32, max = 64 },
-                [12] = { id = "water_block", count = 32, max = 64 },
+                [12] = { id = (currentSeason == "winter") and "ice_block" or "water_block", count = 32, max = 64 },
                 [13] = { id = "grass_block", count = 32, max = 64 },
                 [14] = { id = "stone_block", count = 16, max = 64 },
                 [15] = { id = "wood_block",  count = 24, max = 64 },
@@ -516,6 +483,86 @@ local function syncPlayerInventory(player)
         end
     end
 end
+local function applySeason(seasonId)
+    local sCfg = SEASON_CONFIGS[seasonId]
+    if not sCfg then return end
+    currentSeason = seasonId
+    BLOCK_CONFIG.Grass.Color = sCfg.grassColor
+    ITEMS.grass_block.color = sCfg.grassColor
+
+    local isWinter = (seasonId == "winter")
+
+    -- Сначала оповещаем клиентов о смене сезона
+    voxelRemote:FireAllClients("SeasonChanged", {
+        season = currentSeason,
+        seasonName = sCfg.name,
+        time = serverInGameTime
+    })
+
+    -- 1. Перекрашиваем блоки травы и крон цветущих деревьев, а также замораживаем/оттаиваем воду
+    for _, block in ipairs(worldFolder:GetChildren()) do
+        if block:IsA("BasePart") then
+            local bType = block:GetAttribute("BlockType")
+            if bType == "Grass" then
+                local isCanopy = (block:GetAttribute("IsCanopy") == true)
+                if isCanopy then
+                    local treeType = block:GetAttribute("TreeType")
+                    if not treeType then
+                        treeType = (block.Position.X > 0) and "Apple" or "Sakura"
+                        block:SetAttribute("TreeType", treeType)
+                    end
+                    block:SetAttribute("IsCanopy", true)
+                    block.Color = getCanopyColor(treeType, seasonId)
+                else
+                    block.Color = sCfg.grassColor
+                end
+            elseif bType == "Water" or bType == "Ice" or block.Name:find("Water") ~= nil or block.Name:find("Ice") ~= nil then
+                if isWinter then
+                    block.Material = Enum.Material.Ice
+                    block.Color = Color3.fromRGB(185, 225, 255)
+                    block.Transparency = 0.22
+                    block.Reflectance = 0.4
+                    block.CanCollide = true
+                    block.Name = "Voxel_Water_Frozen"
+                    block:SetAttribute("BlockType", "Ice")
+                else
+                    block.Material = Enum.Material.Glass
+                    block.Color = Color3.fromRGB(75, 160, 235)
+                    block.Transparency = 0.35
+                    block.Reflectance = 0.3
+                    block.CanCollide = false
+                    block.Name = "Voxel_Water"
+                    block:SetAttribute("BlockType", "Water")
+                end
+            end
+        end
+    end
+
+    -- 2. Обновляем слот 3 (и 12) инвентаря у всех подключенных игроков
+    for userId, inv in pairs(playerInventories) do
+        if inv.slots then
+            if inv.slots[3] then
+                if isWinter and inv.slots[3].id == "water_block" then
+                    inv.slots[3].id = "ice_block"
+                elseif not isWinter and inv.slots[3].id == "ice_block" then
+                    inv.slots[3].id = "water_block"
+                end
+            end
+            if inv.slots[12] then
+                if isWinter and inv.slots[12].id == "water_block" then
+                    inv.slots[12].id = "ice_block"
+                elseif not isWinter and inv.slots[12].id == "ice_block" then
+                    inv.slots[12].id = "water_block"
+                end
+            end
+        end
+        local p = Players:GetPlayerByUserId(userId)
+        if p then
+            syncPlayerInventory(p)
+        end
+    end
+end
+
 
 local function addItemToInventory(player, itemId, amount)
     local inv = getOrCreateInventory(player)
@@ -719,7 +766,7 @@ RunService.Heartbeat:Connect(function(dt)
     serverInGameTime = (serverInGameTime + dt * (24 / DAY_CYCLE_SECONDS)) % 24
     if serverInGameTime < lastServerTime and lastServerTime >= 23.0 and serverInGameTime < 2.0 then
         -- 1 игровые сутки завершились! Автоматический переход к следующему времени года: Осень -> Зима -> Весна -> Лето -> Осень...
-        local nextSeason = "autumn"
+        local nextSeason = "winter"
         for i, s in ipairs(SEASON_ORDER) do
             if s == currentSeason then
                 nextSeason = SEASON_ORDER[(i % #SEASON_ORDER) + 1]
@@ -1360,6 +1407,12 @@ voxelRemote.OnServerEvent:Connect(function(player, action, data)
         local toSlot = tonumber(data.toSlot)
         if fromSlot and toSlot then
             moveOrSwapSlots(player, fromSlot, toSlot)
+        end
+
+    elseif action == "ConsumeItem" then
+        local slot = tonumber(data and data.slot)
+        if slot then
+            removeItemFromSlot(player, slot, 1)
         end
 
     elseif action == "SortInventory" then

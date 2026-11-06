@@ -26,6 +26,7 @@ end
 
 -- Локальное состояние инвентаря
 local currentInventorySlots = {}
+currentSeasonId = "autumn"
 local activeHotbarSlot = nil -- По умолчанию строительный объект не выбран
 local settingsModalRef = nil
 local mapModalRef = nil
@@ -34,6 +35,7 @@ local seasonWidgetRef = nil
 local vitalityFrameRef = nil
 local hudContainerRef = nil
 local backpackBtnRef = nil
+local modalBgImageRef = nil
 local itemsDefinition = {}
 
 local selectedBackpackSlot = nil
@@ -58,7 +60,7 @@ local CURSORS = {
     dirt      = "rbxassetid://92809404994132",
     water     = "rbxassetid://75387381858777",
     sand      = "rbxassetid://123242950554748",
-    ice       = "rbxassetid://106490815427101",
+    ice       = "rbxassetid://82253011370329",
 }
 
 local ITEM_TO_CURSOR = {
@@ -167,23 +169,31 @@ local function getDesiredCursor(mPos)
     if settingsModalRef and settingsModalRef.Visible then return CURSORS.paw end
     if mapModalRef and mapModalRef.Visible then return CURSORS.paw end
     if notebookModalRef and notebookModalRef.Visible then return CURSORS.paw end
-    if mPos.X <= 220 and mPos.Y <= 50 then return CURSORS.paw end
+    if mPos.X >= 0 and mPos.X <= 220 and mPos.Y >= 0 and mPos.Y <= 50 then return CURSORS.paw end
 
     -- 2. Р•СЃР»Рё РІС‹Р±СЂР°РЅ СЃР»РѕС‚ С…РѕС‚Р±Р°СЂР° (1..6) -> РЎР РђР—РЈ РїРѕРєР°Р·С‹РІР°РµРј РєСѓСЂСЃРѕСЂ РІС‹Р±СЂР°РЅРЅРѕРіРѕ Р±Р»РѕРєР°!
     -- РљСѓСЂСЃРѕСЂ РјРіРЅРѕРІРµРЅРЅРѕ РјРµРЅСЏРµС‚СЃСЏ РЅР° РІС‹Р±СЂР°РЅРЅС‹Р№ РјР°С‚РµСЂРёР°Р» РїСЂСЏРјРѕ РЅР°Рґ РёРєРѕРЅРєРѕР№ С…РѕС‚Р±Р°СЂР° Р±РµР· Р·Р°РґРµСЂР¶РµРє Рё РѕС‚РІРѕРґР° РјС‹С€Рё!
     if activeHotbarSlot and activeHotbarSlot >= 1 and activeHotbarSlot <= 6 then
+        if (seasonWidgetRef and isInsideGui(seasonWidgetRef, mPos)) or
+           (vitalityFrameRef and isInsideGui(vitalityFrameRef, mPos)) or
+           (backpackBtnRef and isInsideGui(backpackBtnRef, mPos)) then
+            return CURSORS.paw
+        end
+
+        if activeHotbarSlot == 3 then
+            if currentSeasonId == "winter" then
+                return CURSORS.ice
+            else
+                return CURSORS.water
+            end
+        end
+
         local slotDef = HOTBAR_SLOT_DEFS and HOTBAR_SLOT_DEFS[activeHotbarSlot]
         local activeItem = currentInventorySlots and currentInventorySlots[activeHotbarSlot]
         local itemId = (activeItem and activeItem.id) or (slotDef and slotDef.id)
         if itemId then
             local blockCursor = ITEM_TO_CURSOR[itemId]
             if blockCursor then
-                -- Р•СЃР»Рё РєСѓСЂСЃРѕСЂ РЅР°РІРµРґРµРЅ РЅР° СЃС‚РѕСЂРѕРЅРЅРёРµ РІРёРґР¶РµС‚С‹ (С‡Р°СЃС‹, РІРёС‚Р°Р»РёС‚Рё, СЂСЋРєР·Р°Рє [E]) -> Р»Р°РїРєР°:
-                if (seasonWidgetRef and isInsideGui(seasonWidgetRef, mPos)) or
-                   (vitalityFrameRef and isInsideGui(vitalityFrameRef, mPos)) or
-                   (backpackBtnRef and isInsideGui(backpackBtnRef, mPos)) then
-                    return CURSORS.paw
-                end
                 return blockCursor
             end
         end
@@ -203,7 +213,7 @@ local function updateCustomCursor()
     end
 
     -- Р’РµСЂС…РЅСЏСЏ СЃРёСЃС‚РµРјРЅР°СЏ РїРѕР»РѕСЃР° Roblox CoreGui (X <= 220 and Y <= 48):
-    local isOverCoreGuiBar = (mPos.X <= 220 and mPos.Y <= 48)
+    local isOverCoreGuiBar = (mPos.X >= 0 and mPos.X <= 220 and mPos.Y >= 0 and mPos.Y <= 48)
     if isOverCoreGuiBar then
         UserInputService.MouseIconEnabled = true
         cursorImage.Visible = false
@@ -211,7 +221,7 @@ local function updateCustomCursor()
         UserInputService.MouseIconEnabled = false
         cursorImage.Visible = true
 
-        -- РђРєРєСѓСЂР°С‚РЅС‹Р№ СЂР°Р·РјРµСЂ РєСѓСЂСЃРѕСЂР°: 32x32 РІ РїРѕРєРѕРµ, 28x28 РїСЂРё РЅР°Р¶Р°С‚РёРё
+        -- Единый размер для ВСЕХ курсоров (руки-блоки, песок, лёд, лапка)
         if isPressed then
             cursorImage.Size = UDim2.new(0, 28, 0, 28)
             cursorImage.Position = UDim2.new(0, mPos.X - 1, 0, mPos.Y - 1)
@@ -287,7 +297,7 @@ end)
 
 
 -- === РќРћР’РђРЇ Р•Р”РРќРђРЇ РџРРљРЎР•Р›Р¬-РђР Рў РџРђРќР•Р›Р¬ Р’РРљРўРђР›Р¬РќРћРЎРўР (Р“РћР›РћР”, Р–РђР–Р”Рђ, Р­РќР•Р Р“РРЇ) ===
-local VITALITY_PLATE_ASSET = "rbxassetid://86235829828322"
+local VITALITY_PLATE_ASSET = "rbxassetid://82846659561439"
 
 local catStats = {
     hunger = 100,
@@ -310,37 +320,37 @@ vitalityFrame.Parent = screenGui
 local vitalityUIElements = {}
 
 local SECTION_CONFIGS = {
-    hunger = { textY = 0.301, barY = 0.352 },
-    thirst = { textY = 0.608, barY = 0.658 },
-    energy = { textY = 0.893, barY = 0.938 },
+    hunger = { textY = 0.282, barY = 0.356 },
+    thirst = { textY = 0.584, barY = 0.658 },
+    energy = { textY = 0.865, barY = 0.938 },
 }
 
 local function createVitalitySection(name, conf, defaultVal)
     local pctLabel = Instance.new("TextLabel")
     pctLabel.Name = "Pct_" .. name
-    pctLabel.Size = UDim2.new(0.80, 0, 0, 12)
+    pctLabel.Size = UDim2.new(0.80, 0, 0, 10)
     pctLabel.Position = UDim2.new(0.5, 0, conf.textY, 0)
     pctLabel.AnchorPoint = Vector2.new(0.5, 0.5)
     pctLabel.BackgroundTransparency = 1
     pctLabel.Text = math.floor(defaultVal) .. "%"
-    pctLabel.TextColor3 = Color3.fromRGB(242, 231, 211)
+    pctLabel.TextColor3 = Color3.fromRGB(255, 248, 235)
     pctLabel.Font = Enum.Font.FredokaOne
-    pctLabel.TextSize = 10
+    pctLabel.TextSize = 9.5
     pctLabel.TextXAlignment = Enum.TextXAlignment.Center
     pctLabel.ZIndex = 7
     pctLabel.Parent = vitalityFrame
 
     local stroke = Instance.new("UIStroke")
-    stroke.Color = Color3.fromRGB(25, 20, 22)
+    stroke.Color = Color3.fromRGB(22, 16, 14)
     stroke.Thickness = 1.0
     stroke.Parent = pctLabel
 
     local barContainer = Instance.new("Frame")
     barContainer.Name = "Bar_" .. name
-    barContainer.Size = UDim2.new(0.66, 0, 0, 5)
+    barContainer.Size = UDim2.new(0.54, 0, 0, 3)
     barContainer.Position = UDim2.new(0.5, 0, conf.barY, 0)
     barContainer.AnchorPoint = Vector2.new(0.5, 0.5)
-    barContainer.BackgroundColor3 = Color3.fromRGB(24, 18, 22)
+    barContainer.BackgroundColor3 = Color3.fromRGB(28, 22, 20)
     barContainer.BorderSizePixel = 0
     barContainer.ZIndex = 6
     barContainer.Parent = vitalityFrame
@@ -390,15 +400,15 @@ local function updateVitalityDisplay()
                 if i <= numLit then
                     seg.BackgroundTransparency = 0
                     if val <= 18 then
-                        seg.BackgroundColor3 = Color3.fromRGB(235, 60, 45)
+                        seg.BackgroundColor3 = Color3.fromRGB(225, 55, 45)
                     elseif val <= 40 then
-                        seg.BackgroundColor3 = Color3.fromRGB(240, 175, 45)
+                        seg.BackgroundColor3 = Color3.fromRGB(240, 165, 40)
                     else
-                        seg.BackgroundColor3 = Color3.fromRGB(85, 195, 75)
+                        seg.BackgroundColor3 = Color3.fromRGB(55, 175, 65)
                     end
                 else
                     seg.BackgroundTransparency = 0.65
-                    seg.BackgroundColor3 = Color3.fromRGB(35, 25, 28)
+                    seg.BackgroundColor3 = Color3.fromRGB(45, 36, 30)
                 end
             end
         end
@@ -406,13 +416,16 @@ local function updateVitalityDisplay()
 end
 
 vitalityFrame.MouseButton1Click:Connect(function()
-    local msg = "\u{1F43E} \u{041a}\u{043e}\u{0442}\u{0438}\u{043a} \u{0431}\u{043e}\u{0434}\u{0440} \u{0438} \u{043f}\u{043e}\u{043b}\u{043e}\u{043d} \u{0441}\u{0438}\u{043b}!"
-    if catStats.energy < 30 then
-        msg = "\u{26A1} \u{041a}\u{043e}\u{0442}\u{0438}\u{043a} \u{0443}\u{0441}\u{0442}\u{0430}\u{043b}! \u{041f}\u{043e}\u{0441}\u{0438}\u{0434}\u{0438}\u{0442}\u{0435} \u{0438} \u{043e}\u{0442}\u{0434}\u{043e}\u{0445}\u{043d}\u{0438}\u{0442}\u{0435}."
-    elseif catStats.thirst < 40 then
-        msg = "\u{1F4A7} \u{041a}\u{043e}\u{0442}\u{0438}\u{043a} \u{0445}\u{043e}\u{0447}\u{0435}\u{0442} \u{043f}\u{0438}\u{0442}\u{044c}!"
-    elseif catStats.hunger < 40 then
-        msg = "\u{1F37D} \u{041a}\u{043e}\u{0442}\u{0438}\u{043a} \u{043f}\u{0440}\u{043e}\u{0433}\u{043e}\u{043b}\u{043e}\u{0434}\u{0430}\u{043b}\u{0441}\u{044f}!"
+    local msg
+    if catStats.energy < 25 then
+        msg = string.format("\u{26A1} \u{041a}\u{043e}\u{0442}\u{0438}\u{043a} \u{0443}\u{0441}\u{0442}\u{0430}\u{043b} (%d%%)! \u{041e}\u{0442}\u{0434}\u{043e}\u{0445}\u{043d}\u{0438}\u{0442}\u{0435} \u{0441}\u{0442}\u{043e}\u{044f} \u{043d}\u{0430} \u{043f}\u{043e}\u{043b}\u{044f}\u{043d}\u{043a}\u{0435}.", math.floor(catStats.energy))
+    elseif catStats.thirst < 35 then
+        msg = string.format("\u{1F4A7} \u{041a}\u{043e}\u{0442}\u{0438}\u{043a} \u{0445}\u{043e}\u{0447}\u{0435}\u{0442} \u{043f}\u{0438}\u{0442}\u{044c} (%d%%)! \u{041f}\u{043e}\u{0434}\u{043e}\u{0439}\u{0434}\u{0438}\u{0442}\u{0435} \u{043a} \u{0432}\u{043e}\u{0434}\u{0435}.", math.floor(catStats.thirst))
+    elseif catStats.hunger < 35 then
+        msg = string.format("\u{1F37D} \u{041a}\u{043e}\u{0442}\u{0438}\u{043a} \u{043f}\u{0440}\u{043e}\u{0433}\u{043e}\u{043b}\u{043e}\u{0434}\u{0430}\u{043b}\u{0441}\u{044f} (%d%%)! \u{041f}\u{043e}\u{043a}\u{0443}\u{0448}\u{0430}\u{0439}\u{0442}\u{0435} \u{0440}\u{044b}\u{0431}\u{043a}\u{0443} \u{0438}\u{043b}\u{0438} \u{044f}\u{0433}\u{043e}\u{0434}\u{044b}.", math.floor(catStats.hunger))
+    else
+        msg = string.format("\u{1F43E} \u{041a}\u{043e}\u{0442}\u{0438}\u{043a} \u{0431}\u{043e}\u{0434}\u{0440}! \u{0421}\u{044b}\u{0442}\u{043e}\u{0441}\u{0442}\u{044c}: %d%% \u{2022} \u{0416}\u{0430}\u{0436}\u{0434}\u{0430}: %d%% \u{2022} \u{042d}\u{043d}\u{0435}\u{0440}\u{0433}\u{0438}\u{044f}: %d%%",
+            math.floor(catStats.hunger), math.floor(catStats.thirst), math.floor(catStats.energy))
     end
     if showPickupNotification then
         showPickupNotification(msg, 0)
@@ -421,6 +434,22 @@ end)
 
 -- Всплывающее уведомление о сборе лута
 -- === ВРЕМЕНА ГОДА И ДЕНЬ / НОЧЬ (НОЧЬ С 23:00 ДО 05:00, ЗОЛОТЫЕ ЧАСЫ БЕЗ ЦИФР) ===
+local MEADOW_SEASON_ASSETS = {
+    spring = "rbxassetid://81462643505850",
+    summer = "rbxassetid://94895468864751",
+    autumn = "rbxassetid://89294467096053",
+    winter = "rbxassetid://72288252491489",
+}
+
+
+local function updateBackpackSeasonSprites(seasonKey)
+    local s = seasonKey or currentSeasonId or "autumn"
+    if modalBgImageRef and MEADOW_SEASON_ASSETS and MEADOW_SEASON_ASSETS[s] then
+        modalBgImageRef.Image = MEADOW_SEASON_ASSETS[s]
+    end
+end
+
+
 local SEASON_CONFIGS = {
     autumn = {
         name = "\u{041e}\u{0441}\u{0435}\u{043d}\u{044c}",
@@ -471,8 +500,8 @@ local SEASON_CONFIGS = {
         fogEnd = 500,
     }
 }
-local currentSeasonId = "autumn"
-local SEASON_ORDER = { "autumn", "winter", "spring", "summer" }
+currentSeasonId = "autumn"
+local SEASON_ORDER = { "winter", "spring", "summer", "autumn" }
 local inGameTime = 14.0 -- Стартуем в 14:00 (ясный день)
 local seasonButtonsUI = {}
 
@@ -485,7 +514,7 @@ seasonWidget.Size = UDim2.new(0, 102, 0, 104)
 seasonWidget.Position = UDim2.new(1, -10, 0, 10)
 seasonWidget.AnchorPoint = Vector2.new(1, 0)
 seasonWidget.BackgroundTransparency = 1
-seasonWidget.Image = "rbxassetid://114163195633097"
+seasonWidget.Image = "rbxassetid://116512213319683"
 seasonWidget.ScaleType = Enum.ScaleType.Fit
 seasonWidget.ZIndex = 5
 seasonWidget.Parent = screenGui
@@ -1541,6 +1570,12 @@ local function setSeason(seasonKey, notifyServer)
             name = "\u{041b}\u{0451}\u{0434}",
             icon = "\u{1F9CA}"
         }
+        if currentInventorySlots and currentInventorySlots[3] then
+            currentInventorySlots[3].id = "ice_block"
+        end
+        if currentInventorySlots and currentInventorySlots[12] then
+            currentInventorySlots[12].id = "ice_block"
+        end
     else
         HOTBAR_SLOT_DEFS[3] = {
             id = "water_block",
@@ -1548,27 +1583,45 @@ local function setSeason(seasonKey, notifyServer)
             name = "\u{0412}\u{043e}\u{0434}\u{0430}",
             icon = "\u{1F4A7}"
         }
+        if currentInventorySlots and currentInventorySlots[3] then
+            currentInventorySlots[3].id = "water_block"
+        end
+        if currentInventorySlots and currentInventorySlots[12] then
+            currentInventorySlots[12].id = "water_block"
+        end
     end
 
     local worldFolder = Workspace:FindFirstChild("VoxelWorld") or Workspace
     for _, obj in ipairs(worldFolder:GetDescendants()) do
-        if obj:IsA("BasePart") and obj.Name:find("Water") ~= nil then
-            if isWinter then
-                obj.Material = Enum.Material.Ice
-                obj.Color = Color3.fromRGB(185, 225, 255)
-                obj.Transparency = 0.22
-                obj.CanCollide = true
-            else
-                obj.Material = Enum.Material.Glass
-                obj.Color = Color3.fromRGB(80, 150, 225)
-                obj.Transparency = 0.45
-                obj.CanCollide = false
+        if obj:IsA("BasePart") then
+            local bType = obj:GetAttribute("BlockType")
+            if bType == "Water" or bType == "Ice" or obj.Name:find("Water") ~= nil or obj.Name:find("Ice") ~= nil then
+                if isWinter then
+                    obj.Material = Enum.Material.Ice
+                    obj.Color = Color3.fromRGB(185, 225, 255)
+                    obj.Transparency = 0.22
+                    obj.Reflectance = 0.4
+                    obj.CanCollide = true
+                    obj.Name = "Voxel_Water_Frozen"
+                    obj:SetAttribute("BlockType", "Ice")
+                else
+                    obj.Material = Enum.Material.Glass
+                    obj.Color = Color3.fromRGB(75, 160, 235)
+                    obj.Transparency = 0.35
+                    obj.Reflectance = 0.3
+                    obj.CanCollide = false
+                    obj.Name = "Voxel_Water"
+                    obj:SetAttribute("BlockType", "Water")
+                end
             end
         end
     end
 
     if refreshAllInventoryUI then
         refreshAllInventoryUI()
+    end
+    if updateCustomCursor then
+        updateCustomCursor()
     end
 
     -- 4. Подсветка кнопок в окне настроек
@@ -1586,6 +1639,10 @@ local function setSeason(seasonKey, notifyServer)
         end
     end
 
+    if updateBackpackSeasonSprites then
+        updateBackpackSeasonSprites(seasonKey)
+    end
+
     nextLightningTime = tick() + math.random(5, 12)
 
     if notifyServer then
@@ -1598,17 +1655,7 @@ local function updateDayNightAndWeather(dt)
     local oldTime = inGameTime
     inGameTime = (inGameTime + dt * (24 / DAY_CYCLE_SECONDS)) % 24
 
-    -- Каждые 1 внутриигровые сутки: переход к следующему времени года строго Осень -> Зима -> Весна -> Лето -> Осень...
-    if inGameTime < oldTime and oldTime >= 23.0 and inGameTime < 2.0 then
-        local nextSeason = "autumn"
-        for i, s in ipairs(SEASON_ORDER) do
-            if s == currentSeasonId then
-                nextSeason = SEASON_ORDER[(i % #SEASON_ORDER) + 1]
-                break
-            end
-        end
-        setSeason(nextSeason, true)
-    end
+    -- Автоматический переход сезонов управляется сервером через SeasonChanged (исключает двойной шаг)
 
     -- Вращение только черной часовой и минутной стрелок (секундная убрана)
     hourPivot.Rotation = ((inGameTime % 12) / 12) * 360
@@ -1849,45 +1896,7 @@ local function updateDayNightAndWeather(dt)
         Lighting.FogEnd = cfg.fogEnd
     end
 
-    local isWinter = (seasonKey == "winter")
-    if isWinter then
-        HOTBAR_SLOT_DEFS[3] = {
-            id = "ice_block",
-            sprite = "rbxassetid://72778677331909",
-            name = "\u{041b}\u{0451}\u{0434}",
-            icon = "\u{1F9CA}"
-        }
-    else
-        HOTBAR_SLOT_DEFS[3] = {
-            id = "water_block",
-            sprite = "rbxassetid://94567183251152",
-            name = "\u{0412}\u{043e}\u{0434}\u{0430}",
-            icon = "\u{1F4A7}"
-        }
-    end
 
-    local worldFolder = Workspace:FindFirstChild("VoxelWorld") or Workspace
-    for _, obj in ipairs(worldFolder:GetDescendants()) do
-        if obj:IsA("BasePart") and obj.Name:find("Water") ~= nil then
-            if isWinter then
-                obj.Material = Enum.Material.Ice
-                obj.Color = Color3.fromRGB(185, 225, 255)
-                obj.Transparency = 0.22
-                obj.CanCollide = true
-            else
-                obj.Material = Enum.Material.Glass
-                obj.Color = Color3.fromRGB(80, 150, 225)
-                obj.Transparency = 0.45
-                obj.CanCollide = false
-            end
-        end
-    end
-
-    if refreshAllInventoryUI then
-        refreshAllInventoryUI()
-        Lighting.FogColor = cfg.fogColor
-        if groundFogEmitter then groundFogEmitter.Enabled = false end
-    end
 
     local atmo = Lighting:FindFirstChildOfClass("Atmosphere")
     if atmo then
@@ -1926,7 +1935,7 @@ modalBackdrop.Parent = screenGui
 
 local backpackModal = Instance.new("Frame")
 backpackModal.Name = "BackpackModal"
-backpackModal.Size = UDim2.new(0.95, 0, 0.95, 0)
+backpackModal.Size = UDim2.new(0.60, 0, 0.60, 0)
 backpackModal.Position = UDim2.new(0.5, 0, 0.5, 0)
 backpackModal.AnchorPoint = Vector2.new(0.5, 0.5)
 backpackModal.BackgroundTransparency = 1
@@ -1935,51 +1944,69 @@ backpackModal.Visible = false
 backpackModal.ZIndex = 21
 backpackModal.Parent = modalBackdrop
 
--- Сохранение пропорций иллюстрации высокого разрешения (1376 x 768)
+-- Сохранение пропорций иллюстрации высокого разрешения (1022 x 568)
 local aspectConstraint = Instance.new("UIAspectRatioConstraint")
-aspectConstraint.AspectRatio = 1376 / 768
+aspectConstraint.AspectRatio = 1022 / 568
 aspectConstraint.AspectType = Enum.AspectType.FitWithinMaxSize
 aspectConstraint.DominantAxis = Enum.DominantAxis.Width
 aspectConstraint.Parent = backpackModal
 
--- Фоновый арт лесной поляны с сумками и предметами (High-Definition Lossless PNG)
+-- Фоновый арт лесной поляны (чистый от надписей, пиксельная фильтрация без размытия)
 local modalBgImage = Instance.new("ImageLabel")
 modalBgImage.Name = "BackpackBackgroundArt"
 modalBgImage.Size = UDim2.new(1, 0, 1, 0)
 modalBgImage.Position = UDim2.new(0, 0, 0, 0)
 modalBgImage.BackgroundTransparency = 1
-modalBgImage.Image = "rbxassetid://107996494359842"
+modalBgImage.Image = MEADOW_SEASON_ASSETS[currentSeasonId] or MEADOW_SEASON_ASSETS.autumn
 modalBgImage.ScaleType = Enum.ScaleType.Fit
+modalBgImage.ResampleMode = Enum.ResamplerMode.Pixelated
 modalBgImage.ZIndex = 21
 modalBgImage.Parent = backpackModal
+modalBgImageRef = modalBgImage
 
 local modalBgCorner = Instance.new("UICorner")
-modalBgCorner.CornerRadius = UDim.new(0, 14)
+modalBgCorner.CornerRadius = UDim.new(0, 12)
 modalBgCorner.Parent = modalBgImage
 
--- Всплывающая подсказка при наведении на интерактивные объекты
+local modalBgStroke = Instance.new("UIStroke")
+modalBgStroke.Color = Color3.fromRGB(55, 38, 25)
+modalBgStroke.Thickness = 3
+modalBgStroke.Parent = modalBgImage
+
+-- Всплывающая подсказка (компактная элегантная капсула внизу поляны)
 local hoverTooltip = Instance.new("TextLabel")
 hoverTooltip.Name = "HoverTooltip"
-hoverTooltip.Size = UDim2.new(0, 220, 0, 26)
-hoverTooltip.Position = UDim2.new(0.5, -110, 0, 8)
-hoverTooltip.BackgroundColor3 = Color3.fromRGB(24, 18, 14)
-hoverTooltip.BackgroundTransparency = 0.2
-hoverTooltip.TextColor3 = Color3.fromRGB(255, 235, 140)
+hoverTooltip.AutomaticSize = Enum.AutomaticSize.X
+hoverTooltip.Size = UDim2.new(0, 0, 0, 24)
+hoverTooltip.AnchorPoint = Vector2.new(0.5, 1)
+hoverTooltip.Position = UDim2.new(0.5, 0, 1, -10)
+hoverTooltip.BackgroundColor3 = Color3.fromRGB(26, 18, 13)
+hoverTooltip.BackgroundTransparency = 0.15
+hoverTooltip.TextColor3 = Color3.fromRGB(255, 238, 165)
+hoverTooltip.TextStrokeColor3 = Color3.fromRGB(15, 10, 8)
+hoverTooltip.TextStrokeTransparency = 0.4
 hoverTooltip.Font = Enum.Font.FredokaOne
 hoverTooltip.TextSize = 12
 hoverTooltip.Text = ""
 hoverTooltip.Visible = false
-hoverTooltip.ZIndex = 40
+hoverTooltip.ZIndex = 45
 hoverTooltip.Parent = backpackModal
 
 local tooltipCorner = Instance.new("UICorner")
-tooltipCorner.CornerRadius = UDim.new(0, 6)
+tooltipCorner.CornerRadius = UDim.new(1, 0)
 tooltipCorner.Parent = hoverTooltip
 
 local tooltipStroke = Instance.new("UIStroke")
-tooltipStroke.Color = Color3.fromRGB(120, 90, 50)
+tooltipStroke.Color = Color3.fromRGB(175, 135, 75)
 tooltipStroke.Thickness = 1.5
 tooltipStroke.Parent = hoverTooltip
+
+local tooltipPad = Instance.new("UIPadding")
+tooltipPad.PaddingLeft = UDim.new(0, 12)
+tooltipPad.PaddingRight = UDim.new(0, 12)
+tooltipPad.PaddingTop = UDim.new(0, 2)
+tooltipPad.PaddingBottom = UDim.new(0, 2)
+tooltipPad.Parent = hoverTooltip
 
 local function showTooltip(text)
     hoverTooltip.Text = text
@@ -1990,370 +2017,167 @@ local function hideTooltip()
     hoverTooltip.Visible = false
 end
 
--- === АКТИВНЫЕ ОБЪЕКТЫ НАВЕРХУ И ВНИЗУ ===
+-- === НЕВИДИМЫЕ КЛИКАБЕЛЬНЫЕ ЗОНЫ ПОВЕРХ ФОНА (объекты встроены в изображение) ===
 
--- Ассеты сплошной мягкой подсветки сумок по форме изгибов (без просветов и дыр внутри, плавный контур)
-local BAG_OUTLINE_ASSETS = {
-    backpack = "rbxassetid://96185584410898",
-    toolbag = "rbxassetid://118946129070577",
-    basket = "rbxassetid://120085443174964"
-}
-
--- Индикатор активной выбранной сумки (светящийся контур точно повторяет форму активного объекта)
-local activeBagOutline = Instance.new("ImageLabel")
-activeBagOutline.Name = "ActiveBagOutline"
-activeBagOutline.Size = UDim2.new(1, 0, 1, 0)
-activeBagOutline.Position = UDim2.new(0, 0, 0, 0)
-activeBagOutline.BackgroundTransparency = 1
-activeBagOutline.Image = BAG_OUTLINE_ASSETS.backpack
-activeBagOutline.ScaleType = Enum.ScaleType.Fit
-activeBagOutline.ZIndex = 22
-activeBagOutline.Parent = backpackModal
-
--- Контур предпросмотра при наведении курсора мыши на сумку
-local hoverBagOutline = Instance.new("ImageLabel")
-hoverBagOutline.Name = "HoverBagOutline"
-hoverBagOutline.Size = UDim2.new(1, 0, 1, 0)
-hoverBagOutline.Position = UDim2.new(0, 0, 0, 0)
-hoverBagOutline.BackgroundTransparency = 1
-hoverBagOutline.Image = ""
-hoverBagOutline.ImageTransparency = 0.40
-hoverBagOutline.ScaleType = Enum.ScaleType.Fit
-hoverBagOutline.Visible = false
-hoverBagOutline.ZIndex = 23
-hoverBagOutline.Parent = backpackModal
-
--- 1. БЛОКНОТ (Книга рецептов и заданий)
-local notebookBtn = Instance.new("TextButton")
-notebookBtn.Name = "NotebookBtn"
-notebookBtn.Size = UDim2.new(0.078, 0, 0.147, 0)
-notebookBtn.Position = UDim2.new(0.225, 0, 0.157, 0)
-notebookBtn.AnchorPoint = Vector2.new(0.5, 0.5)
-notebookBtn.BackgroundTransparency = 1
-notebookBtn.Text = ""
-notebookBtn.ZIndex = 30
-notebookBtn.Parent = backpackModal
-
--- 2. ПОРТФЕЛЬ / РЮКЗАК (Ресурсы и блоки)
-local backpackTabBtn = Instance.new("TextButton")
-backpackTabBtn.Name = "BackpackTabBtn"
-backpackTabBtn.Size = UDim2.new(0.176, 0, 0.210, 0)
-backpackTabBtn.Position = UDim2.new(0.354, 0, 0.138, 0)
-backpackTabBtn.AnchorPoint = Vector2.new(0.5, 0.5)
-backpackTabBtn.BackgroundTransparency = 1
-backpackTabBtn.Text = ""
-backpackTabBtn.ZIndex = 30
-backpackTabBtn.Parent = backpackModal
-
--- 3. СУМКА С ИНСТРУМЕНТАМИ (Топор, кирка, лопата)
-local toolbagTabBtn = Instance.new("TextButton")
-toolbagTabBtn.Name = "ToolbagTabBtn"
-toolbagTabBtn.Size = UDim2.new(0.176, 0, 0.215, 0)
-toolbagTabBtn.Position = UDim2.new(0.534, 0, 0.143, 0)
-toolbagTabBtn.AnchorPoint = Vector2.new(0.5, 0.5)
-toolbagTabBtn.BackgroundTransparency = 1
-toolbagTabBtn.Text = ""
-toolbagTabBtn.ZIndex = 30
-toolbagTabBtn.Parent = backpackModal
-
--- 4. КОРЗИНКА (Еда, ягоды, грибы, припасы)
-local basketTabBtn = Instance.new("TextButton")
-basketTabBtn.Name = "BasketTabBtn"
-basketTabBtn.Size = UDim2.new(0.110, 0, 0.205, 0)
-basketTabBtn.Position = UDim2.new(0.684, 0, 0.145, 0)
-basketTabBtn.AnchorPoint = Vector2.new(0.5, 0.5)
-basketTabBtn.BackgroundTransparency = 1
-basketTabBtn.Text = ""
-basketTabBtn.ZIndex = 30
-basketTabBtn.Parent = backpackModal
-
--- 5. КАРТА (Остров котёнка)
-local mapBtn = Instance.new("TextButton")
-mapBtn.Name = "MapBtn"
-mapBtn.Size = UDim2.new(0.166, 0, 0.210, 0)
-mapBtn.Position = UDim2.new(0.820, 0, 0.154, 0)
-mapBtn.AnchorPoint = Vector2.new(0.5, 0.5)
-mapBtn.BackgroundTransparency = 1
-mapBtn.Text = ""
-mapBtn.ZIndex = 30
-mapBtn.Parent = backpackModal
-
--- 6. КРЕСТИК ЗАКРЫТИЯ [X]
-local closeBtn = Instance.new("TextButton")
-closeBtn.Name = "CloseBtn"
-closeBtn.Size = UDim2.new(0.029, 0, 0.046, 0)
-closeBtn.Position = UDim2.new(0.976, 0, 0.059, 0)
-closeBtn.AnchorPoint = Vector2.new(0.5, 0.5)
-closeBtn.BackgroundTransparency = 1
-closeBtn.Text = ""
-closeBtn.ZIndex = 35
-closeBtn.Parent = backpackModal
-
-closeBtn.MouseEnter:Connect(function()
-    showTooltip("Закрыть [Esc]")
-end)
-closeBtn.MouseLeave:Connect(function()
-    hideTooltip()
-end)
-
--- 7. ШЕСТЕРЕНКА (Настройки игры)
-local gearBtn = Instance.new("TextButton")
-gearBtn.Name = "GearSettingsBtn"
-gearBtn.Size = UDim2.new(0.093, 0, 0.166, 0)
-gearBtn.Position = UDim2.new(0.862, 0, 0.816, 0)
-gearBtn.AnchorPoint = Vector2.new(0.5, 0.5)
-gearBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-gearBtn.BackgroundTransparency = 1
-gearBtn.Text = ""
-gearBtn.ZIndex = 30
-gearBtn.Parent = backpackModal
-
-local gearCorner = Instance.new("UICorner")
-gearCorner.CornerRadius = UDim.new(1, 0)
-gearCorner.Parent = gearBtn
-
-gearBtn.MouseEnter:Connect(function()
-    showTooltip("⚙️ Настройки игры")
-end)
-gearBtn.MouseLeave:Connect(function()
-    hideTooltip()
-end)
-
--- 8. КНОПКА СОРТИРОВКИ [Сортировать] НА ТАБЛИЧКЕ
-local sortBtn = Instance.new("TextButton")
-sortBtn.Name = "SortBtn"
-sortBtn.Size = UDim2.new(0.115, 0, 0.044, 0)
-sortBtn.Position = UDim2.new(0.36, 0, 0.850, 0)
-sortBtn.AnchorPoint = Vector2.new(0, 0)
-sortBtn.BackgroundTransparency = 0.1
-sortBtn.BackgroundColor3 = Color3.fromRGB(42, 90, 70)
-sortBtn.Text = "Сортировать"
-sortBtn.TextColor3 = Color3.fromRGB(240, 255, 235)
-sortBtn.Font = Enum.Font.FredokaOne
-sortBtn.TextSize = 12
-sortBtn.ZIndex = 30
-sortBtn.Parent = backpackModal
-
-local sortCorner = Instance.new("UICorner")
-sortCorner.CornerRadius = UDim.new(0, 6)
-sortCorner.Parent = sortBtn
-
-local sortStroke = Instance.new("UIStroke")
-sortStroke.Color = Color3.fromRGB(120, 240, 200)
-sortStroke.Thickness = 1.2
-sortStroke.Transparency = 0.5
-sortStroke.Parent = sortBtn
-
-sortBtn.MouseEnter:Connect(function()
-    sortStroke.Transparency = 0.1
-    sortBtn.BackgroundColor3 = Color3.fromRGB(55, 115, 90)
-    showTooltip("Сортировать предметы в сумке")
-end)
-sortBtn.MouseLeave:Connect(function()
-    sortStroke.Transparency = 0.5
-    sortBtn.BackgroundColor3 = Color3.fromRGB(42, 90, 70)
-    hideTooltip()
-end)
-
--- Динамический заголовок на нижней табличке
-local bagTitleBadge = Instance.new("TextLabel")
-bagTitleBadge.Name = "BagTitleBadge"
-bagTitleBadge.Size = UDim2.new(0.28, 0, 0.04, 0)
-bagTitleBadge.Position = UDim2.new(0.36, 0, 0.755, 0)
-bagTitleBadge.BackgroundTransparency = 1
-bagTitleBadge.TextColor3 = Color3.fromRGB(255, 235, 140)
-bagTitleBadge.TextStrokeTransparency = 0.35
-bagTitleBadge.TextStrokeColor3 = Color3.fromRGB(40, 25, 10)
-bagTitleBadge.Font = Enum.Font.FredokaOne
-bagTitleBadge.TextSize = 14
-bagTitleBadge.TextXAlignment = Enum.TextXAlignment.Left
-bagTitleBadge.Text = "🎒 Портфель: Ресурсы и блоки"
-bagTitleBadge.ZIndex = 28
-bagTitleBadge.Parent = backpackModal
-
--- Подсказка управления под табличкой
-local swapTip = Instance.new("TextLabel")
-swapTip.Name = "SwapTip"
-swapTip.Size = UDim2.new(0.30, 0, 0.035, 0)
-swapTip.Position = UDim2.new(0.36, 0, 0.800, 0)
-swapTip.BackgroundTransparency = 1
-swapTip.TextColor3 = Color3.fromRGB(230, 210, 175)
-swapTip.TextStrokeTransparency = 0.45
-swapTip.TextStrokeColor3 = Color3.fromRGB(30, 20, 10)
-swapTip.Font = Enum.Font.FredokaOne
-swapTip.TextSize = 11
-swapTip.TextXAlignment = Enum.TextXAlignment.Left
-swapTip.Text = "💡 Кликните предмет для выбора, затем слот хотбара или другой"
-swapTip.ZIndex = 28
-swapTip.Parent = backpackModal
-
--- === ПРЕДМЕТЫ НА ТРАВЕ (БЕЗ РАМОК И ПОДЛОЖЕК!) ===
--- 20 интерактивных слотов на поляне (5 колонок х 4 ряда)
-local grassSlotsContainer = Instance.new("Frame")
-grassSlotsContainer.Name = "GrassSlotsContainer"
-grassSlotsContainer.Size = UDim2.new(0.86, 0, 0.48, 0)
-grassSlotsContainer.Position = UDim2.new(0.5, 0, 0.49, 0)
-grassSlotsContainer.AnchorPoint = Vector2.new(0.5, 0.5)
-grassSlotsContainer.BackgroundTransparency = 1
-grassSlotsContainer.ZIndex = 25
-grassSlotsContainer.Parent = backpackModal
-
-local hotbarButtons = {}
-local grassSlotButtons = {} -- [1..20] кнопки слотов на траве
-
--- Создание кнопки слота БЕЗ РАМКИ И ПОДЛОЖКИ (только иконка, имя и количество)
-local function createGrassSlotUI(parent, localIndex, pos)
+-- Вспомогательная функция создания невидимой кнопки-зоны
+local function makeHotZone(name, posX, posY, sizeX, sizeY, zidx)
     local btn = Instance.new("TextButton")
-    btn.Name = "GrassSlot_" .. localIndex
-    btn.Size = UDim2.new(0.175, 0, 0.22, 0)
-    btn.Position = pos
-    btn.AnchorPoint = Vector2.new(0.5, 0.5)
-    btn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    btn.BackgroundTransparency = 1 -- НЕТ ПОДЛОЖКИ!
-    btn.AutoButtonColor = false
+    btn.Name = name
+    btn.Size = UDim2.new(sizeX, 0, sizeY, 0)
+    btn.Position = UDim2.new(posX, 0, posY, 0)
+    btn.BackgroundTransparency = 1
     btn.Text = ""
-    btn.ZIndex = 26
-    btn.Parent = parent
-
-    -- Мягкая круглая подсветка строго под иконкой (без жёлтых рамок)
-    local halo = Instance.new("Frame")
-    halo.Name = "Halo"
-    halo.Size = UDim2.new(0, 48, 0, 48)
-    halo.Position = UDim2.new(0.40, 0, 0.38, 0)
-    halo.AnchorPoint = Vector2.new(0.5, 0.5)
-    halo.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    halo.BackgroundTransparency = 1
-    halo.ZIndex = 26
-    halo.Parent = btn
-
-    local haloCorner = Instance.new("UICorner")
-    haloCorner.CornerRadius = UDim.new(1, 0)
-    haloCorner.Parent = halo
-
-    -- Пиксель-арт спрайт предмета (стилистика пиксельных ячеек)
-    local itemSprite = Instance.new("ImageLabel")
-    itemSprite.Name = "ItemSprite"
-    itemSprite.Size = UDim2.new(0, 44, 0, 44)
-    itemSprite.Position = UDim2.new(0.40, 0, 0.38, 0)
-    itemSprite.AnchorPoint = Vector2.new(0.5, 0.5)
-    itemSprite.BackgroundTransparency = 1
-    itemSprite.ResampleMode = Enum.ResamplerMode.Pixelated
-    itemSprite.ScaleType = Enum.ScaleType.Fit
-    itemSprite.Visible = false
-    itemSprite.ZIndex = 27
-    itemSprite.Parent = btn
-
-    -- Иконка/эмодзи предмета (запасной вариант)
-    local iconLabel = Instance.new("TextLabel")
-    iconLabel.Name = "IconLabel"
-    iconLabel.Size = UDim2.new(0, 36, 0, 32)
-    iconLabel.Position = UDim2.new(0.40, 0, 0.38, 0)
-    iconLabel.AnchorPoint = Vector2.new(0.5, 0.5)
-    iconLabel.BackgroundTransparency = 1
-    iconLabel.Font = Enum.Font.FredokaOne
-    iconLabel.TextSize = 24
-    iconLabel.Text = ""
-    iconLabel.ZIndex = 27
-    iconLabel.Parent = btn
-
-    -- Мини-кубик цвета (если нет эмодзи)
-    local colorBox = Instance.new("Frame")
-    colorBox.Name = "ColorBox"
-    colorBox.Size = UDim2.new(0, 24, 0, 24)
-    colorBox.Position = UDim2.new(0.40, 0, 0.38, 0)
-    colorBox.AnchorPoint = Vector2.new(0.5, 0.5)
-    colorBox.BorderSizePixel = 0
-    colorBox.Visible = false
-    colorBox.ZIndex = 27
-    colorBox.Parent = btn
-
-    local colorCorner = Instance.new("UICorner")
-    colorCorner.CornerRadius = UDim.new(0, 6)
-    colorCorner.Parent = colorBox
-
-    -- Название предмета (под иконкой) с чёткой обводкой
-    local nameLbl = Instance.new("TextLabel")
-    nameLbl.Name = "NameLabel"
-    nameLbl.Size = UDim2.new(1, 0, 0, 14)
-    nameLbl.Position = UDim2.new(0.5, 0, 0.84, 0)
-    nameLbl.AnchorPoint = Vector2.new(0.5, 0.5)
-    nameLbl.BackgroundTransparency = 1
-    nameLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
-    nameLbl.TextStrokeTransparency = 0.25
-    nameLbl.TextStrokeColor3 = Color3.fromRGB(15, 25, 10)
-    nameLbl.Font = Enum.Font.FredokaOne
-    nameLbl.TextSize = 11
-    nameLbl.TextTruncate = Enum.TextTruncate.AtEnd
-    nameLbl.ZIndex = 28
-    nameLbl.Parent = btn
-
-    -- Счётчик количества предметов (справа от иконки)
-    local countLbl = Instance.new("TextLabel")
-    countLbl.Name = "CountLabel"
-    countLbl.Size = UDim2.new(0, 36, 0, 16)
-    countLbl.Position = UDim2.new(0.82, 0, 0.38, 0)
-    countLbl.AnchorPoint = Vector2.new(0.5, 0.5)
-    countLbl.BackgroundTransparency = 1
-    countLbl.TextColor3 = Color3.fromRGB(255, 235, 120)
-    countLbl.TextStrokeTransparency = 0.25
-    countLbl.TextStrokeColor3 = Color3.fromRGB(20, 15, 10)
-    countLbl.Font = Enum.Font.FredokaOne
-    countLbl.TextSize = 12
-    countLbl.TextXAlignment = Enum.TextXAlignment.Left
-    countLbl.Text = ""
-    countLbl.ZIndex = 28
-    countLbl.Parent = btn
-
-    btn.MouseEnter:Connect(function()
-        if btn:GetAttribute("HasItem") and not btn:GetAttribute("IsSelected") then
-            iconLabel.TextStrokeColor3 = Color3.fromRGB(255, 255, 220)
-            iconLabel.TextStrokeTransparency = 0
-            itemSprite.Size = UDim2.new(0, 48, 0, 48)
-            itemSprite.ImageColor3 = Color3.fromRGB(255, 255, 230)
-        end
-    end)
-    btn.MouseLeave:Connect(function()
-        if not btn:GetAttribute("IsSelected") then
-            iconLabel.TextStrokeColor3 = Color3.fromRGB(15, 15, 15)
-            iconLabel.TextStrokeTransparency = 0.5
-            itemSprite.Size = UDim2.new(0, 44, 0, 44)
-            itemSprite.ImageColor3 = Color3.fromRGB(255, 255, 255)
-        end
-    end)
-
+    btn.ZIndex = zidx or 32
+    btn.Parent = backpackModal
     return btn
 end
 
--- Создание слота в спрайтовом пиксельном хотбаре (1: Дерево, 2: Земля, 3: Камень, 4: Трава)
+-- 1. Красная книга (рецепты/дневник) слева от походного рюкзака (X: ~195..250 / 839)
+local bookZone = makeHotZone("HotZone_Book", 0.228, 0.020, 0.070, 0.260, 32)
+bookZone.MouseEnter:Connect(function() showTooltip("📖 Книга рецептов") end)
+bookZone.MouseLeave:Connect(function() hideTooltip() end)
+bookZone.MouseButton1Click:Connect(function()
+    if notebookModalRef then
+        notebookModalRef.Visible = not notebookModalRef.Visible
+    end
+end)
+
+-- 2. Кожаный походный рюкзак (X: ~250..350 / 839)
+local backpackZone = makeHotZone("HotZone_Backpack", 0.298, 0.010, 0.122, 0.290, 32)
+backpackZone.MouseEnter:Connect(function() showTooltip("🎒 Походный рюкзак") end)
+backpackZone.MouseLeave:Connect(function() hideTooltip() end)
+backpackZone.MouseButton1Click:Connect(function()
+    -- Будущий функционал походного рюкзака
+end)
+
+-- 3. Сумка с оружием и инструментами (X: ~350..475 / 839)
+local toolbagZone = makeHotZone("HotZone_Toolbag", 0.420, 0.020, 0.145, 0.280, 32)
+toolbagZone.MouseEnter:Connect(function() showTooltip("🪓 Сумка с оружием и инструментами") end)
+toolbagZone.MouseLeave:Connect(function() hideTooltip() end)
+toolbagZone.MouseButton1Click:Connect(function()
+    -- Будущий функционал сумки с инструментами и оружием
+end)
+
+-- 4. Плетёная корзина с лесными ягодами (X: ~475..585 / 839)
+local basketZone = makeHotZone("HotZone_Basket", 0.565, 0.010, 0.135, 0.300, 32)
+basketZone.MouseEnter:Connect(function() showTooltip("🧺 Корзина с ягодами") end)
+basketZone.MouseLeave:Connect(function() hideTooltip() end)
+basketZone.MouseButton1Click:Connect(function()
+    -- Будущий функционал корзины для сбора ягод
+end)
+
+-- 5. Старинная карта острова (X: ~585..735 / 839)
+local mapZone = makeHotZone("HotZone_Map", 0.700, 0.010, 0.180, 0.300, 32)
+mapZone.MouseEnter:Connect(function() showTooltip("🗺️ Карта острова") end)
+mapZone.MouseLeave:Connect(function() hideTooltip() end)
+mapZone.MouseButton1Click:Connect(function()
+    if mapModalRef then
+        mapModalRef.Visible = not mapModalRef.Visible
+    end
+end)
+
+-- 6. Шестеренка настроек на пеньке внизу справа (X: ~670..800, Y: ~285..400)
+local gearZone = makeHotZone("HotZone_Gear", 0.790, 0.610, 0.150, 0.250, 32)
+gearZone.MouseEnter:Connect(function() showTooltip("⚙️ Настройки игры") end)
+gearZone.MouseLeave:Connect(function() hideTooltip() end)
+gearZone.MouseButton1Click:Connect(function()
+    if settingsModalRef then
+        settingsModalRef.Visible = not settingsModalRef.Visible
+    end
+end)
+
+-- Закрытие по клику на фоновое изображение (вне объектов)
+local bgClickBtn = Instance.new("TextButton")
+bgClickBtn.Name = "BgClickClose"
+bgClickBtn.Size = UDim2.new(1, 0, 1, 0)
+bgClickBtn.Position = UDim2.new(0, 0, 0, 0)
+bgClickBtn.BackgroundTransparency = 1
+bgClickBtn.Text = ""
+bgClickBtn.ZIndex = 22
+bgClickBtn.Parent = backpackModal
+bgClickBtn.MouseButton1Click:Connect(function()
+    setBackpackOpen(false)
+end)
+
+-- === ХОТБАР ВНИЗУ ЭКРАНА (СЛОТЫ 1..6: ЗЕМЛЯ, ПЕСОК, ВОДА/ЛЕД, ТРАВА, КАМЕНЬ, ДЕРЕВО) ===
+local hotbarButtons = {}
+local grassSlotButtons = {}
+local activeBagTab = "backpack"
+
+local function renderHotbarSlotUI(btn, slotData, isActive)
+    if not btn then return end
+    local slotIndex = btn:GetAttribute("SlotIndex") or 1
+    local slotDef = HOTBAR_SLOT_DEFS[slotIndex]
+
+    local activeBorder = btn:FindFirstChild("ActiveBorder")
+    if activeBorder then
+        activeBorder.Visible = (isActive == true)
+    end
+
+    local spriteImg = btn:FindFirstChild("SpriteImage")
+    if spriteImg then
+        local targetSprite = slotDef and slotDef.sprite
+        if slotIndex == 3 then
+            if currentSeasonId == "winter" then
+                targetSprite = "rbxassetid://72778677331909"
+            else
+                targetSprite = "rbxassetid://94567183251152"
+            end
+        elseif slotData and slotData.id and itemsDefinition and itemsDefinition[slotData.id] and itemsDefinition[slotData.id].sprite then
+            targetSprite = itemsDefinition[slotData.id].sprite
+        end
+        if targetSprite and spriteImg.Image ~= targetSprite then
+            spriteImg.Image = targetSprite
+        end
+
+        if isActive then
+            spriteImg.ImageColor3 = Color3.fromRGB(255, 255, 255)
+        elseif slotData and slotData.count and slotData.count > 0 then
+            spriteImg.ImageColor3 = Color3.fromRGB(255, 255, 255)
+        else
+            spriteImg.ImageColor3 = Color3.fromRGB(150, 150, 150)
+        end
+    end
+
+    local countLbl = btn:FindFirstChild("CountLabel")
+    if countLbl then
+        if slotData and slotData.count and slotData.count > 0 then
+            countLbl.Text = tostring(slotData.count)
+        else
+            countLbl.Text = ""
+        end
+    end
+end
+
 local function createHotbarSlotUI(parent, slotIndex, pos)
     local slotDef = HOTBAR_SLOT_DEFS[slotIndex]
 
-    local btn = Instance.new("TextButton")
+    local btn = Instance.new("ImageButton")
     btn.Name = "HotbarSlot_" .. slotIndex
+    btn:SetAttribute("SlotIndex", slotIndex)
     btn.Size = UDim2.new(0, SLOT_SIZE, 0, SLOT_SIZE)
     btn.Position = pos
     btn.BackgroundTransparency = 1
     btn.AutoButtonColor = false
-    btn.Text = ""
     btn.ZIndex = 5
     btn.Parent = parent
 
-    -- Базовый спрайт ячейки (пиксель-арт ячейки из изображения: Дерево, Земля, Камень, Трава)
+    -- Базовый спрайт ячейки
     local spriteImg = Instance.new("ImageLabel")
     spriteImg.Name = "SpriteImage"
     spriteImg.Size = UDim2.new(1, 0, 1, 0)
     spriteImg.Position = UDim2.new(0, 0, 0, 0)
     spriteImg.BackgroundTransparency = 1
-    spriteImg.Image = slotDef.sprite
+    spriteImg.Image = slotDef and slotDef.sprite or ""
     spriteImg.ResampleMode = Enum.ResamplerMode.Pixelated
     spriteImg.ScaleType = Enum.ScaleType.Fit
     spriteImg.ZIndex = 6
     spriteImg.Parent = btn
 
-    -- Активная белая рамка выбора (обводит пиксельный закругленный контур ячейки, без белой плашки)
+    -- Активная белая рамка выбора
     local activeBorder = Instance.new("Frame")
     activeBorder.Name = "ActiveBorder"
-    activeBorder.Size = UDim2.new(1, 6, 1, 6)
+    activeBorder.Size = UDim2.new(1, 4, 1, 4)
     activeBorder.Position = UDim2.new(0.5, 0, 0.5, 0)
     activeBorder.AnchorPoint = Vector2.new(0.5, 0.5)
     activeBorder.BackgroundTransparency = 1
@@ -2371,7 +2195,7 @@ local function createHotbarSlotUI(parent, slotIndex, pos)
     activeStroke.Transparency = 0
     activeStroke.Parent = activeBorder
 
-    -- Бейдж номера горячей клавиши [1..4] в верхнем левом углу
+    -- Бейдж номера горячей клавиши [1..6] в верхнем левом углу
     local keyBadge = Instance.new("Frame")
     keyBadge.Name = "KeyBadge"
     keyBadge.Size = UDim2.new(0, 16, 0, 14)
@@ -2413,7 +2237,18 @@ local function createHotbarSlotUI(parent, slotIndex, pos)
     countLbl.ZIndex = 11
     countLbl.Parent = btn
 
-    -- Наведение курсора (подсветка при ховере)
+    btn.MouseButton1Click:Connect(function()
+        if activeHotbarSlot == slotIndex then
+            activeHotbarSlot = nil
+            voxelRemote:FireServer("SelectSlot", { slot = 0 })
+        else
+            activeHotbarSlot = slotIndex
+            voxelRemote:FireServer("SelectSlot", { slot = slotIndex })
+        end
+        if refreshAllInventoryUI then refreshAllInventoryUI() end
+        if updateCustomCursor then updateCustomCursor() end
+    end)
+
     btn.MouseEnter:Connect(function()
         if slotIndex ~= activeHotbarSlot then
             spriteImg.ImageColor3 = Color3.fromRGB(255, 250, 230)
@@ -2422,10 +2257,10 @@ local function createHotbarSlotUI(parent, slotIndex, pos)
     btn.MouseLeave:Connect(function()
         if slotIndex ~= activeHotbarSlot then
             local slotData = currentInventorySlots[slotIndex]
-            if slotData and slotData.count > 0 then
+            if slotData and slotData.count and slotData.count > 0 then
                 spriteImg.ImageColor3 = Color3.fromRGB(255, 255, 255)
             else
-                spriteImg.ImageColor3 = Color3.fromRGB(140, 140, 140)
+                spriteImg.ImageColor3 = Color3.fromRGB(150, 150, 150)
             end
         end
     end)
@@ -2433,312 +2268,22 @@ local function createHotbarSlotUI(parent, slotIndex, pos)
     return btn
 end
 
-local refreshAllInventoryUI
-
--- Собираем 4 активных спрайтовых слота хотбара (1–4)
 for i = 1, NUM_HOTBAR_SLOTS do
     local xPos = (i - 1) * (SLOT_SIZE + SLOT_GAP)
-    local btn = createHotbarSlotUI(
-        hudContainer,
-        i,
-        UDim2.new(0, xPos, 0, 0)
-    )
-
-    btn.MouseButton1Click:Connect(function()
-        if isBackpackOpen and selectedBackpackSlot then
-            -- Если выбран предмет из сумки, клик по хотбару перемещает его туда!
-            voxelRemote:FireServer("MoveItem", { fromSlot = selectedBackpackSlot, toSlot = i })
-            selectedBackpackSlot = nil
-            refreshAllInventoryUI()
-        else
-            if activeHotbarSlot == i then
-                activeHotbarSlot = nil
-                voxelRemote:FireServer("SelectSlot", { slot = 0 })
-            else
-                activeHotbarSlot = i
-                voxelRemote:FireServer("SelectSlot", { slot = i })
-            end
-            refreshAllInventoryUI()
-        end
-    end)
-
+    local btn = createHotbarSlotUI(hudContainer, i, UDim2.new(0, xPos, 0, 0))
     hotbarButtons[i] = btn
 end
 
--- Связка локального индекса на траве (1..20) с глобальным слотом инвентаря:
--- "backpack" (Портфель): 10..29 (20 слотов)
--- "basket" (Корзинка): 30..44 (15 слотов)
--- "toolbag" (Сумка): 45..54 (10 слотов)
-local function getGlobalSlotForLocalIndex(localIndex)
-    if activeBagTab == "backpack" then
-        return 9 + localIndex -- 10..29
-    elseif activeBagTab == "basket" then
-        if localIndex <= 15 then
-            return 29 + localIndex -- 30..44
-        end
-    elseif activeBagTab == "toolbag" then
-        if localIndex <= 10 then
-            return 44 + localIndex -- 45..54
-        end
-    end
-    return nil
-end
-
--- Собираем 20 слотов на поляне (5 колонок х 4 ряда)
-local colPositions = { 0.10, 0.30, 0.50, 0.70, 0.90 }
-local rowPositions = { 0.14, 0.39, 0.63, 0.88 }
-
-local slotCounter = 1
-for r = 1, 4 do
-    for c = 1, 5 do
-        local btn = createGrassSlotUI(
-            grassSlotsContainer,
-            slotCounter,
-            UDim2.new(colPositions[c], 0, rowPositions[r], 0)
-        )
-
-        local currentLocalIdx = slotCounter
-        btn.MouseButton1Click:Connect(function()
-            local globalSlot = getGlobalSlotForLocalIndex(currentLocalIdx)
-            if not globalSlot then return end
-
-            if selectedBackpackSlot == nil then
-                if currentInventorySlots[globalSlot] then
-                    selectedBackpackSlot = globalSlot
-                    refreshAllInventoryUI()
-                end
-            elseif selectedBackpackSlot == globalSlot then
-                selectedBackpackSlot = nil
-                refreshAllInventoryUI()
-            else
-                voxelRemote:FireServer("MoveItem", { fromSlot = selectedBackpackSlot, toSlot = globalSlot })
-                selectedBackpackSlot = nil
-                refreshAllInventoryUI()
-            end
-        end)
-
-        grassSlotButtons[slotCounter] = btn
-        slotCounter = slotCounter + 1
-    end
-end
-
--- Переключение активной сумки (контурная подсветка точно по форме активного объекта)
-local function setActiveBagTab(tab)
-    activeBagTab = tab
-    selectedBackpackSlot = nil
-
-    if BAG_OUTLINE_ASSETS[tab] then
-        activeBagOutline.Image = BAG_OUTLINE_ASSETS[tab]
-        activeBagOutline.Visible = true
-    else
-        activeBagOutline.Visible = false
-    end
-    hoverBagOutline.Visible = false
-
-    if tab == "backpack" then
-        bagTitleBadge.Text = "🎒 Портфель: Ресурсы и блоки"
-    elseif tab == "toolbag" then
-        bagTitleBadge.Text = "🧰 Сумка: Походные инструменты"
-    elseif tab == "basket" then
-        bagTitleBadge.Text = "🧺 Корзинка: Еда, ягоды и припасы"
-    end
-
-    refreshAllInventoryUI()
-end
-
-backpackTabBtn.MouseButton1Click:Connect(function() setActiveBagTab("backpack") end)
-backpackTabBtn.MouseEnter:Connect(function()
-    if activeBagTab ~= "backpack" then
-        hoverBagOutline.Image = BAG_OUTLINE_ASSETS.backpack
-        hoverBagOutline.Visible = true
-    end
-    showTooltip("🎒 Портфель (Ресурсы и блоки)")
-end)
-backpackTabBtn.MouseLeave:Connect(function()
-    hoverBagOutline.Visible = false
-    hideTooltip()
-end)
-
-toolbagTabBtn.MouseButton1Click:Connect(function() setActiveBagTab("toolbag") end)
-toolbagTabBtn.MouseEnter:Connect(function()
-    if activeBagTab ~= "toolbag" then
-        hoverBagOutline.Image = BAG_OUTLINE_ASSETS.toolbag
-        hoverBagOutline.Visible = true
-    end
-    showTooltip("🧰 Сумка (Инструменты)")
-end)
-toolbagTabBtn.MouseLeave:Connect(function()
-    hoverBagOutline.Visible = false
-    hideTooltip()
-end)
-
-basketTabBtn.MouseButton1Click:Connect(function() setActiveBagTab("basket") end)
-basketTabBtn.MouseEnter:Connect(function()
-    if activeBagTab ~= "basket" then
-        hoverBagOutline.Image = BAG_OUTLINE_ASSETS.basket
-        hoverBagOutline.Visible = true
-    end
-    showTooltip("🧺 Корзинка (Еда и сбор)")
-end)
-basketTabBtn.MouseLeave:Connect(function()
-    hoverBagOutline.Visible = false
-    hideTooltip()
-end)
-
-sortBtn.MouseButton1Click:Connect(function()
-    voxelRemote:FireServer("SortInventory", { containerType = activeBagTab })
-end)
-
--- Обновление одного слота на траве (мягкая круглая подсветка выбранного предмета, без рамок)
-local function renderGrassSlotUI(btn, slotData, isSelected)
-    local halo = btn:FindFirstChild("Halo")
-    local itemSprite = btn:FindFirstChild("ItemSprite")
-    local iconLabel = btn:FindFirstChild("IconLabel")
-    local colorBox = btn:FindFirstChild("ColorBox")
-    local nameLbl = btn:FindFirstChild("NameLabel")
-    local countLbl = btn:FindFirstChild("CountLabel")
-
-    if slotData and slotData.count > 0 then
-        local def = itemsDefinition[slotData.id] or {
-            name = slotData.id,
-            icon = "📦",
-            color = Color3.fromRGB(150, 150, 150)
-        }
-
-        btn:SetAttribute("HasItem", true)
-        btn:SetAttribute("IsSelected", isSelected)
-
-        -- Проверяем наличие пиксель-арт спрайта (в стилистике ячеек из второго изображения)
-        local spriteAsset = def.sprite
-        if not spriteAsset and (slotData.id == "wood_block" or slotData.id == "dirt_block" or slotData.id == "stone_block" or slotData.id == "grass_block") then
-            local spriteFallback = {
-                wood_block  = "rbxassetid://102991854156536",
-                dirt_block  = "rbxassetid://104779952223143",
-                stone_block = "rbxassetid://109072643235539",
-                grass_block = "rbxassetid://114424346454200",
-            }
-            spriteAsset = spriteFallback[slotData.id]
-        end
-
-        if spriteAsset and spriteAsset ~= "" then
-            if itemSprite then
-                itemSprite.Image = spriteAsset
-                itemSprite.Visible = true
-            end
-            iconLabel.Visible = false
-            colorBox.Visible = false
-        elseif def.icon and def.icon ~= "" then
-            iconLabel.Text = def.icon
-            iconLabel.Visible = true
-            colorBox.Visible = false
-            if itemSprite then itemSprite.Visible = false end
-        else
-            colorBox.BackgroundColor3 = def.color or Color3.fromRGB(150, 150, 150)
-            colorBox.Visible = true
-            iconLabel.Visible = false
-            if itemSprite then itemSprite.Visible = false end
-        end
-
-        nameLbl.Text = def.name or slotData.id
-        nameLbl.Visible = true
-        countLbl.Text = slotData.count > 1 and ("x" .. slotData.count) or ""
-        countLbl.Visible = true
-
-        if isSelected then
-            if itemSprite and itemSprite.Visible then
-                itemSprite.Size = UDim2.new(0, 48, 0, 48)
-                itemSprite.ImageColor3 = Color3.fromRGB(255, 255, 230)
-            end
-            iconLabel.TextStrokeColor3 = Color3.fromRGB(255, 255, 255)
-            iconLabel.TextStrokeTransparency = 0
-            iconLabel.TextSize = 28
-            nameLbl.TextColor3 = Color3.fromRGB(255, 240, 140)
-            nameLbl.TextStrokeTransparency = 0
-        else
-            if itemSprite and itemSprite.Visible then
-                itemSprite.Size = UDim2.new(0, 44, 0, 44)
-                itemSprite.ImageColor3 = Color3.fromRGB(255, 255, 255)
-            end
-            iconLabel.TextStrokeColor3 = Color3.fromRGB(15, 15, 15)
-            iconLabel.TextStrokeTransparency = 0.5
-            iconLabel.TextSize = 24
-            nameLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
-            nameLbl.TextStrokeTransparency = 0.25
-        end
-        if halo then halo.BackgroundTransparency = 1 end
-    else
-        btn:SetAttribute("HasItem", false)
-        btn:SetAttribute("IsSelected", false)
-        if itemSprite then itemSprite.Visible = false end
-        iconLabel.Visible = false
-        iconLabel.TextSize = 24
-        iconLabel.TextStrokeTransparency = 0.5
-        colorBox.Visible = false
-        nameLbl.Visible = false
-        countLbl.Visible = false
-        if halo then halo.BackgroundTransparency = 1 end
-    end
-end
-
--- Обновление одного спрайтового слота хотбара
-local function renderHotbarSlotUI(btn, slotData, isActive)
-    local activeBorder = btn:FindFirstChild("ActiveBorder")
-    local countLbl = btn:FindFirstChild("CountLabel")
-    local spriteImg = btn:FindFirstChild("SpriteImage")
-
-    if activeBorder then
-        activeBorder.Visible = isActive
-    end
-
-    if spriteImg and slotData and slotData.id then
-        local def = itemsDefinition[slotData.id]
-        if def and def.sprite and def.sprite ~= "" then
-            spriteImg.Image = def.sprite
-        end
-    end
-
-    if slotData and slotData.count > 0 then
-        countLbl.Text = tostring(slotData.count)
-        countLbl.Visible = true
-
-        if spriteImg then
-            spriteImg.ImageColor3 = Color3.fromRGB(255, 255, 255)
-        end
-    else
-        countLbl.Text = "0"
-        countLbl.Visible = true
-
-        if spriteImg then
-            spriteImg.ImageColor3 = Color3.fromRGB(140, 140, 140)
-        end
-    end
-end
-
--- Полная перерисовка интерфейса
+-- Полная перерисовка интерфейса хотбара
 refreshAllInventoryUI = function()
-    -- 1. Обновляем 4 активных спрайтовых слота хотбара
     for i = 1, NUM_HOTBAR_SLOTS do
         local btn = hotbarButtons[i]
         if btn then
             renderHotbarSlotUI(btn, currentInventorySlots[i], (i == activeHotbarSlot))
         end
     end
-
-    -- 2. Обновляем 20 слотов на поляне в соответствии с активной сумкой
-    for localIdx = 1, 20 do
-        local btn = grassSlotButtons[localIdx]
-        if btn then
-            local globalSlot = getGlobalSlotForLocalIndex(localIdx)
-            if globalSlot then
-                btn.Visible = true
-                local isSel = (selectedBackpackSlot == globalSlot)
-                renderGrassSlotUI(btn, currentInventorySlots[globalSlot], isSel)
-            else
-                btn.Visible = false
-            end
-        end
-    end
 end
+
 
 -- === ИНТЕРАКТИВНЫЕ ОКНА: БЛОКНОТ, КАРТА, НАСТРОЙКИ ===
 
@@ -2753,7 +2298,7 @@ notebookModal.AnchorPoint = Vector2.new(0.5, 0.5)
 notebookModal.BackgroundColor3 = Color3.fromRGB(244, 230, 200)
 notebookModal.Visible = false
 notebookModal.ZIndex = 50
-notebookModal.Parent = backpackModal
+notebookModal.Parent = screenGui
 
 local nbCorner = Instance.new("UICorner")
 nbCorner.CornerRadius = UDim.new(0, 16)
@@ -2865,15 +2410,17 @@ questsTabBtn.MouseButton1Click:Connect(function()
     nbContentText.Text = "🐾 ЗАДАНИЯ КОТЁНКА:\n\n1. [ВЫПОЛНЕНО] Исследовать лесную поляну.\n2. [В ПРОЦЕССЕ] Собрать 15 блоков травы и дерева.\n3. [НОВОЕ] Поймать свежую рыбку к обеду!\n4. [НОВОЕ] Построить уютный домик из блоков на вершине холма."
 end)
 
-notebookBtn.MouseButton1Click:Connect(function()
-    notebookModal.Visible = not notebookModal.Visible
-end)
-notebookBtn.MouseEnter:Connect(function()
-    showTooltip("📖 Блокнот: Рецепты и Задания")
-end)
-notebookBtn.MouseLeave:Connect(function()
-    hideTooltip()
-end)
+if notebookBtn then
+    notebookBtn.MouseButton1Click:Connect(function()
+        notebookModal.Visible = not notebookModal.Visible
+    end)
+    notebookBtn.MouseEnter:Connect(function()
+        showTooltip("📖 Блокнот: Рецепты и Задания")
+    end)
+    notebookBtn.MouseLeave:Connect(function()
+        hideTooltip()
+    end)
+end
 
 -- 2. ОКНО КАРТЫ (Остров котёнка)
 local mapModal = Instance.new("Frame")
@@ -2885,7 +2432,7 @@ mapModal.AnchorPoint = Vector2.new(0.5, 0.5)
 mapModal.BackgroundColor3 = Color3.fromRGB(238, 220, 180)
 mapModal.Visible = false
 mapModal.ZIndex = 50
-mapModal.Parent = backpackModal
+mapModal.Parent = screenGui
 
 local mapCorner = Instance.new("UICorner")
 mapCorner.CornerRadius = UDim.new(0, 16)
@@ -2969,20 +2516,22 @@ mapCoordLabel.Text = "Координаты: X=0, Z=0 | Остров безопа
 mapCoordLabel.ZIndex = 52
 mapCoordLabel.Parent = mapCanvas
 
-mapBtn.MouseButton1Click:Connect(function()
-    mapModal.Visible = not mapModal.Visible
-    local char = player.Character
-    local root = char and char:FindFirstChild("HumanoidRootPart")
-    if root then
-        mapCoordLabel.Text = string.format("Координаты котёнка: X=%.1f, Z=%.1f | Остров безопасен", root.Position.X, root.Position.Z)
-    end
-end)
-mapBtn.MouseEnter:Connect(function()
-    showTooltip("🗺️ Карта Острова")
-end)
-mapBtn.MouseLeave:Connect(function()
-    hideTooltip()
-end)
+if mapBtn then
+    mapBtn.MouseButton1Click:Connect(function()
+        mapModal.Visible = not mapModal.Visible
+        local char = player.Character
+        local root = char and char:FindFirstChild("HumanoidRootPart")
+        if root then
+            mapCoordLabel.Text = string.format("Координаты котёнка: X=%.1f, Z=%.1f | Остров безопасен", root.Position.X, root.Position.Z)
+        end
+    end)
+    mapBtn.MouseEnter:Connect(function()
+        showTooltip("🗺️ Карта Острова")
+    end)
+    mapBtn.MouseLeave:Connect(function()
+        hideTooltip()
+    end)
+end
 
 -- 3. ОКНО НАСТРОЕК И РУКОВОДСТВА ПО УПРАВЛЕНИЮ
 local settingsModal = Instance.new("Frame")
@@ -3257,10 +2806,10 @@ sGridLay.CellPadding = UDim2.new(0, 8, 0, 8)
 sGridLay.Parent = seasonsGrid
 
 local seasonDefs = {
-    { id = "autumn", name = "🍂 Осень", order = 1 },
-    { id = "winter", name = "❄️ Зима",  order = 2 },
-    { id = "spring", name = "🌸 Весна", order = 3 },
-    { id = "summer", name = "☀️ Лето",  order = 4 },
+    { id = "winter", name = "❄️ Зима",  order = 1 },
+    { id = "spring", name = "🌸 Весна", order = 2 },
+    { id = "summer", name = "☀️ Лето",  order = 3 },
+    { id = "autumn", name = "🍂 Осень", order = 4 },
 }
 
 for _, sDef in ipairs(seasonDefs) do
@@ -3361,21 +2910,24 @@ cbCorner.Parent = camBtn
 
 -- 4. Секция: Времена года (Осень, Зима, Весна, Лето)
 
-gearBtn.MouseButton1Click:Connect(function()
-    settingsModal.Visible = not settingsModal.Visible
-end)
+-- gearBtn removed; settings accessible via clock widget
 
 -- Открытие/закрытие рюкзака
 local function setBackpackOpen(open)
     isBackpackOpen = open
     modalBackdrop.Visible = isBackpackOpen
     backpackModal.Visible = isBackpackOpen
+    if isBackpackOpen and modalBgImageRef and MEADOW_SEASON_ASSETS then
+    if updateBackpackSeasonSprites then updateBackpackSeasonSprites(currentSeasonId) end
+    end
     selectedBackpackSlot = nil
-    notebookModal.Visible = false
-    mapModal.Visible = false
-    settingsModal.Visible = false
+    if notebookModalRef then notebookModalRef.Visible = false end
+    if mapModalRef then mapModalRef.Visible = false end
+    if settingsModalRef then settingsModalRef.Visible = false end
     hideTooltip()
-    refreshAllInventoryUI()
+    if refreshAllInventoryUI then
+        refreshAllInventoryUI()
+    end
 end
 
 modalBackdrop.MouseButton1Click:Connect(function()
@@ -3386,9 +2938,6 @@ backpackBtn.MouseButton1Click:Connect(function()
     setBackpackOpen(not isBackpackOpen)
 end)
 
-closeBtn.MouseButton1Click:Connect(function()
-    setBackpackOpen(false)
-end)
 
 -- Переключение активных блоков 1–4 (Дерево, Земля, Камень, Трава)
 local SLOT_KEY_MAP = {
@@ -4083,6 +3632,8 @@ RunService.Heartbeat:Connect(function(dt)
             lastDigTick = tick()
             doDigStep()
             catStats.energy = math.max(0, catStats.energy - 1.2)
+            catStats.thirst = math.max(0, catStats.thirst - 0.2)
+            catStats.hunger = math.max(0, catStats.hunger - 0.15)
         end
     end
 
@@ -4091,11 +3642,37 @@ RunService.Heartbeat:Connect(function(dt)
         lastVitalityTick = tick()
         local char = player.Character
         local hum = char and char:FindFirstChildOfClass("Humanoid")
+        local rootPart = char and char:FindFirstChild("HumanoidRootPart")
+
         if hum and hum.MoveDirection.Magnitude > 0.1 then
             catStats.energy = math.max(0, catStats.energy - 0.12)
+            catStats.thirst = math.max(0, catStats.thirst - 0.03)
+            catStats.hunger = math.max(0, catStats.hunger - 0.02)
         else
-            catStats.energy = math.min(100, catStats.energy + 0.3)
+            catStats.energy = math.min(100, catStats.energy + 0.35)
+            catStats.thirst = math.max(0, catStats.thirst - 0.008)
+            catStats.hunger = math.max(0, catStats.hunger - 0.005)
         end
+
+        -- Утоление жажды при нахождении в воде или рядом с водой
+        if rootPart then
+            local waterRay = workspace:Raycast(rootPart.Position + Vector3.new(0, 1.5, 0), Vector3.new(0, -3.5, 0))
+            if waterRay and waterRay.Instance and (waterRay.Instance.Name:find("Water") ~= nil or waterRay.Instance:GetAttribute("BlockType") == "Water") then
+                if catStats.thirst < 100 then
+                    catStats.thirst = math.min(100, catStats.thirst + 1.2)
+                end
+            end
+        end
+
+        -- Влияние усталости на скорость котика
+        if hum then
+            if catStats.energy < 15 then
+                hum.WalkSpeed = 6.0 -- Уставший котик шагает медленнее
+            else
+                hum.WalkSpeed = 9.5 -- Стандартная бодрая скорость
+            end
+        end
+
         updateVitalityDisplay()
     end
 

@@ -619,16 +619,24 @@ RunService.RenderStepped:Connect(function(dt)
     local isMoving = currentMoveVector.Magnitude > 0.08
     local isActuallyWalking = currentMoveVector.Magnitude > 0.04
     -- РћР±РЅР°СЂСѓР¶РµРЅРёРµ РІРѕРґС‹ РїРѕРґ/РІРѕРєСЂСѓРі РєРѕС‚РёРєР° РґР»СЏ РїР»Р°РІР°РЅРёСЏ
+    local isLiquidWater = function(part)
+        if not part or not part:IsA("BasePart") then return false end
+        if part.Material == Enum.Material.Ice or part.CanCollide == true then
+            return false
+        end
+        return (part.Name:find("Water") ~= nil or part:GetAttribute("BlockType") == "Water")
+    end
+
     local now = tick()
     local waterHit = workspace:Raycast(rootPart.Position + Vector3.new(0, 1.5, 0), Vector3.new(0, -3.5, 0), waterRayParams)
-    if waterHit and waterHit.Instance and waterHit.Instance.Name:find("Water") ~= nil then
+    if waterHit and waterHit.Instance and isLiquidWater(waterHit.Instance) then
         isInWater = true
         currentWaterSurfaceY = waterHit.Instance.Position.Y + waterHit.Instance.Size.Y * 0.5
     else
         local touching = workspace:GetPartsInPart(rootPart)
         local foundWater = false
         for _, p in ipairs(touching) do
-            if p.Name:find("Water") ~= nil then
+            if isLiquidWater(p) then
                 foundWater = true
                 currentWaterSurfaceY = p.Position.Y + p.Size.Y * 0.5
                 break
